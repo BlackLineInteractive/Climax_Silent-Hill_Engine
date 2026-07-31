@@ -12,8 +12,12 @@ Opens proprietary Climax Engine container files (no file extension — named lik
 
 ## Screenshots
 
-![Screenshot 1](screenshots/screenshot1.png)
-![Screenshot 2](screenshots/screenshot2.png)
+![Screenshot 4](media/screenshot4.png)
+![Screenshot 6](media/screenshot6.png)
+![Screenshot 2](media/screenshot2.png)
+![Screenshot 1](media/screenshot1.png)
+![Screenshot 5](media/screenshot5.png)
+![Screenshot 3](media/screenshot3.png)
 
 ---
 
