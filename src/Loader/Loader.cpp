@@ -961,55 +961,16 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
 // game draws over the same geometry as <base>. Rather than replay the second
 // pass, fold the mask's luminance into the base texture's alpha so the ordinary
 // alpha test cuts the foliage out.
+//
+// NOTE: In release 0.1.1.5 this pass did not exist at all. Textures already
+// carry the correct alpha in their CLUT (palette[transparent].alpha = 0).
+// The merge loop was overwriting that correct alpha and making trees/wires
+// appear as white squares. Removing the body restores 0.1.1.5 behaviour while
+// keeping the Unswizzle4 fix that corrected the pine-tree texture decoding.
 // ---------------------------------------------------------------------------
 static void ApplyAlphaMasks() {
-  auto findBase = [](const std::string &n) -> TexPreviewInfo * {
-    auto it = g_TexInfo.find(n);
-    if (it != g_TexInfo.end())
-      return &it->second;
-    std::string up = n;
-    for (auto &c : up)
-      c = (char)toupper((unsigned char)c);
-    it = g_TexInfo.find(up);
-    return it != g_TexInfo.end() ? &it->second : nullptr;
-  };
-
-  size_t merged = 0;
-  for (const auto &[name, mask] : g_TexInfo) {
-    if (name.size() <= 10 || sho_strnicmp(name.c_str(), "GreyAlpha_", 10) != 0)
-      continue;
-    TexPreviewInfo *base = findBase(name.substr(10));
-    if (!base || !base->glID || !mask.glID)
-      continue;
-    if (base->width != mask.width || base->height != mask.height)
-      continue;
-
-    const size_t n = (size_t)base->width * base->height * 4;
-    std::vector<uint8_t> m(n), c(n);
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, mask.glID);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, m.data());
-    glBindTexture(GL_TEXTURE_2D, base->glID);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, c.data());
-    if (glGetError() != GL_NO_ERROR)
-      continue;
-
-    // Build the cut-out INTO the mask's own texture, not into the base.
-    // "GreyAlpha_X" is a material in its own right: it wants X's colour with its
-    // own luminance as alpha. Writing that into X instead punched holes in every
-    // other surface that shares X — the fences and planks that must stay solid.
-    for (size_t i = 0; i + 3 < n; i += 4) {
-      c[i + 3] = m[i]; // mask is greyscale: white = opaque, black = cut away
-    }
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, mask.glID);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mask.width, mask.height, GL_RGBA,
-                    GL_UNSIGNED_BYTE, c.data());
-    merged++;
-  }
-  if (merged)
-    std::cerr << "[textures] folded " << merged << " alpha masks into their base\n";
+  // Nothing to do — CLUT-decoded alpha is already correct for all textures.
+  (void)g_TexInfo;
 }
 
 void LoadLevelData(const std::string &displayName,

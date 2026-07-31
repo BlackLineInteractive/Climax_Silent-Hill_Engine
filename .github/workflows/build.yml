@@ -43,7 +43,12 @@ jobs:
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
-        run: brew install sdl2 glew glm
+        env:
+          HOMEBREW_NO_REQUIRE_TAP_TRUST: "1"
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+        run: |
+          brew untap aws/tap 2>/dev/null || true
+          brew install sdl2 glew glm
 
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
