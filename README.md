@@ -109,6 +109,11 @@ Sections that may appear inside a `0x0716`:
 | TEXDICTION | Texture dictionary (TXD)       |
 | BINMESH    | Pre-indexed triangle lists     |
 
+See **[SH_FORMAT.md](SH_FORMAT.md)** for the full format reference: archive
+layout, container chunks, the game-object record encoding, the PS2 display-list
+geometry, collision and texture formats, with the verification figures behind
+each claim.
+
 The container parser lives in [src/Loader.cpp](src/Loader.cpp); the PS2 texture
 decoder is in [src/PS2Texture.cpp](src/PS2Texture.cpp).
 
