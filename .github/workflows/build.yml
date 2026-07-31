@@ -64,20 +64,20 @@ jobs:
 
       # ── Smoke test ──────────────────────────────────────────────────────────
       # The viewer needs a GL context, so on Linux we run it under a virtual
-      # display to prove the binary actually starts, creates a 3.3 core context
-      # and compiles all three shader programs. Any shader/init failure is
-      # printed to stderr by MakeProgram(), so a non-empty stderr fails the job.
+      # display to prove the binary actually starts, gets a 3.3 core context and
+      # links all three shader programs. Init and shader failures are reported on
+      # stderr by MakeProgram()/main(); Mesa's own chatter is ignored.
       - name: Smoke test (Linux)
-        if: runner.os == 'Linux'
         run: |
-          sudo apt-get install -y --no-install-recommends xvfb mesa-utils libgl1-mesa-dri
+          sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri
           export LIBGL_ALWAYS_SOFTWARE=1
           xvfb-run -a --server-args="-screen 0 1280x720x24" \
             timeout 10s ./build/SHOViewer 2> stderr.txt || true
           echo "--- stderr ---"; cat stderr.txt
-          if [ -s stderr.txt ]; then
+          if grep -qiE "failed|\[shader\]" stderr.txt; then
             echo "::error::viewer reported errors on startup"; exit 1
           fi
+        if: runner.os == 'Linux'
 
       - name: Check binary exists (macOS / Windows)
         if: runner.os != 'Linux'
