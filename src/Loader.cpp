@@ -1,4 +1,5 @@
 #include "Loader.h"
+#include "Arc.h"
 #include "Common.h"
 #include "PS2Texture.h"
 #include <fstream>
@@ -23,16 +24,24 @@ static size_t FindPattern(const std::vector<uint8_t>& d, const std::vector<uint8
     return -1;
 }
 
-// ------------------- LOADER LOGIC -------------------
-void LoadTexturesFromTxd(const std::string& txdPath, const std::vector<std::string>& allowedNames, bool fallback) {
-    std::ifstream f(txdPath, std::ios::binary | std::ios::ate);
-    if (!f) return;
+std::vector<uint8_t> ReadWholeFile(const std::string& path) {
+    std::ifstream f(path, std::ios::binary | std::ios::ate);
+    if (!f) return {};
+    const std::streamoff len = f.tellg();
+    if (len <= 0) return {};
+    f.seekg(0);
+    std::vector<uint8_t> data((size_t)len);
+    if (!f.read((char*)data.data(), len)) return {};
+    return data;
+}
 
-    size_t sz = (size_t)f.tellg(); f.seekg(0);
+// ------------------- LOADER LOGIC -------------------
+void LoadTexturesFromTxdData(const std::vector<uint8_t>& data,
+                             const std::vector<std::string>& allowedNames, bool fallback) {
+    const size_t sz = data.size();
     // `pos < sz - 100` underflows on any file smaller than 100 bytes and turns the
     // loop bound into SIZE_MAX, walking off the end of the buffer.
     if (sz < 128) return;
-    std::vector<uint8_t> data(sz); f.read((char*)data.data(), sz);
 
     const int MAGIC_OFFSET = 80;
     size_t pos = 0;
@@ -96,11 +105,9 @@ void LoadTexturesFromTxd(const std::string& txdPath, const std::vector<std::stri
     }
 }
 
-void LoadGeometry(const std::string& geomPath) {
-    std::ifstream f(geomPath, std::ios::binary | std::ios::ate);
-    if (!f) return;
-    size_t sz = f.tellg(); f.seekg(0);
-    std::vector<uint8_t> data(sz); f.read((char*)data.data(), sz);
+void LoadGeometryData(const std::vector<uint8_t>& data) {
+    const size_t sz = data.size();
+    if (sz < 32) return;
 
     g_MaterialNames.clear();
 
@@ -422,7 +429,9 @@ void LoadGeometry(const std::string& geomPath) {
     }
 }
 
-void LoadLevel(const std::string& meshContainerPath, const std::vector<std::string>& txdPaths) {
+void LoadLevelData(const std::string& displayName,
+                   const std::vector<uint8_t>& container,
+                   const std::vector<NamedBlob>& txds) {
     // Every texture is registered under both its original and its upper-case name,
     // so delete each GL object once instead of once per alias.
     std::vector<GLuint> uniqueIds;
@@ -436,29 +445,28 @@ void LoadLevel(const std::string& meshContainerPath, const std::vector<std::stri
     // kept drawing with names that had just been deleted.
     g_TexInfo.clear();
 
-    LoadGeometry(meshContainerPath);
+    LoadGeometryData(container);
 
     // 1. Спочатку шукаємо строго за іменем
-    for (const auto& txd : txdPaths) {
-        LoadTexturesFromTxd(txd, g_MaterialNames, false);
-    }
+    for (const auto& [name, blob] : txds)
+        LoadTexturesFromTxdData(blob, g_MaterialNames, false);
 
     // 2. Якщо лишились незаповнені слоти – fallback
     std::vector<std::string> missing;
-    for (const auto& mat : g_MaterialNames) {
-        if (g_TextureMap.find(mat) == g_TextureMap.end()) {
+    for (const auto& mat : g_MaterialNames)
+        if (g_TextureMap.find(mat) == g_TextureMap.end())
             missing.push_back(mat);
-        }
-    }
-    if (!missing.empty()) {
-        for (const auto& txd : txdPaths) {
-            LoadTexturesFromTxd(txd, missing, true);
-            if (missing.empty()) break;
-        }
-    }
+    if (!missing.empty())
+        for (const auto& [name, blob] : txds)
+            LoadTexturesFromTxdData(blob, missing, true);
 
-    g_CurrentMeshContainer = meshContainerPath;
-    g_CurrentTxdPaths = txdPaths;
+    // Textures may also be embedded directly in the container.
+    if (g_TextureMap.empty())
+        LoadTexturesFromTxdData(container, g_MaterialNames, true);
+
+    g_CurrentMeshContainer = displayName;
+    g_CurrentTxdPaths.clear();
+    for (const auto& [name, blob] : txds) g_CurrentTxdPaths.push_back(name);
 
     // Build per-texture mesh-chunk index map using the directly stored texName
     g_MeshTexMap.clear();
@@ -467,24 +475,148 @@ void LoadLevel(const std::string& meshContainerPath, const std::vector<std::stri
         g_MeshTexMap[tName.empty() ? "NULL" : tName].push_back(ci);
     }
 
-    ParseContainerStructure(meshContainerPath);
+    ParseContainerStructureData(container);
+}
+
+// ── Path-based wrappers ─────────────────────────────────────────────────────
+void LoadTexturesFromTxd(const std::string& txdPath,
+                         const std::vector<std::string>& allowedNames, bool fallback) {
+    LoadTexturesFromTxdData(ReadWholeFile(txdPath), allowedNames, fallback);
+}
+
+void LoadGeometry(const std::string& geomPath) {
+    LoadGeometryData(ReadWholeFile(geomPath));
+}
+
+void ParseContainerStructure(const std::string& path) {
+    ParseContainerStructureData(ReadWholeFile(path));
+}
+
+void LoadLevel(const std::string& meshContainerPath, const std::vector<std::string>& txdPaths) {
+    std::vector<NamedBlob> txds;
+    txds.reserve(txdPaths.size());
+    for (const auto& p : txdPaths) {
+        auto blob = ReadWholeFile(p);
+        if (!blob.empty()) txds.emplace_back(p, std::move(blob));
+    }
+    LoadLevelData(meshContainerPath, ReadWholeFile(meshContainerPath), txds);
+}
+
+// ── Archive entry point ─────────────────────────────────────────────────────
+bool LoadLevelFromArc(int entryIndex) {
+    if (!g_Arc.IsOpen() || entryIndex < 0 ||
+        entryIndex >= (int)g_Arc.Entries().size()) return false;
+
+    const std::string& name = g_Arc.Entries()[entryIndex].name;
+
+    std::vector<uint8_t> container;
+    if (!g_Arc.Read((size_t)entryIndex, container) || container.empty()) {
+        std::cerr << "[arc] cannot inflate container '" << name << "'\n";
+        return false;
+    }
+
+    std::vector<NamedBlob> txds;
+    for (int ti : g_Arc.TxdsFor(name)) {
+        std::vector<uint8_t> blob;
+        if (g_Arc.Read((size_t)ti, blob) && !blob.empty())
+            txds.emplace_back(g_Arc.Entries()[ti].name, std::move(blob));
+    }
+
+    std::cerr << "[arc] loading '" << name << "' (" << container.size()
+              << " bytes) with " << txds.size() << " texture dictionaries\n";
+    LoadLevelData(name, container, txds);
+    return true;
 }
 
 // ============================================================
 // SHO container structure parser — reads the REAL file header,
 // enumerates all 0x716 sections, parses CBSP collision, clumps
 // ============================================================
-void ParseContainerStructure(const std::string& path) {
+// ---------------------------------------------------------------------------
+// 0x0704 — a placed game-object instance.
+//
+// The chunk body is a flat list of tagged records:
+//
+//     [u32 recordSize][u32 recordId][payload (recordSize - 8 bytes)]
+//
+// The top byte of recordId selects the record kind, the low 24 bits are the
+// property index within the current component:
+//
+//     0x20  component class name   ("CPickupItem", "CStaticCamera", …)
+//     0x40  16-byte GUID (usually a reference to a resource section)
+//     0x80  instance / base-class name
+//     0x00  indexed property
+//
+// Property 1 of the object's own component is a 64-byte, column-major 4x4 world
+// matrix — this is the placement the viewer was missing, which is why every
+// object used to sit at the origin. Names are padded with 0xBF filler bytes.
+// ---------------------------------------------------------------------------
+static void ParseGameObject(const std::vector<uint8_t>& data, size_t off, uint32_t size) {
+    const size_t sz    = data.size();
+    const size_t body  = off + 12;
+    const size_t bodyEnd = body + size;
+    if (bodyEnd > sz) return;
+
+    auto ru32l = [&](size_t o) -> uint32_t {
+        uint32_t v; memcpy(&v, &data[o], 4); return v;
+    };
+    // Names are NUL-terminated and then padded with 0xBF up to the record size.
+    auto readName = [&](size_t o, size_t len) -> std::string {
+        size_t end = o;
+        while (end < o + len && data[end] != 0x00 && data[end] != 0xBF) ++end;
+        return std::string((const char*)&data[o], end - o);
+    };
+
+    GameObject go;
+    go.offset = (uint32_t)off;
+
+    bool haveClass = false;
+    bool haveXform = false;
+
+    size_t p = body + 4;          // the body opens with a 4-byte field we skip
+    while (p + 8 <= bodyEnd) {
+        const uint32_t rs  = ru32l(p);
+        const uint32_t rid = ru32l(p + 4);
+        if (rs < 8 || p + rs > bodyEnd) break;
+
+        const size_t payOff = p + 8;
+        const size_t payLen = rs - 8;
+        const uint32_t kind = rid >> 24;
+        const uint32_t idx  = rid & 0x00FFFFFF;
+
+        if (kind == 0x20) {
+            if (!haveClass) { go.className = readName(payOff, payLen); haveClass = true; }
+        } else if (kind == 0x80) {
+            if (go.instName.empty()) go.instName = readName(payOff, payLen);
+        } else if (kind == 0x00 && idx == 1 && payLen == 64 && !haveXform) {
+            // Column-major 4x4; glm::mat4 has the same memory order.
+            glm::mat4 m;
+            memcpy(&m[0][0], &data[payOff], 64);
+            go.transform = m;
+            go.position  = glm::vec3(m[3]);
+            go.atOrigin  = (glm::length(go.position) < 1e-4f);
+            haveXform    = true;
+        }
+        p += rs;
+    }
+
+    if (go.className.empty()) return;
+
+    go.label = go.className;
+    if (!go.instName.empty() && go.instName != go.className)
+        go.label += " (" + go.instName + ")";
+    g_GameObjects.push_back(std::move(go));
+}
+
+void ParseContainerStructureData(const std::vector<uint8_t>& data) {
     g_ContainerChunks.clear();
     g_ShoTypes.clear();
     g_ShoSections.clear();
     g_Clumps.clear();
+    g_GameObjects.clear();
     g_Collision.Free();
 
-    std::ifstream f(path, std::ios::binary | std::ios::ate);
-    if (!f) return;
-    size_t sz = (size_t)f.tellg(); f.seekg(0);
-    std::vector<uint8_t> data(sz); f.read((char*)data.data(), sz);
+    const size_t sz = data.size();
     if (sz < 16) return;
 
     const uint32_t RW_VER = 0x1c020065;
@@ -529,23 +661,42 @@ void ParseContainerStructure(const std::string& path) {
         }
     }
 
-    // ── 2. Walk all 0x716 sections ────────────────────────────────
-    // After the header, find every chunk of type 0x716 with version 0x1c020065.
-    size_t off716 = 0;
+    // ── 2. Walk the top-level chunk list ──────────────────────────
+    // Start right after the 0x071C directory when it is sane, so the walk runs
+    // chunk-to-chunk instead of byte-scanning through the header.
+    size_t off716 = (hdrType == 0x071c && hdrSize > 0 && hdrSize < sz) ? 0x0c + hdrSize : 0;
     while (off716 + 12 < sz) {
         uint32_t t = ru32(off716);
         uint32_t s = ru32(off716 + 4);
         uint32_t v = ru32(off716 + 8);
-        if (v != RW_VER || t != 0x716 || s == 0 || off716 + 12 + s > sz) {
+        if (v != RW_VER || s == 0 || off716 + 12 + s > sz) {
             off716 += 4; continue;
         }
+        // 0x0704 chunks are the placed game-object instances; parsed below.
+        if (t == 0x0704) {
+            ParseGameObject(data, off716, s);
+            off716 += 12 + s; continue;
+        }
+        if (t != 0x716) { off716 += 12 + s; continue; }
 
-        // inner header of 0x716: [count(4)][f2(4)][f3(4)][guid(16)][nameLen(4)][name...]
+        // Inner header of a 0x716 section:
+        //   [count(4)][tagLen(4)][tag(tagLen)][guid(16)][nameLen(4)][name(nameLen)]
+        //
+        // The old code assumed tagLen was always 4 and read the name at a fixed
+        // inner+28. That holds for rwID_WORLD/CBSP/WAVEDICT but not for sections
+        // that carry a real tag — rwID_AINAVMESH stores "MO_1_Room102_Navmesh.nav"
+        // there, which pushed everything 24 bytes along and made the section come
+        // out unnamed with a garbage nameLen of ~2 billion.
         size_t inner = off716 + 12;
-        uint32_t nameLen = ru32(inner + 28);
+        uint32_t tagLen = ru32(inner + 4);
+        if (tagLen > 1024) tagLen = 4;
+        size_t guidOff  = inner + 8 + tagLen;
+        uint32_t nameLen = ru32(guidOff + 16);
+        size_t nameOff  = guidOff + 20;
+
         std::string secName;
-        if (nameLen < 256 && inner + 32 + nameLen <= sz)
-            secName = safeCStr(inner + 32, nameLen + 4);
+        if (nameLen < 256 && nameOff + nameLen <= sz)
+            secName = safeCStr(nameOff, nameLen);
 
         ShoSection sec;
         sec.offset = (uint32_t)off716;
@@ -554,7 +705,7 @@ void ParseContainerStructure(const std::string& path) {
         g_ShoSections.push_back(sec);
 
         // Navigate past the two embedded path strings to object_start
-        size_t p1off = inner + 32 + nameLen;
+        size_t p1off = nameOff + nameLen;
         uint32_t p1len = ru32(p1off);
         size_t p2off = p1off + 4 + (p1len < 1024 ? p1len : 0);
         if (p2off + 4 > sz) { off716 += 12 + s; continue; }
@@ -563,13 +714,17 @@ void ParseContainerStructure(const std::string& path) {
 
         // ── 2a. CBSP collision ─────────────────────────────────────
         if (secName == "rwID_CBSP" && objStart + 12 < sz) {
-            // Walk children looking for type 0x1100
+            // Scan for the 0x1100 child rather than assuming it starts exactly at
+            // objStart: in the retail containers it sits 8 bytes further in, and
+            // the old fixed-stride walk (co += 12 + cs) stepped straight over it,
+            // so the collision overlay silently had nothing to draw.
             size_t co = objStart;
             while (co + 12 <= off716 + 12 + s) {
                 uint32_t ct = ru32(co);
                 uint32_t cs = ru32(co + 4);
                 uint32_t cv = ru32(co + 8);
-                if (cv == RW_VER && ct == 0x1100 && cs > 32) {
+                if (!(cv == RW_VER && ct == 0x1100 && cs > 32)) { co += 4; continue; }
+                {
                     // data starts at co+12
                     size_t doff = co + 12;
                     uint32_t numVerts = ru32(doff + 8);   // group 0 vertex count
@@ -603,8 +758,6 @@ void ParseContainerStructure(const std::string& path) {
                     }
                     break;
                 }
-                if (cs == 0) break;
-                co += 12 + cs;
             }
         }
 
@@ -691,7 +844,19 @@ void ParseContainerStructure(const std::string& path) {
     if (!g_Collision.verts.empty())
         g_Collision.Upload();
 
-    // ── 4. Legacy g_ContainerChunks — fill from g_ShoTypes (for UI) ─
+    // ── 4. Summary ────────────────────────────────────────────────
+    {
+        size_t placed = 0;
+        for (const auto& go : g_GameObjects) if (!go.atOrigin) placed++;
+        uint32_t declared = 0;
+        for (const auto& t : g_ShoTypes) declared += t.count;
+        std::cerr << "[container] " << g_ShoSections.size() << " sections, "
+                  << g_GameObjects.size() << "/" << declared << " game objects ("
+                  << placed << " placed), " << g_Clumps.size() << " clumps, "
+                  << g_Collision.verts.size() << " collision verts\n";
+    }
+
+    // ── 5. Legacy g_ContainerChunks — fill from g_ShoTypes (for UI) ─
     g_ContainerChunks.clear();
     for (auto& te : g_ShoTypes) {
         ContainerChunkInfo ci;

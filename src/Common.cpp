@@ -14,6 +14,7 @@ std::vector<ShoTypeEntry>  g_ShoTypes;
 std::vector<ShoSection>    g_ShoSections;
 CollisionMesh              g_Collision;
 std::vector<ClumpObject>   g_Clumps;
+std::vector<GameObject>    g_GameObjects;
 
 std::string              g_CurrentMeshContainer;
 std::vector<std::string> g_CurrentTxdPaths;

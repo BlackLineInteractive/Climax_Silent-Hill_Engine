@@ -92,6 +92,22 @@ struct ClumpObject {
     int          meshCount;   // how many g_Chunks indices
 };
 
+// A placed game-object instance, parsed from a 0x0704 chunk.
+//
+// These are what the 0x071C type directory counts (CZone, CPickupItem,
+// CStaticCamera, …). Each chunk is a tagged property list; property 1 of the
+// object's own component is a 4x4 column-major world matrix. Purely logical
+// objects (CZone, GameMessage, CMessageRelay, …) legitimately carry identity.
+struct GameObject {
+    std::string className;   // "CPickupItem", "CStaticCamera", …
+    std::string instName;    // instance / base-class name from the 0x80 record
+    std::string label;       // what the viewport marker shows
+    glm::mat4   transform = glm::mat4(1.0f);
+    glm::vec3   position  = glm::vec3(0.0f);
+    bool        atOrigin  = true;   // identity transform → not spatially placed
+    uint32_t    offset    = 0;      // chunk offset, for the structure panel
+};
+
 // Render mode for the 3D viewport
 enum class RenderMode {
     Textured    = 0,  // texture + vertex colors (default)
@@ -122,8 +138,12 @@ struct ViewerState {
     bool showCollision    = false;  // overlay collision wireframe
     bool showCollisionSolid = false;// fill collision as solid semi-transparent
     bool showClumps       = true;   // show clump object markers
+    bool showGameObjects  = true;   // show 0x0704 game-object markers
+    bool showOriginObjects = false; // include objects whose transform is identity
+    bool showObjectLabels = true;   // draw the projected name next to each marker
     bool showStructure    = true;   // show Structure hierarchy panel
     bool showTextures     = true;   // show Textures browser panel
+    bool showArc          = true;   // show the SH.ARC contents browser
     RenderMode renderMode = RenderMode::Textured;
 
     // Pivot gizmo (ImGuizmo)
@@ -151,6 +171,7 @@ extern std::vector<ShoTypeEntry>     g_ShoTypes;     // from file header type ta
 extern std::vector<ShoSection>       g_ShoSections;  // all 0x716 blocks
 extern CollisionMesh                 g_Collision;    // CBSP floor collision
 extern std::vector<ClumpObject>      g_Clumps;       // animated/placed objects
+extern std::vector<GameObject>       g_GameObjects;  // 0x0704 placed instances
 
 extern std::string              g_CurrentMeshContainer;
 extern std::vector<std::string> g_CurrentTxdPaths;

@@ -14,6 +14,7 @@
 #include "imgui_impl_opengl3.h"
 #include "ImGuizmo.h"
 
+#include "Arc.h"
 #include "Common.h"
 #include "Loader.h"
 #include "UI.h"
@@ -77,6 +78,49 @@ static void DrawOrbitSphere(ImDrawList* dl, ImVec2 ctr, float R, const glm::mat4
         dl->AddCircleFilled(s, 3.5f, ax.col);
         dl->AddText(ImVec2(s.x + 5.0f, s.y - 7.0f), ax.col, ax.lbl);
     }
+}
+
+// Append one octahedron-wireframe marker plus three orientation axes.
+static void AppendMarker(std::vector<glm::vec3>& out, const glm::vec3& pos,
+                         const glm::mat4& xform, float R, float axisLen) {
+    const glm::vec3 O[6] = {
+        { R, 0, 0}, {-R, 0, 0},
+        {0,  R, 0}, {0, -R, 0},
+        {0, 0,  R}, {0, 0, -R},
+    };
+    static const int EDGES[12][2] = {
+        {2,0},{2,4},{2,1},{2,5}, // top to equatorial
+        {3,0},{3,4},{3,1},{3,5}, // bottom to equatorial
+        {0,4},{4,1},{1,5},{5,0}, // equatorial ring
+    };
+    for (auto& ed : EDGES) {
+        out.push_back(pos + O[ed[0]]);
+        out.push_back(pos + O[ed[1]]);
+    }
+    if (axisLen > 0.0f) {
+        for (int a = 0; a < 3; a++) {
+            out.push_back(pos);
+            out.push_back(pos + glm::vec3(xform[a]) * axisLen);
+        }
+    }
+}
+
+// Project a world position to screen space and draw a boxed label.
+static void DrawWorldLabel(ImDrawList* dl, const glm::mat4& viewProj,
+                           const glm::vec3& pos, int winW, int winH,
+                           const char* text, ImU32 col) {
+    glm::vec4 clip = viewProj * glm::vec4(pos, 1.0f);
+    if (clip.w <= 0.0f) return;
+    glm::vec3 ndc = glm::vec3(clip) / clip.w;
+    if (std::abs(ndc.x) > 1.1f || std::abs(ndc.y) > 1.1f) return;
+    float sx = (ndc.x * 0.5f + 0.5f) * (float)winW;
+    float sy = (1.0f - (ndc.y * 0.5f + 0.5f)) * (float)winH;
+    ImVec2 ts = ImGui::CalcTextSize(text);
+    dl->AddRectFilled(
+        ImVec2(sx - ts.x * 0.5f - 3.0f, sy - ts.y - 8.0f),
+        ImVec2(sx + ts.x * 0.5f + 3.0f, sy - 4.0f),
+        IM_COL32(20, 20, 28, 180), 3.0f);
+    dl->AddText(ImVec2(sx - ts.x * 0.5f, sy - ts.y - 7.0f), col, text);
 }
 
 // Compile + link a program, reporting the driver's log instead of silently
@@ -157,11 +201,29 @@ int main(int argc, char* argv[]) {
 
     // Load only once a GL context exists — LoadLevel() uploads buffers and
     // textures, and it used to run before SDL was even initialised.
-    // The TXD list is optional: textures may be embedded in the container.
+    //
+    //   SHOViewer SH.ARC [LevelName]        — mount the archive, load by name
+    //   SHOViewer <container> [txd ...]     — loose files; TXDs are optional
     if (argc >= 2) {
-        std::vector<std::string> txds;
-        for (int i = 2; i < argc; i++) txds.push_back(argv[i]);
-        LoadLevel(argv[1], txds);
+        const std::string first = argv[1];
+        const bool looksLikeArc =
+            first.size() > 4 && sho_stricmp(first.c_str() + first.size() - 4, ".arc") == 0;
+
+        if (looksLikeArc && g_Arc.Open(first)) {
+            std::cerr << "[arc] mounted " << first << " ("
+                      << g_Arc.Entries().size() << " files)\n";
+            if (argc >= 3) {
+                const int idx = g_Arc.Find(argv[2]);
+                if (idx >= 0) LoadLevelFromArc(idx);
+                else std::cerr << "[arc] no entry named '" << argv[2] << "'\n";
+            }
+        } else {
+            if (looksLikeArc)
+                std::cerr << "[arc] " << g_Arc.Error() << " — treating as a container\n";
+            std::vector<std::string> txds;
+            for (int i = 2; i < argc; i++) txds.push_back(argv[i]);
+            LoadLevel(first, txds);
+        }
     }
 
     IMGUI_CHECKVERSION(); ImGui::CreateContext();
@@ -339,6 +401,16 @@ void main(){
     GLuint skyVao;
     glGenVertexArrays(1, &skyVao);
 
+    // Persistent line buffer for clump / game-object markers
+    GLuint markerVao, markerVbo;
+    glGenVertexArrays(1, &markerVao);
+    glGenBuffers(1, &markerVbo);
+    glBindVertexArray(markerVao);
+    glBindBuffer(GL_ARRAY_BUFFER, markerVbo);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, nullptr);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
     // Mouse orbit state
     bool  mouseRight = false;
     int   prevMouseX = 0, prevMouseY = 0;
@@ -511,78 +583,62 @@ void main(){
             glLineWidth(1.0f);
         }
 
-        // --- Clump object markers (octahedron wireframe + label) ---
-        if (state.showClumps && !g_Clumps.empty()) {
-            // Build the octahedron edges for all clumps into one batch
-            // Octahedron vertices relative to center: ±R along each axis
-            const float R = 0.35f;
-            // 12 edges × 2 verts = 24 line vertices per clump
-            // Edges: top/bottom ↔ 4 equatorial, plus equatorial ring
-            const glm::vec3 O[6] = {
-                { R, 0, 0}, {-R, 0, 0},
-                {0,  R, 0}, {0, -R, 0},
-                {0, 0,  R}, {0, 0, -R},
-            };
-            // 12 edges by index pair
-            const int EDGES[12][2] = {
-                {2,0},{2,4},{2,1},{2,5}, // top to equatorial
-                {3,0},{3,4},{3,1},{3,5}, // bottom to equatorial
-                {0,4},{4,1},{1,5},{5,0}, // equatorial ring
+        // --- Object markers: CLUMPs and placed 0x0704 game objects ---
+        // Both batches share one persistent VBO; this used to allocate and then
+        // destroy a VAO + VBO on every single frame.
+        {
+            auto* fdl = ImGui::GetForegroundDrawList();
+
+            auto drawBatch = [&](const std::vector<glm::vec3>& verts, float r, float g, float b) {
+                if (verts.empty()) return;
+                glBindVertexArray(markerVao);
+                glBindBuffer(GL_ARRAY_BUFFER, markerVbo);
+                glBufferData(GL_ARRAY_BUFFER,
+                             (GLsizeiptr)(verts.size() * sizeof(glm::vec3)),
+                             verts.data(), GL_DYNAMIC_DRAW);
+                glUseProgram(collProg);
+                glUniformMatrix4fv(glGetUniformLocation(collProg, "m"), 1, GL_FALSE, glm::value_ptr(mvp));
+                glUniform4f(glGetUniformLocation(collProg, "solidColor"), r, g, b, 1.0f);
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                glLineWidth(2.0f);
+                glDrawArrays(GL_LINES, 0, (GLsizei)verts.size());
+                glLineWidth(1.0f);
+                glBindVertexArray(0);
             };
 
             std::vector<glm::vec3> lineVerts;
-            lineVerts.reserve(g_Clumps.size() * 24);
-            for (const auto& cl : g_Clumps) {
-                for (auto& ed : EDGES) {
-                    lineVerts.push_back(cl.position + O[ed[0]]);
-                    lineVerts.push_back(cl.position + O[ed[1]]);
-                }
-                // three long axis lines for orientation
-                lineVerts.push_back(cl.position);
-                lineVerts.push_back(cl.position + glm::vec3(cl.transform[0]) * 0.5f);
-                lineVerts.push_back(cl.position);
-                lineVerts.push_back(cl.position + glm::vec3(cl.transform[1]) * 0.5f);
-                lineVerts.push_back(cl.position);
-                lineVerts.push_back(cl.position + glm::vec3(cl.transform[2]) * 0.5f);
+
+            if (state.showClumps && !g_Clumps.empty()) {
+                lineVerts.clear();
+                lineVerts.reserve(g_Clumps.size() * 30);
+                for (const auto& cl : g_Clumps)
+                    AppendMarker(lineVerts, cl.position, cl.transform, 0.35f, 0.5f);
+                drawBatch(lineVerts, 1.0f, 0.72f, 0.10f);
+
+                if (state.showObjectLabels)
+                    for (const auto& cl : g_Clumps)
+                        DrawWorldLabel(fdl, mvp, cl.position, winW, winH,
+                                       cl.label.c_str(), IM_COL32(255, 192, 40, 255));
             }
 
-            GLuint lvao, lvbo;
-            glGenVertexArrays(1, &lvao); glGenBuffers(1, &lvbo);
-            glBindVertexArray(lvao);
-            glBindBuffer(GL_ARRAY_BUFFER, lvbo);
-            glBufferData(GL_ARRAY_BUFFER, (GLsizei)(lineVerts.size() * sizeof(glm::vec3)),
-                         lineVerts.data(), GL_DYNAMIC_DRAW);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 12, nullptr);
-            glEnableVertexAttribArray(0);
+            if (state.showGameObjects && !g_GameObjects.empty()) {
+                lineVerts.clear();
+                lineVerts.reserve(g_GameObjects.size() * 30);
+                for (const auto& go : g_GameObjects) {
+                    // Non-spatial objects (CZone, GameMessage, …) carry identity;
+                    // drawing them all stacked on the origin is just noise.
+                    if (go.atOrigin && !state.showOriginObjects) continue;
+                    AppendMarker(lineVerts, go.position, go.transform, 0.22f, 0.45f);
+                }
+                drawBatch(lineVerts, 0.35f, 0.85f, 1.0f);
 
-            glUseProgram(collProg);
-            glUniformMatrix4fv(glGetUniformLocation(collProg, "m"), 1, GL_FALSE, glm::value_ptr(mvp));
-            glUniform4f(glGetUniformLocation(collProg, "solidColor"), 1.0f, 0.72f, 0.10f, 1.0f);
-            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            glLineWidth(2.0f);
-            glDrawArrays(GL_LINES, 0, (GLsizei)lineVerts.size());
-            glLineWidth(1.0f);
-            glBindVertexArray(0);
-            glDeleteVertexArrays(1, &lvao);
-            glDeleteBuffers(1, &lvbo);
-
-            // Screen-space labels for each clump (projected)
-            auto* fdl = ImGui::GetForegroundDrawList();
-            for (const auto& cl : g_Clumps) {
-                glm::vec4 clip = proj * view * glm::vec4(cl.position, 1.0f);
-                if (clip.w <= 0.0f) continue;
-                glm::vec3 ndc = glm::vec3(clip) / clip.w;
-                if (std::abs(ndc.x) > 1.1f || std::abs(ndc.y) > 1.1f) continue;
-                float sx = (ndc.x * 0.5f + 0.5f) * (float)winW;
-                float sy = (1.0f - (ndc.y * 0.5f + 0.5f)) * (float)winH;
-                const char* lbl = cl.label.c_str();
-                ImVec2 ts = ImGui::CalcTextSize(lbl);
-                fdl->AddRectFilled(
-                    ImVec2(sx - ts.x * 0.5f - 3.0f, sy - ts.y - 8.0f),
-                    ImVec2(sx + ts.x * 0.5f + 3.0f, sy - 4.0f),
-                    IM_COL32(20, 20, 28, 180), 3.0f);
-                fdl->AddText(ImVec2(sx - ts.x * 0.5f, sy - ts.y - 7.0f),
-                    IM_COL32(255, 192, 40, 255), lbl);
+                if (state.showObjectLabels) {
+                    for (const auto& go : g_GameObjects) {
+                        if (go.atOrigin && !state.showOriginObjects) continue;
+                        DrawWorldLabel(fdl, mvp, go.position, winW, winH,
+                                       go.label.c_str(), IM_COL32(120, 216, 255, 255));
+                    }
+                }
             }
         }
 
@@ -678,7 +734,15 @@ void main(){
         ImGui::Begin("SHO Viewer", nullptr,
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
-        if (ImGui::Button("Open Level", ImVec2(-1, 0))) g_FileBrowser.Open(true);
+        if (ImGui::Button("Open SH.ARC", ImVec2(-1, 0))) g_FileBrowser.Open(FileBrowserMode::Arc);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Load the game archive and browse levels by their real names");
+        if (g_Arc.IsOpen()) {
+            ImGui::TextDisabled("%s", fs::path(g_Arc.Path()).filename().string().c_str());
+            ImGui::SameLine();
+            ImGui::TextDisabled("(%zu files)", g_Arc.Entries().size());
+        }
+        if (ImGui::Button("Open Loose File", ImVec2(-1, 0))) g_FileBrowser.Open(FileBrowserMode::Mesh);
 
         if (!g_CurrentMeshContainer.empty()) {
             ImGui::Spacing();
@@ -772,6 +836,23 @@ void main(){
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("%zu clump objects", g_Clumps.size());
             }
+            if (!g_GameObjects.empty()) {
+                size_t placed = 0;
+                for (const auto& go : g_GameObjects) if (!go.atOrigin) placed++;
+                ImGui::Checkbox("Objects", &state.showGameObjects);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("%zu game objects, %zu with a world transform",
+                                      g_GameObjects.size(), placed);
+                if (state.showGameObjects) {
+                    ImGui::SameLine(128);
+                    ImGui::Checkbox("Labels", &state.showObjectLabels);
+                    ImGui::Checkbox("At origin", &state.showOriginObjects);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Also show the %zu logical objects that carry\n"
+                                          "an identity transform (CZone, GameMessage, ...)",
+                                          g_GameObjects.size() - placed);
+                }
+            }
         }
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
@@ -780,6 +861,7 @@ void main(){
         ImGui::TextDisabled("Panels");
         ImGui::Checkbox("Structure", &state.showStructure); ImGui::SameLine(128);
         ImGui::Checkbox("Textures",  &state.showTextures);
+        ImGui::Checkbox("Archive",   &state.showArc);
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
 
@@ -825,6 +907,7 @@ void main(){
 
         if (state.showStructure) RenderStructureWindow();
         if (state.showTextures)  RenderTxdWindow();
+        if (state.showArc)       RenderArcWindow();
 
         // File browser
         g_FileBrowser.Render();
@@ -846,6 +929,9 @@ void main(){
     }
 
     glDeleteVertexArrays(1, &skyVao);
+    glDeleteVertexArrays(1, &markerVao);
+    glDeleteBuffers(1, &markerVbo);
+    g_Arc.Close();
 
     for (auto& chunk : g_Chunks) {
         if (chunk.vao) glDeleteVertexArrays(1, &chunk.vao);

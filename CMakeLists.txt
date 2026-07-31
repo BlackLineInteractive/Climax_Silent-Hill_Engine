@@ -41,6 +41,7 @@ endif()
 # ── System dependencies ───────────────────────────────────────────────────────
 find_package(OpenGL REQUIRED)
 find_package(GLEW   REQUIRED)   # vcpkg / brew / libglew-dev all export GLEW::GLEW
+find_package(ZLIB   REQUIRED)   # SH.ARC payloads are raw zlib streams
 
 # SDL2: prefer the CMake config package (vcpkg, recent Homebrew, SDL built from
 # source). Fall back to pkg-config, which is what most Linux distros ship.
@@ -88,6 +89,7 @@ set(APP_SOURCES
     src/PS2Texture.cpp
     src/Loader.cpp
     src/UI.cpp
+    src/Arc.cpp
 )
 
 # ── ImGui sources (fetched) ───────────────────────────────────────────────────
@@ -131,6 +133,7 @@ endif()
 target_link_libraries(SHOViewer
     OpenGL::GL
     GLEW::GLEW
+    ZLIB::ZLIB
     glm::glm
     ${SHO_SDL2_TARGETS}
 )

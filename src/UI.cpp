@@ -1,15 +1,19 @@
 #include "UI.h"
+#include "Arc.h"
 #include "Loader.h"
 #include "Common.h"
 #include "imgui.h"
 #include <algorithm>
+#include <cstring>
 #include <iostream>
+
+static char arcFilter[128] = "";
 
 FileBrowserState g_FileBrowser;
 namespace fs = std::filesystem;
 
-void FileBrowserState::Open(bool forMesh) {
-    selectingMesh = forMesh;
+void FileBrowserState::Open(FileBrowserMode m) {
+    mode = m;
     showBrowser = true;
     if (currentPath.empty()) {
         currentPath = fs::current_path().string();
@@ -46,9 +50,15 @@ void FileBrowserState::RefreshEntries() {
 void FileBrowserState::Render() {
     if (!showBrowser) return;
 
+    const bool selectingMesh = (mode == FileBrowserMode::Mesh);
+    const bool selectingArc  = (mode == FileBrowserMode::Arc);
+
     ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
-    std::string title = selectingMesh ? "Select Mesh Container (no extension)" : "Select .txd texture containers";
-    if (ImGui::Begin(title.c_str(), &showBrowser)) {
+    const char* title =
+        selectingArc  ? "Select SH.ARC / IGC.ARC" :
+        selectingMesh ? "Select Mesh Container (no extension)"
+                      : "Select .txd texture containers";
+    if (ImGui::Begin(title, &showBrowser)) {
         if (!errorMessage.empty()) {
             ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "Error: %s", errorMessage.c_str());
             ImGui::Separator();
@@ -65,7 +75,7 @@ void FileBrowserState::Render() {
             RefreshEntries();
         }
 
-        if (!selectingMesh) {
+        if (mode == FileBrowserMode::Txd) {
             ImGui::SameLine();
             ImGui::Text("Selected: %zu .txd(s)", selectedTxds.size());
             ImGui::SameLine();
@@ -85,6 +95,7 @@ void FileBrowserState::Render() {
         // These are set inside the loop and acted on AFTER it to avoid
         // invalidating the `entries` iterator mid-loop.
         pendingNavigate.clear();
+        pendingMountArc.clear();
         pendingOpenTxd = false;
 
         for (const auto& entry : entries) {
@@ -96,8 +107,9 @@ void FileBrowserState::Render() {
             std::transform(extLower.begin(), extLower.end(), extLower.begin(),
                 [](unsigned char c){ return std::tolower(c); });
             bool shouldShow = isDir ||
+                (selectingArc  && extLower == ".arc") ||
                 (selectingMesh && ext.empty()) ||
-                (!selectingMesh && extLower == ".txd");
+                (mode == FileBrowserMode::Txd && extLower == ".txd");
 
             if (!shouldShow) continue;
 
@@ -108,7 +120,7 @@ void FileBrowserState::Render() {
                 }
 
                 // Convenience button: add all .txd files from this directory.
-                if (!selectingMesh) {
+                if (mode == FileBrowserMode::Txd) {
                     ImGui::SameLine();
                     if (ImGui::Button(("Add all .txd##" + name).c_str())) {
                         try {
@@ -130,12 +142,15 @@ void FileBrowserState::Render() {
             }
             else {
                 bool isSelected = false;
-                if (!selectingMesh) {
+                if (mode == FileBrowserMode::Txd) {
                     isSelected = std::find(selectedTxds.begin(), selectedTxds.end(), entry.string()) != selectedTxds.end();
                 }
 
                 if (ImGui::Selectable(name.c_str(), isSelected)) {
-                    if (selectingMesh) {
+                    if (selectingArc) {
+                        pendingMountArc = entry.string();
+                    }
+                    else if (selectingMesh) {
                         // Single click selects the mesh container and moves to TXD selection.
                         selectedMeshContainer = entry.string();
                         pendingOpenTxd = true;
@@ -156,12 +171,94 @@ void FileBrowserState::Render() {
             currentPath = pendingNavigate;
             RefreshEntries();
         }
+        if (!pendingMountArc.empty()) {
+            if (g_Arc.Open(pendingMountArc)) {
+                showBrowser = false;
+                state.showArc = true;
+                arcFilter[0] = '\0';
+            } else {
+                errorMessage = "Cannot open archive: " + g_Arc.Error();
+            }
+        }
         if (pendingOpenTxd) {
             showBrowser = false;
-            Open(false);
+            Open(FileBrowserMode::Txd);
         }
     }
     ImGui::End();
+}
+
+// ---------------------------------------------------------------------------
+// SH.ARC contents browser
+//
+// The archive carries the real internal name of every file, so levels can be
+// picked by name ("MO_1_Room102") instead of by hunting for extensionless files
+// on disk. Selecting one also pulls in every texture dictionary the archive
+// names after it.
+// ---------------------------------------------------------------------------
+void RenderArcWindow() {
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(vp->Pos.x + 276.0f, vp->Pos.y + 480.0f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(ImVec2(360, 420), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("Archive", &state.showArc)) { ImGui::End(); return; }
+
+    if (!g_Arc.IsOpen()) {
+        ImGui::TextDisabled("No archive mounted.");
+        ImGui::TextWrapped("Use \"Open SH.ARC\" to mount the game archive and "
+                           "browse levels by their real names.");
+        ImGui::End();
+        return;
+    }
+
+    const auto& entries = g_Arc.Entries();
+    ImGui::TextDisabled("%s", g_Arc.Path().c_str());
+
+    static bool onlyContainers = true;
+    ImGui::Checkbox("Levels only", &onlyContainers);
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("Show only entries without a file extension —\n"
+                          "those are the geometry containers.");
+    ImGui::SetNextItemWidth(-1);
+    ImGui::InputTextWithHint("##arcfilter", "filter by name...", arcFilter, sizeof(arcFilter));
+
+    ImGui::Separator();
+    ImGui::BeginChild("##arclist");
+
+    int pendingLoad = -1;
+    size_t shown = 0;
+    for (size_t i = 0; i < entries.size(); i++) {
+        const std::string& n = entries[i].name;
+        const bool isContainer = n.find('.') == std::string::npos;
+        if (onlyContainers && !isContainer) continue;
+        if (arcFilter[0]) {
+            std::string lo = n, needle = arcFilter;
+            std::transform(lo.begin(), lo.end(), lo.begin(),
+                           [](unsigned char c){ return std::tolower(c); });
+            std::transform(needle.begin(), needle.end(), needle.begin(),
+                           [](unsigned char c){ return std::tolower(c); });
+            if (lo.find(needle) == std::string::npos) continue;
+        }
+        shown++;
+
+        const bool current = (g_CurrentMeshContainer == n);
+        ImGui::PushID((int)i);
+        if (ImGui::Selectable(n.c_str(), current) && isContainer)
+            pendingLoad = (int)i;
+        if (ImGui::IsItemHovered()) {
+            const size_t nTxd = g_Arc.TxdsFor(n).size();
+            ImGui::SetTooltip("%u bytes uncompressed\n%zu matching .txd",
+                              entries[i].uncompressedSize, nTxd);
+        }
+        ImGui::SameLine();
+        ImGui::TextDisabled("%.0f KB", entries[i].uncompressedSize / 1024.0f);
+        ImGui::PopID();
+    }
+    ImGui::EndChild();
+    ImGui::End();
+
+    // Deferred: loading rebuilds the global scene, so do it after the list is done.
+    if (pendingLoad >= 0) LoadLevelFromArc(pendingLoad);
+    (void)shown;
 }
 
 // ---------------------------------------------------------------------------
@@ -236,6 +333,26 @@ void RenderStructureWindow() {
                 ImGui::TextColored(ImVec4(0.15f, 0.95f, 0.30f, 1.0f),
                     "  Collision: %zu verts  %zu tris",
                     g_Collision.verts.size(), g_Collision.indices.size() / 3);
+            }
+            if (!g_GameObjects.empty()) {
+                size_t placed = 0;
+                for (const auto& go : g_GameObjects) if (!go.atOrigin) placed++;
+                ImGui::Spacing();
+                ImGui::TextColored(ImVec4(0.47f, 0.85f, 1.0f, 1.0f),
+                    "  Game objects: %zu  (%zu placed)", g_GameObjects.size(), placed);
+                ImGui::Indent();
+                for (size_t i = 0; i < g_GameObjects.size(); i++) {
+                    const auto& go = g_GameObjects[i];
+                    if (go.atOrigin)
+                        ImGui::TextDisabled("[%2zu] %-26s  (logical)", i, go.className.c_str());
+                    else
+                        ImGui::TextColored(ImVec4(0.72f, 0.90f, 1.0f, 1.0f),
+                            "[%2zu] %-26s  (%.2f, %.2f, %.2f)", i, go.className.c_str(),
+                            go.position.x, go.position.y, go.position.z);
+                    if (ImGui::IsItemHovered() && !go.instName.empty())
+                        ImGui::SetTooltip("%s\n@ 0x%05X", go.instName.c_str(), go.offset);
+                }
+                ImGui::Unindent();
             }
             if (!g_Clumps.empty()) {
                 ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.15f, 1.0f),

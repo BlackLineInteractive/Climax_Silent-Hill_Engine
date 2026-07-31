@@ -21,6 +21,10 @@ full level geometry, baked lighting, collision mesh, and placed objects interact
 
 ## Features
 
+- **Mount `SH.ARC` directly** — browse and load levels by their real internal names
+  (`MO_1_Room102`, `TH_E_Lobby`, …), with matching texture dictionaries pulled in automatically
+- **Placed game objects** — reads the `0x0704` instance chunks, so spawners, cameras,
+  pickups, lights and triggers appear at their real world coordinates instead of the origin
 - Parse and render SHO container files with embedded geometry, materials, and PS2 textures
 - Decode native PS2 PSMT4 / PSMT8 / PSMCT32 texture formats via software unswizzle
 - Seven render modes: Textured, Vertex Color, Flat Shaded, Normals, Depth, Checkerboard, Unlit
@@ -36,9 +40,54 @@ full level geometry, baked lighting, collision mesh, and placed objects interact
 
 ## Format Notes
 
-The SHO container is a chunked binary format used by PS2 titles.
-A top-level 0x071C directory block wraps named 0x0716 section records.
-Each section may contain:
+### `SH.ARC` / `IGC.ARC` — the game archive
+
+An `"A2.0"` archive: a 20-byte header, a 16-byte record per file, and a name table
+that occupies the tail of the file. Every payload is a raw zlib stream.
+
+```
+Header (20 bytes)
+  0x00  char magic[4]        "A2.0"
+  0x04  u32  entryCount
+  0x08  u32  firstDataOffset
+  0x0C  u32  nameTableOffset  (== end of the payloads)
+  0x10  u32  nameTableSize    (nameTableOffset + nameTableSize == file size)
+
+Entry (16 bytes, entryCount of them, from 0x14)
+  0x00  u32  nameOffset       byte offset into the name table
+  0x04  u32  offset           absolute, 0x20-aligned
+  0x08  u32  compressedSize   zlib stream length
+  0x0C  u32  uncompressedSize
+```
+
+Verified against the retail PS2 `SH.ARC`: all 1487 entries inflate to exactly the
+declared size, offsets are monotonic and aligned, and the name table ends precisely
+at EOF. Reader: [src/Arc.cpp](src/Arc.cpp).
+
+### The container
+
+A chunked binary format. A top-level `0x071C` directory block lists every game-object
+type and how many instances exist, followed by a flat chunk list:
+
+| Chunk    | Description                                             |
+|----------|---------------------------------------------------------|
+| `0x0716` | Named resource section (WORLD, CBSP, WAVEDICT, AINAVMESH…) |
+| `0x0704` | A placed game-object instance                           |
+
+A `0x0716` section header is
+`[count][tagLen][tag][guid(16)][nameLen][name]` followed by two build-path strings.
+
+A `0x0704` body is a flat list of tagged records — `[u32 size][u32 id][payload]` —
+where the top byte of `id` selects the kind (`0x20` class name, `0x40` GUID,
+`0x80` instance name, `0x00` indexed property). **Property 1 is a 64-byte
+column-major 4×4 world matrix** — the object's placement. Names are 0xBF-padded.
+
+Cross-checked over the whole retail archive: 254 of 255 containers parse to exactly
+the object count their own type directory declares (11 834 objects, 7 065 of them
+placed). The single outlier declares a `CWiiStndController` that the PS2 build does
+not ship.
+
+Sections that may appear inside a `0x0716`:
 
 | Block type | Description                    |
 |------------|--------------------------------|
@@ -47,8 +96,8 @@ Each section may contain:
 | TEXDICTION | Texture dictionary (TXD)       |
 | BINMESH    | Pre-indexed triangle lists     |
 
-The parser lives in [src/Loader.cpp](src/Loader.cpp); the PS2 texture decoder is in
-[src/PS2Texture.cpp](src/PS2Texture.cpp).
+The container parser lives in [src/Loader.cpp](src/Loader.cpp); the PS2 texture
+decoder is in [src/PS2Texture.cpp](src/PS2Texture.cpp).
 
 ---
 
@@ -118,15 +167,25 @@ make -j$(nproc)
 
 ## Usage
 
+Preferred — point it at the game archive and pick levels by name:
+
 ```
-SHOViewer <container_file> [txd1 txd2 ...]
+SHOViewer path/to/SH.ARC [LevelName]
 ```
 
-Container files have **no extension** — they are named like `MO_1_Room102`, `MO_1_Courtyard`, etc.
-Texture files end in `.txd` (no extension on the texture dictionary is also possible).
+Without a level name the viewer just mounts the archive; use the **Archive** panel
+to browse the 269 level containers by name. Selecting one loads it together with
+every `.txd` the archive names after it (the game names shared dictionaries after
+the rooms they bridge, e.g. `MO_1_Room102-MO_1_PoolArea.txd`).
 
-Textures can be embedded inside the container or supplied as separate TXD archives.
-The file browser inside the application can also open files at runtime.
+Loose, already-extracted files still work:
+
+```
+SHOViewer path/to/MO_1_Room102 [txd1 txd2 ...]
+```
+
+Container files have **no extension** — `MO_1_Room102`, `MO_1_Courtyard`, etc.
+Textures can be embedded in the container or supplied as separate TXD archives.
 
 ---
 
@@ -140,7 +199,8 @@ The file browser inside the application can also open files at runtime.
 | Snap pivot while moving | Hold **Ctrl** (or tick **Snap**, step is configurable) |
 | Toggle pivot gizmo      | **Pivot gizmo** checkbox                 |
 | Reset camera            | Key **1** or **Reset Camera** button     |
-| Open file               | Open Level button                        |
+| Mount archive           | Open SH.ARC button                       |
+| Open loose file         | Open Loose File button                   |
 
 The gizmo, the orbit sphere and the camera never fight over the mouse: a hovered
 gizmo no longer blocks wheel-zoom or right-drag orbit, and only one of them can
@@ -170,6 +230,7 @@ src/
   Loader.cpp/h    — SHO/TXD parser, geometry upload
   UI.cpp/h        — structure tree, texture browser, file browser
   PS2Texture.cpp/h— PS2 VRAM format decoder
+  Arc.cpp/h       — SH.ARC ("A2.0") archive reader
   Common.h/cpp    — shared state, types, globals
 vendor/            (Makefile build only — CMake fetches these into build/_deps)
   imgui/

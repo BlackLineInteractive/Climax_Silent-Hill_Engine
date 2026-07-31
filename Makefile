@@ -12,7 +12,7 @@ IMGUIZMO_SRC := $(firstword $(wildcard vendor/imguizmo/src/ImGuizmo.cpp \
                                        vendor/imguizmo/ImGuizmo.cpp))
 
 # Список усіх вихідних файлів
-SRCS = src/main.cpp src/Common.cpp src/PS2Texture.cpp src/Loader.cpp src/UI.cpp \
+SRCS = src/main.cpp src/Common.cpp src/Arc.cpp src/PS2Texture.cpp src/Loader.cpp src/UI.cpp \
        vendor/imgui/imgui.cpp \
        vendor/imgui/imgui_draw.cpp \
        vendor/imgui/imgui_tables.cpp \
@@ -24,7 +24,7 @@ SRCS = src/main.cpp src/Common.cpp src/PS2Texture.cpp src/Loader.cpp src/UI.cpp 
 # Автоматично створюємо список .o файлів з .cpp файлів
 OBJS = $(SRCS:.cpp=.o)
 
-LIBS = -lGL -lGLEW $(SDL2_LIBS)
+LIBS = -lGL -lGLEW -lz $(SDL2_LIBS)
 
 TARGET = SHOViewer
 
