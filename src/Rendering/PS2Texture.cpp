@@ -1,4 +1,4 @@
-#include "PS2Texture.h"
+#include "ClimaxEngine/Rendering/PS2Texture.h"
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -83,6 +83,9 @@ void ProcessAndUploadTexture(RawTexture& raw) {
     std::string upper = raw.name;
     for (auto& c : upper) c = toupper(c);
     g_TextureMap[upper] = raw.glID;
+
+    raw.pixels = rgba;
+    g_RawTextures.push_back(raw);
 
     // Store preview info for the TXD browser window
     TexPreviewInfo pi; pi.glID = raw.glID; pi.width = w; pi.height = h; pi.depth = raw.depth;

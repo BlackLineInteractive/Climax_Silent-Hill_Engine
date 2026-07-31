@@ -14,11 +14,12 @@
 #include "imgui_impl_opengl3.h"
 #include "ImGuizmo.h"
 
-#include "Arc.h"
-#include "Common.h"
-#include "Export.h"
-#include "Loader.h"
-#include "UI.h"
+#include "ClimaxEngine/Core/Arc.h"
+#include "ClimaxEngine/Core/Common.h"
+#include "ClimaxEngine/Loader/Export.h"
+#include "ClimaxEngine/Loader/Loader.h"
+#include "ClimaxEngine/Rendering/CPURasterizer.h"
+#include "ClimaxEngine/UI/UI.h"
 
 // Build a view matrix from orbit parameters and return camera world position
 static glm::mat4 BuildView(glm::vec3& outEye) {
@@ -514,90 +515,101 @@ void main(){
 
         const bool haveModel = !g_Chunks.empty();
 
-        glViewport(0, 0, fbW, fbH);
-        glClearColor(state.skyColorBot[0], state.skyColorBot[1], state.skyColorBot[2], 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
-
-        // Draw gradient sky before any geometry
-        if (state.skyGradient) {
-            glDisable(GL_DEPTH_TEST);
-            glDepthMask(GL_FALSE);
-            glUseProgram(skyProg);
-            glUniform3fv(glGetUniformLocation(skyProg, "skyTop"), 1, state.skyColorTop);
-            glUniform3fv(glGetUniformLocation(skyProg, "skyBot"), 1, state.skyColorBot);
-            glBindVertexArray(skyVao);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-            glBindVertexArray(0);
-            glDepthMask(GL_TRUE);
+        if (state.renderDevice == RenderDevice::CPU) {
+            // --- CPU Software Rasterization Pass ---
+            g_CPURasterizer.Init(fbW, fbH);
+            g_CPURasterizer.Clear(state.skyColorBot[0], state.skyColorBot[1], state.skyColorBot[2], 1.0f);
+            if (haveModel) {
+                g_CPURasterizer.RenderScene(g_Chunks, mvp, eye);
+            }
+            g_CPURasterizer.PresentOnScreen();
+        } else {
+            // --- GPU Hardware Acceleration Pass (OpenGL 3.3 / Metal) ---
+            glViewport(0, 0, fbW, fbH);
+            glClearColor(state.skyColorBot[0], state.skyColorBot[1], state.skyColorBot[2], 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glEnable(GL_DEPTH_TEST);
-        }
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        if (state.showWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        else                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-        GLint filter = state.linearFilter ? GL_LINEAR : GL_NEAREST;
-        for (auto const& [name, id] : g_TextureMap) {
-            glBindTexture(GL_TEXTURE_2D, id);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-            if (state.forceRepeat) {
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            // Draw gradient sky before any geometry
+            if (state.skyGradient) {
+                glDisable(GL_DEPTH_TEST);
+                glDepthMask(GL_FALSE);
+                glUseProgram(skyProg);
+                glUniform3fv(glGetUniformLocation(skyProg, "skyTop"), 1, state.skyColorTop);
+                glUniform3fv(glGetUniformLocation(skyProg, "skyBot"), 1, state.skyColorBot);
+                glBindVertexArray(skyVao);
+                glDrawArrays(GL_TRIANGLES, 0, 6);
+                glBindVertexArray(0);
+                glDepthMask(GL_TRUE);
+                glEnable(GL_DEPTH_TEST);
             }
-        }
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glUseProgram(p);
-        glUniformMatrix4fv(glGetUniformLocation(p, "m"),    1, GL_FALSE, glm::value_ptr(mvp));
-        glUniform1i(glGetUniformLocation(p, "flipU"),        state.flipU);
-        glUniform1i(glGetUniformLocation(p, "flipV"),        state.flipV);
-        glUniform2f(glGetUniformLocation(p, "uvOffset"),     state.uvOffsetX, state.uvOffsetY);
-        glUniform2f(glGetUniformLocation(p, "uvScale"),      state.uvScaleX,  state.uvScaleY);
-        glUniform1i(glGetUniformLocation(p, "useVertexColors"), state.useVertexColors);
-        glUniform1f(glGetUniformLocation(p, "brightness"),   state.brightness);
-        glUniform1i(glGetUniformLocation(p, "renderMode"),   (int)state.renderMode);
-        glUniform3f(glGetUniformLocation(p, "eyePos"),       eye.x, eye.y, eye.z);
-        glUniform1f(glGetUniformLocation(p, "depthMax"),     state.camDist * 4.5f);
+            if (state.showWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            else                     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-        const GLint uM     = glGetUniformLocation(p, "m");
-        const GLint uModel = glGetUniformLocation(p, "model");
-        const glm::mat4 identity(1.0f);
-        for (const auto& chunk : g_Chunks) {
-            // Use the directly stored texName (set at load time per-geometry-object)
-            const std::string& tName = chunk.texName;
-            GLuint tid = 0;
-            if (g_TextureMap.count(tName)) tid = g_TextureMap[tName];
-            else {
-                std::string upper = tName;
-                for (auto& ch : upper) ch = (char)toupper((unsigned char)ch);
-                if (g_TextureMap.count(upper)) tid = g_TextureMap[upper];
-            }
-            glBindTexture(GL_TEXTURE_2D, tid);
-            glBindVertexArray(chunk.vao);
-
-            // World geometry draws once; a model section draws once per game
-            // object that placed it, and not at all when nothing references it.
-            const ShoSection* sec = (chunk.sectionIndex >= 0 &&
-                                     chunk.sectionIndex < (int)g_ShoSections.size())
-                                    ? &g_ShoSections[chunk.sectionIndex] : nullptr;
-            if (!sec || sec->isWorldSpace || sec->instances.empty()) {
-                if (sec && !sec->isWorldSpace && !state.showUnplacedModels) continue;
-                glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(mvp));
-                glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(identity));
-                glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
-            } else {
-                for (const auto& inst : sec->instances) {
-                    glm::mat4 m = mvp * inst;
-                    glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(m));
-                    glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(inst));
-                    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
+            GLint filter = state.linearFilter ? GL_LINEAR : GL_NEAREST;
+            for (auto const& [name, id] : g_TextureMap) {
+                glBindTexture(GL_TEXTURE_2D, id);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
+                if (state.forceRepeat) {
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
                 }
             }
+
+            glUseProgram(p);
+            glUniformMatrix4fv(glGetUniformLocation(p, "m"),    1, GL_FALSE, glm::value_ptr(mvp));
+            glUniform1i(glGetUniformLocation(p, "flipU"),        state.flipU);
+            glUniform1i(glGetUniformLocation(p, "flipV"),        state.flipV);
+            glUniform2f(glGetUniformLocation(p, "uvOffset"),     state.uvOffsetX, state.uvOffsetY);
+            glUniform2f(glGetUniformLocation(p, "uvScale"),      state.uvScaleX,  state.uvScaleY);
+            glUniform1i(glGetUniformLocation(p, "useVertexColors"), state.useVertexColors);
+            glUniform1f(glGetUniformLocation(p, "brightness"),   state.brightness);
+            glUniform1i(glGetUniformLocation(p, "renderMode"),   (int)state.renderMode);
+            glUniform3f(glGetUniformLocation(p, "eyePos"),       eye.x, eye.y, eye.z);
+            glUniform1f(glGetUniformLocation(p, "depthMax"),     state.camDist * 4.5f);
+
+            const GLint uM     = glGetUniformLocation(p, "m");
+            const GLint uModel = glGetUniformLocation(p, "model");
+            const glm::mat4 identity(1.0f);
+            for (const auto& chunk : g_Chunks) {
+                // Use the directly stored texName (set at load time per-geometry-object)
+                const std::string& tName = chunk.texName;
+                GLuint tid = 0;
+                if (g_TextureMap.count(tName)) tid = g_TextureMap[tName];
+                else {
+                    std::string upper = tName;
+                    for (auto& ch : upper) ch = (char)toupper((unsigned char)ch);
+                    if (g_TextureMap.count(upper)) tid = g_TextureMap[upper];
+                }
+                glBindTexture(GL_TEXTURE_2D, tid);
+                glBindVertexArray(chunk.vao);
+
+                // World geometry draws once; a model section draws once per game
+                // object that placed it, and not at all when nothing references it.
+                const ShoSection* sec = (chunk.sectionIndex >= 0 &&
+                                         chunk.sectionIndex < (int)g_ShoSections.size())
+                                        ? &g_ShoSections[chunk.sectionIndex] : nullptr;
+                if (!sec || sec->isWorldSpace || sec->instances.empty()) {
+                    if (sec && !sec->isWorldSpace && !state.showUnplacedModels) continue;
+                    glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(mvp));
+                    glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(identity));
+                    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
+                } else {
+                    for (const auto& inst : sec->instances) {
+                        glm::mat4 m = mvp * inst;
+                        glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(m));
+                        glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(inst));
+                        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
+                    }
+                }
+            }
+            glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
+            glBindVertexArray(0);
         }
-        glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
-        glBindVertexArray(0);
 
         // --- Collision render pass (solid fill + wireframe) ---
         if (state.showCollision && g_Collision.uploaded && !g_Collision.indices.empty()) {
@@ -859,6 +871,20 @@ void main(){
                 state.camTargetX, state.camTargetY, state.camTargetZ);
         }
         ImGui::TextDisabled("G gizmo  F1 hide UI  F2 manual");
+        // ---- Render Device (GPU / CPU) -----------------------------------
+        ImGui::TextDisabled("Render Device / Engine");
+        if (ImGui::RadioButton("GPU (Hardware)", state.renderDevice == RenderDevice::GPU)) {
+            state.renderDevice = RenderDevice::GPU;
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Hardware Acceleration (OpenGL 3.3 Core / Apple Metal shaders)");
+        ImGui::SameLine();
+        if (ImGui::RadioButton("CPU (Software)", state.renderDevice == RenderDevice::CPU)) {
+            state.renderDevice = RenderDevice::CPU;
+        }
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Software Rasterizer: renders geometry & shading on CPU thread");
+
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
 
         // ---- Render mode ------------------------------------------------

@@ -1,7 +1,7 @@
-#include "UI.h"
-#include "Arc.h"
-#include "Loader.h"
-#include "Common.h"
+#include "ClimaxEngine/UI/UI.h"
+#include "ClimaxEngine/Core/Arc.h"
+#include "ClimaxEngine/Loader/Loader.h"
+#include "ClimaxEngine/Core/Common.h"
 #include "imgui.h"
 #include <algorithm>
 #include <cstring>

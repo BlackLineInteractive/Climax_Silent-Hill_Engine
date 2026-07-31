@@ -1,5 +1,5 @@
-#include "Arc.h"
-#include "Common.h"
+#include "ClimaxEngine/Core/Arc.h"
+#include "ClimaxEngine/Core/Common.h"
 
 #include <algorithm>
 #include <cstring>

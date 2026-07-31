@@ -150,7 +150,14 @@ enum class RenderMode {
     Unlit       = 6,  // texture only, no lighting, no vertex color
 };
 
+enum class RenderDevice {
+    GPU = 0,  // Hardware Accelerated (OpenGL 3.3 / Metal)
+    CPU = 1   // Software Rasterizer (CPU Thread Shading & Rasterization)
+};
+
 struct ViewerState {
+    RenderDevice renderDevice = RenderDevice::GPU; // GPU vs CPU render mode toggle
+
     // Orbit camera — camera rotates around camTarget at distance camDist
     float camTargetX = 0.0f, camTargetY = 2.0f, camTargetZ = 0.0f;
     float camYaw   =  0.0f;  // horizontal rotation, degrees
@@ -196,6 +203,7 @@ struct ViewerState {
 // ------------------- ГЛОБАЛЬНІ ДАНІ (Оголошення) -------------------
 extern ViewerState state;
 extern std::vector<MeshChunk>        g_Chunks;
+extern std::vector<RawTexture>       g_RawTextures;
 extern std::vector<std::string>      g_MaterialNames;
 extern std::map<std::string, GLuint>          g_TextureMap;
 extern std::map<std::string, TexPreviewInfo>  g_TexInfo;

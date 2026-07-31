@@ -1,5 +1,8 @@
 # Third-party vendor libs (fetched by CMake FetchContent)
 vendor/
+# Explicitly document what lives there:
+#   vendor/librw/         — aap/librw RenderWare 3.7.0.2 reimplementation (auto-downloaded)
+#   vendor/_deps/         — CMake FetchContent working directories
 
 # Build outputs
 build/
@@ -31,8 +34,11 @@ game/
 # Editor / IDE
 .vscode/
 .idea/
+.DS_Store
+.cache/
 *.swp
 *~
+
 
 # ImGui layout save
 imgui.ini

@@ -1,5 +1,5 @@
-#include "Export.h"
-#include "Common.h"
+#include "ClimaxEngine/Loader/Export.h"
+#include "ClimaxEngine/Core/Common.h"
 
 #include <cstring>
 #include <fstream>
