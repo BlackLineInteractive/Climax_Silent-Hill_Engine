@@ -765,9 +765,12 @@ void main(){
             }
             if (sphereDragging) {
                 if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-                    state.camYaw   += io.MouseDelta.x * 0.32f;
+                    // Dragging the ball turns the ball, so the camera has to move
+                    // the opposite way from a free right-drag orbit. Both axes used
+                    // to be inherited from the orbit code and came out reversed.
+                    state.camYaw   -= io.MouseDelta.x * 0.32f;
                     state.camPitch  = glm::clamp(
-                        state.camPitch - io.MouseDelta.y * 0.32f, -89.0f, 89.0f);
+                        state.camPitch + io.MouseDelta.y * 0.32f, -89.0f, 89.0f);
                 } else {
                     sphereDragging = false;
                 }

@@ -605,9 +605,29 @@ static void ParseGameObject(const std::vector<uint8_t>& data, size_t off, uint32
             // A 16-byte property is a reference to a resource section's GUID.
             go.guidRefs.emplace_back((const char*)&data[payOff], 16);
         } else if (kind == 0x00 && idx == 1 && payLen == 64 && !haveXform) {
-            // Column-major 4x4; glm::mat4 has the same memory order.
+            // Column-major, but it is a 3x4 affine transform stored in a 4x4 slot
+            // with the whole fourth ROW left as zero — including m[3][3]. Feeding
+            // that to the renderer as-is makes every transformed vertex come out
+            // with w = 0, so the perspective divide blows the geometry up across
+            // the screen and it flickers as the camera turns. Restore the
+            // homogeneous row before anything touches the matrix.
             glm::mat4 m;
             memcpy(&m[0][0], &data[payOff], 64);
+            m[0][3] = 0.0f; m[1][3] = 0.0f; m[2][3] = 0.0f; m[3][3] = 1.0f;
+
+            // Reject anything that still is not a usable affine transform rather
+            // than letting a degenerate basis stretch a model to infinity.
+            bool sane = true;
+            for (int c = 0; c < 4 && sane; c++)
+                for (int r = 0; r < 4 && sane; r++)
+                    if (!std::isfinite(m[c][r])) sane = false;
+            for (int c = 0; c < 3 && sane; c++) {
+                const float len = glm::length(glm::vec3(m[c]));
+                if (len < 1e-6f || len > 1e4f) sane = false;
+            }
+            if (sane && glm::length(glm::vec3(m[3])) > 1e6f) sane = false;
+            if (!sane) { p += rs; continue; }
+
             go.transform = m;
             go.position  = glm::vec3(m[3]);
             go.atOrigin  = (glm::length(go.position) < 1e-4f);
