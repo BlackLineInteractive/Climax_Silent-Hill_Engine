@@ -50,5 +50,11 @@ void CollisionMesh::Free() {
     if (ebo) { glDeleteBuffers(1, &ebo); ebo = 0; }
     if (vbo) { glDeleteBuffers(1, &vbo); vbo = 0; }
     if (vao) { glDeleteVertexArrays(1, &vao); vao = 0; }
+    // The CPU-side arrays have to go too. Free() is what the loader calls to
+    // reset collision between levels, and leaving these filled made every load
+    // append to the previous one — a 664-byte door container reported 192
+    // collision vertices inherited from the level opened before it.
+    verts.clear();
+    indices.clear();
     uploaded = false;
 }

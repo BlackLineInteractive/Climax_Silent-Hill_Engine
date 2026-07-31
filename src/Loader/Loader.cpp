@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <iostream>
@@ -74,25 +75,41 @@ void LoadTexturesFromTxdData(const std::vector<uint8_t> &data,
         curr += 12 + sLen;
         curr += 24;
 
-        uint32_t w, h, d;
+        // Raster header, from `width`:
+        //   +0  width          +4  height        +8  depth
+        //   +12 rasterFormat   +16 TEX0..MIPTBP2 (four 64-bit GS registers)
+        //   +48 texelDataSize  +52 paletteDataSize
+        //   +56 gpuAlignedSize +60 skyMipmapVal
+        // then a 12-byte chunk header, then the data at +76.
+        uint32_t w, h, d, rasterFormat;
         memcpy(&w, &data[curr], 4);
         memcpy(&h, &data[curr + 4], 4);
         memcpy(&d, &data[curr + 8], 4);
+        memcpy(&rasterFormat, &data[curr + 12], 4);
         uint32_t dSz, pSz;
         memcpy(&dSz, &data[curr + 48], 4);
         memcpy(&pSz, &data[curr + 52], 4);
-        uint32_t rawWrapU, rawWrapV;
-        memcpy(&rawWrapU, &data[curr + 56], 4);
-        memcpy(&rawWrapV, &data[curr + 60], 4);
         curr += 76;
+
+        // Addressing lives in the texture's filterAddressing word, not in the
+        // raster header: the two fields previously read as wrap modes are
+        // gpuDataAlignedSize and skyMipmapVal, so every texture got an
+        // arbitrary clamp/repeat setting.
+        uint32_t filterAddressing = 0;
+        memcpy(&filterAddressing, &data[pos + 28], 4);
+        const uint32_t addrU = (filterAddressing >> 8) & 0xF;
+        const uint32_t addrV = (filterAddressing >> 12) & 0xF;
 
         RawTexture t;
         t.name = tName;
         t.width = w;
         t.height = h;
         t.depth = d;
-        t.clampU = (rawWrapU != 0);
-        t.clampV = (rawWrapV != 0);
+        t.clampU = (addrU == 3); // 1 = wrap, 2 = mirror, 3 = clamp
+        t.clampV = (addrV == 3);
+        // rasterFormat's top nibble selects the palette: 0x2000 = 256 entries,
+        // 0x4000 = 16.
+        t.paletteColors = ((rasterFormat & 0xF000) == 0x4000) ? 16 : 256;
 
         bool nameAllowed = fallback;
         if (!fallback) {
@@ -136,6 +153,228 @@ void LoadTexturesFromTxdData(const std::vector<uint8_t> &data,
   }
 }
 
+// ---------------------------------------------------------------------------
+// PS2 display-list geometry (see SH_FORMAT.md section 4)
+//
+// Geometry is a stream of VIF1 commands, not a vertex array. Each triangle strip
+// is uploaded by one packet and then kicked with MSCAL:
+//
+//     STCYCL 4,1 / UNPACK V3-32 or V4-32  imm 0x8000   positions
+//     STCYCL 4,1 / UNPACK V2-32 or V2-16  imm 0x8001   texture coords
+//     STCYCL 4,1 / UNPACK V4-8            imm 0xC002   vertex colours
+//     STCYCL 4,1 / UNPACK V3-8            imm 0x8003   normals
+//     ITOP / MSCAL
+//
+// Packets are located by anchoring on the position UNPACK. Two things about the
+// search matter:
+//
+//   * The scan must step one byte at a time. Packets are not aligned to any
+//     boundary: of the 887 packets in IntroRoad's first world section only 300
+//     begin at a 4-byte offset, the rest sit at offsets 1, 2 and 3.
+//   * The anchor must be the UNPACK, not STCYCL. The encoded STCYCL word occurs
+//     3548 times inside vertex data in that same section.
+// ---------------------------------------------------------------------------
+static size_t g_DbgNoBatch = 0, g_DbgBadIdx = 0;
+
+namespace {
+
+struct VifStream {
+  int vn = 0, vl = 0; // components - 1, element width selector
+  int num = 0;        // vectors written
+  int addr = 0;       // VU slot, 0..3
+  int bpv = 0;        // bytes per vector
+  size_t dataOff = 0;
+};
+
+struct VifPacket {
+  size_t offset = 0;
+  std::vector<VifStream> streams;
+  int vertexCount = 0;
+};
+
+int BytesPerVector(int vn, int vl) {
+  if (vl == 3 && vn == 3)
+    return 2; // V4-5: four components packed into 16 bits
+  static const int BITS[4] = {32, 16, 8, 16};
+  return ((vn + 1) * BITS[vl] + 7) / 8;
+}
+
+bool IsPositionUnpack(uint32_t cmd) {
+  const uint32_t op = (cmd >> 24) & 0x7F;
+  if ((op & 0x60) != 0x60)
+    return false;
+  const int vn = (op >> 2) & 3, vl = op & 3;
+  return vl == 0 && (vn == 2 || vn == 3) && (cmd & 0xFFFF) == 0x8000;
+}
+
+// Reads one packet beginning at its position UNPACK. `after` receives the offset
+// just past the MSCAL that ends it.
+bool ReadPacket(const std::vector<uint8_t> &d, size_t p, size_t end,
+                VifPacket &out, size_t &after) {
+  auto word = [&](size_t o) {
+    uint32_t v;
+    memcpy(&v, &d[o], 4);
+    return v;
+  };
+  if (p + 4 > end || !IsPositionUnpack(word(p)))
+    return false;
+
+  out.offset = p;
+  out.streams.clear();
+
+  while (p + 4 <= end) {
+    const uint32_t cmd = word(p);
+    const uint32_t op = (cmd >> 24) & 0x7F;
+    const uint32_t num = (cmd >> 16) & 0xFF;
+    const uint32_t imm = cmd & 0xFFFF;
+    p += 4;
+
+    if (op == 0x14 || op == 0x15 || op == 0x17) { // MSCAL / MSCALF / MSCNT
+      after = p;
+      out.vertexCount = out.streams.empty() ? 0 : out.streams[0].num;
+      // A genuine packet uploads at least positions and one more stream.
+      return out.streams.size() >= 2;
+    }
+    if ((op & 0x60) == 0x60) {
+      VifStream s;
+      s.vn = (op >> 2) & 3;
+      s.vl = op & 3;
+      s.bpv = BytesPerVector(s.vn, s.vl);
+      s.num = num ? (int)num : 256;
+      s.addr = (int)(imm & 0x3FF);
+      s.dataOff = p;
+      // Streams within a packet all describe the same vertices.
+      if (!out.streams.empty() && s.num != out.streams[0].num)
+        return false;
+      if (s.addr > 3)
+        return false;
+      // CL=4 with WL=1 means CL >= WL, so every written vector has a source.
+      const size_t payload = ((size_t)s.num * s.bpv + 3) & ~size_t(3);
+      if (p + payload > end)
+        return false;
+      out.streams.push_back(s);
+      p += payload;
+      continue;
+    }
+    switch (op) {
+    case 0x00: case 0x01: case 0x02: case 0x03: // NOP STCYCL OFFSET BASE
+    case 0x04: case 0x05: case 0x06: case 0x07: // ITOP STMOD MSKPATH3 MARK
+    case 0x10: case 0x11: case 0x13:            // FLUSHE FLUSH FLUSHA
+      continue;
+    case 0x20: p += 4;  continue;               // STMASK
+    case 0x30: case 0x31: p += 16; continue;    // STROW STCOL
+    default:
+      return false; // not part of a vertex packet
+    }
+  }
+  return false;
+}
+
+std::vector<VifPacket> PacketsIn(const std::vector<uint8_t> &d, size_t start,
+                                 size_t end) {
+  std::vector<VifPacket> out;
+  if (end > d.size())
+    end = d.size();
+  size_t p = start;
+  while (p + 4 <= end) {
+    uint32_t cmd;
+    memcpy(&cmd, &d[p], 4);
+    if (!IsPositionUnpack(cmd)) {
+      ++p; // byte-granular: packets are not aligned
+      continue;
+    }
+    VifPacket pk;
+    size_t after = 0;
+    if (ReadPacket(d, p, end, pk, after) && pk.vertexCount > 0) {
+      out.push_back(std::move(pk));
+      p = after;
+    } else {
+      ++p;
+    }
+  }
+  return out;
+}
+
+// Decodes one packet's streams into vertices. `adc` marks strip restarts.
+void DecodePacket(const std::vector<uint8_t> &d, const VifPacket &pk,
+                  std::vector<Vertex> &verts, std::vector<bool> &adc) {
+  const int n = pk.vertexCount;
+  verts.assign(n, Vertex{});
+  adc.assign(n, false);
+  for (auto &v : verts) {
+    v.uv = {0.0f, 0.0f};
+    v.color = {1.0f, 1.0f, 1.0f, 1.0f};
+  }
+
+  for (const auto &s : pk.streams) {
+    const int count = std::min(n, s.num);
+    switch (s.addr) {
+    case 0: // positions; V4-32 carries a strip-restart flag in w
+      for (int i = 0; i < count; i++) {
+        const size_t o = s.dataOff + (size_t)i * s.bpv;
+        memcpy(&verts[i].pos, &d[o], 12);
+        if (s.vn == 3) {
+          uint16_t w;
+          memcpy(&w, &d[o + 12], 2);
+          if (w != 0)
+            adc[i] = true;
+        }
+      }
+      break;
+    case 1: // texture coords: floats, or 16.12 fixed point
+      for (int i = 0; i < count; i++) {
+        const size_t o = s.dataOff + (size_t)i * s.bpv;
+        if (s.vl == 0) {
+          memcpy(&verts[i].uv.x, &d[o], 4);
+          memcpy(&verts[i].uv.y, &d[o + 4], 4);
+        } else {
+          int16_t u, v;
+          memcpy(&u, &d[o], 2);
+          memcpy(&v, &d[o + 2], 2);
+          verts[i].uv = {u / 4096.0f, v / 4096.0f};
+        }
+      }
+      break;
+    case 2: // colours, PS2 range where 128 is full intensity
+      for (int i = 0; i < count; i++) {
+        const size_t o = s.dataOff + (size_t)i * s.bpv;
+        verts[i].color = glm::vec4(
+            std::min(d[o + 0] * (1.0f / 128.0f), 1.0f),
+            std::min(d[o + 1] * (1.0f / 128.0f), 1.0f),
+            std::min(d[o + 2] * (1.0f / 128.0f), 1.0f),
+            s.bpv >= 4 ? std::min(d[o + 3] * (1.0f / 128.0f), 1.0f) : 1.0f);
+      }
+      break;
+    default:
+      break; // slot 3 is normals; the renderer derives them per face
+    }
+  }
+}
+
+// Converts one strip to a triangle list, honouring restart flags.
+void StripToTriangles(const std::vector<Vertex> &raw,
+                      const std::vector<bool> &adc, std::vector<Vertex> &out) {
+  bool anyAdc = false;
+  for (bool f : adc)
+    if (f) { anyAdc = true; break; }
+
+  for (size_t i = 2; i < raw.size(); i++) {
+    const Vertex &a = raw[i - 2], &b = raw[i - 1], &c = raw[i];
+    const bool skip =
+        anyAdc ? adc[i]
+               : (a.pos == b.pos || b.pos == c.pos || a.pos == c.pos);
+    if (skip)
+      continue;
+    // Winding alternates with the vertex index, not with a counter that resets.
+    // Degenerate triangles are dropped but still occupy their slot in the
+    // sequence.
+    if (i % 2 == 0) { out.push_back(a); out.push_back(b); out.push_back(c); }
+    else            { out.push_back(b); out.push_back(a); out.push_back(c); }
+  }
+}
+
+} // namespace
+
 void LoadGeometryData(const std::vector<uint8_t> &data) {
   const size_t sz = data.size();
   if (sz < 32)
@@ -154,8 +393,10 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
 
   // --- HELPER: parse material names from a MaterialList chunk at ml_pos ---
   // Returns a vector<string> with one name per material (or "NULL").
+  std::vector<glm::vec4> matColors;
   auto parseMaterialList = [&](size_t ml_pos) -> std::vector<std::string> {
     std::vector<std::string> names;
+    matColors.clear();
     size_t mlDataOff = ml_pos + 12; // skip chunk header
     uint32_t fcType = ru32(mlDataOff);
     uint32_t fcSize = ru32(mlDataOff + 4);
@@ -175,11 +416,20 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
       size_t matEnd = curr + 12 + matSize;
       size_t child = curr + 12;
       std::string texName = "NULL";
+      glm::vec4 matCol(1.0f);
       while (child + 12 < matEnd) {
         uint32_t cType = ru32(child);
         uint32_t cSize = ru32(child + 4);
         if (cSize == 0 || child + 12 + cSize > matEnd)
           break;
+        if (cType == 0x01 && cSize >= 16) {
+          // Material struct: flags, RGBA colour, unused, textured, surface props
+          const uint32_t rgba = ru32(child + 16);
+          matCol = glm::vec4(((rgba >> 0) & 0xFF) / 255.0f,
+                             ((rgba >> 8) & 0xFF) / 255.0f,
+                             ((rgba >> 16) & 0xFF) / 255.0f,
+                             ((rgba >> 24) & 0xFF) / 255.0f);
+        }
         if (cType == 0x06) { // Texture chunk
           size_t texChild = child + 12;
           size_t texEnd = child + 12 + cSize;
@@ -200,6 +450,7 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         child += 12 + cSize;
       }
       names.push_back(texName);
+      matColors.push_back(matCol);
       curr = matEnd;
     }
     return names;
@@ -218,8 +469,18 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         search = cand + 1;
         continue;
       }
+      // Both the list and its Struct child must carry the RenderWare version.
+      // Without this the byte scan accepts anything shaped vaguely like a chunk:
+      // MO_1_Room102 came out with 453 material names across 3 "lists", one of
+      // which was a stretch of vertex data, and every geometry object after it
+      // then indexed into the wrong range and drew the wrong texture.
+      if (ru32(cand + 8) != 0x1C020065) {
+        search = cand + 1;
+        continue;
+      }
       size_t fc = cand + 12;
-      if (ru32(fc) != 0x01 || ru32(fc + 4) < 4 || fc + 12 + ru32(fc + 4) > sz) {
+      if (ru32(fc) != 0x01 || ru32(fc + 8) != 0x1C020065 || ru32(fc + 4) < 4 ||
+          fc + 12 + ru32(fc + 4) > sz) {
         search = cand + 1;
         continue;
       }
@@ -318,22 +579,95 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
     geoObjs[i].vifEnd = (i + 1 < geoObjs.size()) ? geoObjs[i + 1].bmOff : sz;
   }
 
-  // Build global g_MaterialNames as ALL names from ALL objects (union, in
-  // order) and fill materialIndex with a global index (BinMesh matIdx offset by
-  // each object's base)
-  std::vector<size_t> matBase(geoObjs.size(),
-                              0); // global index base per object
-  {
-    size_t base = 0;
-    for (size_t i = 0; i < geoObjs.size(); i++) {
-      matBase[i] = base;
-      for (const auto &n : geoObjs[i].matNames)
-        g_MaterialNames.push_back(n);
-      base += geoObjs[i].matNames.size();
+  // --- Material names, taken from where the format actually keeps them ------
+  //
+  // The data of a 0x0716 section starts 8 bytes after the two build-path
+  // strings and is a stock RenderWare chunk:
+  //
+  //     World (0x0B)  ->  Struct (0x01), MaterialList (0x08), AtomicSect (0x09)
+  //     Clump (0x10)  ->  Struct, FrameList, GeometryList (0x1A), Atomic
+  //
+  // A world has exactly ONE material list and every BinMesh index in it is
+  // local to that list. Scanning the file for lists instead produced 27 of them
+  // for IntroRoad's single world and 453 names for one motel room, and the
+  // per-object index bases then pointed into a neighbouring object's names —
+  // which is why so much geometry ended up untextured or wearing the wrong
+  // texture.
+  std::vector<std::vector<std::string>> sectionMats(g_ShoSections.size());
+  std::vector<std::vector<glm::vec4>> sectionCols(g_ShoSections.size());
+  for (size_t si = 0; si < g_ShoSections.size(); si++) {
+    const auto &sec = g_ShoSections[si];
+    const size_t secEnd = (size_t)sec.offset + 12 + sec.size;
+    size_t root = (size_t)sec.dataStart + 8;
+    if (root + 12 > sz || root + 12 > secEnd)
+      continue;
+    if (ru32(root + 8) != 0x1C020065)
+      continue;
+
+    const uint32_t rootType = ru32(root);
+    const uint32_t rootSize = ru32(root + 4);
+    const size_t rootEnd = std::min(root + 12 + (size_t)rootSize, secEnd);
+
+    // Direct children of World hold the list; for a Clump it sits one level
+    // deeper, inside each Geometry of the GeometryList.
+    auto collectFrom = [&](size_t begin, size_t end) {
+      size_t c = begin;
+      while (c + 12 <= end) {
+        const uint32_t ct = ru32(c), cs = ru32(c + 4);
+        if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > end)
+          break;
+        if (ct == 0x08) {
+          for (const auto &n : parseMaterialList(c))
+            sectionMats[si].push_back(n);
+          for (const auto &col : matColors)
+            sectionCols[si].push_back(col);
+        }
+        c += 12 + cs;
+      }
+    };
+
+    if (rootType == 0x0B) {
+      collectFrom(root + 12, rootEnd);
+    } else if (rootType == 0x10) {
+      size_t c = root + 12;
+      while (c + 12 <= rootEnd) {
+        const uint32_t ct = ru32(c), cs = ru32(c + 4);
+        if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
+          break;
+        if (ct == 0x1A) { // GeometryList -> Struct, then Geometry chunks
+          size_t g = c + 12;
+          while (g + 12 <= c + 12 + cs) {
+            const uint32_t gt = ru32(g), gs = ru32(g + 4);
+            if (ru32(g + 8) != 0x1C020065 || gs == 0 || g + 12 + gs > c + 12 + cs)
+              break;
+            if (gt == 0x0F)
+              collectFrom(g + 12, g + 12 + gs);
+            g += 12 + gs;
+          }
+        }
+        c += 12 + cs;
+      }
     }
   }
 
-  // --- STEP 3: Build mesh chunks ---
+  // g_MaterialNames stays the union of every name, since it is what filters the
+  // texture dictionaries at load time.
+  for (const auto &names : sectionMats)
+    for (const auto &n : names)
+      g_MaterialNames.push_back(n);
+
+  // --- STEP 3: Build mesh chunks from the RenderWare tree -------------------
+  //
+  // Geometry is not something to search for. Every Geometry (0x000F) and every
+  // world AtomicSect (0x0009) carries an Extension (0x0003) holding two plugins:
+  //
+  //     BinMeshPLG   (0x050E)  faceType, splitCount, then [numIndices, matID]*
+  //     NativeDataPLG(0x0510)  one VIF block per split, each with its own size
+  //
+  // Split i uses material matID[i] directly. Scanning the file for BinMesh
+  // chunks instead found 27 "geometry objects" in IntroRoad where the tree has
+  // one per world, so packets were paired with a stranger's batch table and
+  // drew the wrong texture even though the material list itself was correct.
   for (auto &chunk : g_Chunks) {
     if (chunk.vao)
       glDeleteVertexArrays(1, &chunk.vao);
@@ -342,211 +676,181 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   }
   g_Chunks.clear();
 
-  std::vector<uint8_t> MV = {0x05, 0x04, 0x01, 0x00, 0x01, 0x00};
-  std::vector<uint8_t> MUV = {0x05, 0x04, 0x01, 0x00, 0x01, 0x01};
-  std::vector<uint8_t> MCOL = {0x05, 0x04, 0x01, 0x00, 0x01, 0x02};
+  size_t totalPackets = 0, totalVerts = 0, totalSplits = 0;
+  std::vector<Vertex> rawVerts, triVerts;
+  std::vector<bool> adcFlags;
 
-  // Per-object batch tracking
-  std::vector<int> batchIdx(geoObjs.size(), 0);
-  std::vector<int> batchAcc(geoObjs.size(), 0);
-
-  size_t pos = 0;
-  while (true) {
-    pos = FindPattern(data, MV, pos);
-    if (pos == (size_t)-1)
-      break;
-    size_t cS = pos;
-    pos += 7;
-    size_t next = FindPattern(data, MV, pos);
-    if (next != (size_t)-1 && (next - pos) < 50) {
-      pos = next + 7;
-      cS = pos - 7;
+  auto addChunk = [&](std::vector<Vertex> &verts, int sectionIdx, int matId) {
+    if (verts.empty())
+      return;
+    MeshChunk m;
+    m.vertices = verts;
+    m.sectionIndex = sectionIdx;
+    m.materialIndex = matId;
+    m.texName = "NULL";
+    if (sectionIdx >= 0 && matId >= 0) {
+      const auto &names = sectionMats[sectionIdx];
+      if (matId < (int)names.size())
+        m.texName = names[matId];
     }
-    if (pos >= sz)
-      break;
+    if (m.texName == "NULL" || m.texName.empty()) {
+      m.untextured = true;
+      if (sectionIdx >= 0 && matId >= 0 &&
+          matId < (int)sectionCols[sectionIdx].size())
+        m.matColor = sectionCols[sectionIdx][matId];
+    }
+    glGenVertexArrays(1, &m.vao);
+    glGenBuffers(1, &m.vbo);
+    glBindVertexArray(m.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizei)(m.vertices.size() * sizeof(Vertex)),
+                 m.vertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, uv));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, color));
+    glEnableVertexAttribArray(2);
+    g_Chunks.push_back(std::move(m));
+  };
 
-    // Determine which GeoObject this block belongs to
-    int geoIdx = -1;
-    for (int g = (int)geoObjs.size() - 1; g >= 0; g--) {
-      if (cS >= geoObjs[g].vifStart && cS < geoObjs[g].vifEnd) {
-        geoIdx = g;
+  // Reads the BinMesh split table and the matching native VIF blocks.
+  auto buildFromExtension = [&](size_t extBegin, size_t extEnd, int sectionIdx) {
+    size_t binMesh = 0, binMeshEnd = 0, native = 0, nativeEnd = 0;
+    for (size_t c = extBegin; c + 12 <= extEnd;) {
+      const uint32_t ct = ru32(c), cs = ru32(c + 4);
+      if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > extEnd)
         break;
+      if (ct == 0x050E) { binMesh = c + 12; binMeshEnd = c + 12 + cs; }
+      else if (ct == 0x0510) { native = c + 12; nativeEnd = c + 12 + cs; }
+      c += 12 + cs;
+    }
+    if (!binMesh || !native)
+      return;
+
+    // BinMeshPLG: faceType, splitCount, totalIndices, then the split table.
+    const uint32_t faceType = ru32(binMesh);
+    const uint32_t splitCount = ru32(binMesh + 4);
+    if (splitCount == 0 || splitCount > 4096)
+      return;
+    std::vector<int> matIds;
+    matIds.reserve(splitCount);
+    {
+      size_t q = binMesh + 12;
+      for (uint32_t i = 0; i < splitCount && q + 8 <= binMeshEnd; i++) {
+        const uint32_t numIdx = ru32(q);
+        matIds.push_back((int)ru32(q + 4));
+        // Non-native meshes store their index list inline; PS2 data does not.
+        q += 8 + (faceType == 1 ? 0 : (size_t)numIdx * 4);
       }
     }
-    if (geoIdx < 0) {
-      pos = cS + 20;
+    if (matIds.size() != splitCount)
+      return;
+
+    // NativeDataPLG: a struct chunk, the platform id, then one block per split.
+    size_t p = native + 12 + 4;
+    for (uint32_t i = 0; i < splitCount && p + 8 <= nativeEnd; i++) {
+      const uint32_t dataSize = ru32(p);
+      const uint32_t meshType = ru32(p + 4);
+      p += 8;
+      const size_t blockEnd = std::min(p + dataSize, nativeEnd);
+      // meshType 0 opens with STROW; VIFn_R0 gives the real payload length.
+      size_t vifSize = dataSize;
+      if (meshType == 0)
+        vifSize = (size_t)ru32(p + 4) * 16;
+      const size_t vifEnd = std::min(p + vifSize, blockEnd);
+
+      triVerts.clear();
+      const auto packets = PacketsIn(data, p, vifEnd);
+      for (const auto &pk : packets) {
+        DecodePacket(data, pk, rawVerts, adcFlags);
+        StripToTriangles(rawVerts, adcFlags, triVerts);
+        totalVerts += pk.vertexCount;
+      }
+      totalPackets += packets.size();
+      totalSplits++;
+      addChunk(triVerts, sectionIdx, matIds[i]);
+      p = blockEnd;
+    }
+  };
+
+  for (size_t si = 0; si < g_ShoSections.size(); si++) {
+    const auto &sec = g_ShoSections[si];
+    const size_t secEnd = (size_t)sec.offset + 12 + sec.size;
+    const size_t root = (size_t)sec.dataStart + 8;
+    if (root + 12 > secEnd || ru32(root + 8) != 0x1C020065)
       continue;
-    } // not in any known range
+    const uint32_t rootType = ru32(root);
+    const size_t rootEnd = std::min(root + 12 + (size_t)ru32(root + 4), secEnd);
 
-    GeoObject &go = geoObjs[geoIdx];
-
-    int vnum = data[pos++];
-    uint8_t fmtByte = data[pos++];
-    bool isV4_16 = (fmtByte == 0x6C);
-    int stride = isV4_16 ? 16 : 12;
-
-    std::vector<bool> adcFlags(vnum, false);
-    bool hasAdc = false;
-
-    std::vector<Vertex> rawVerts;
-    size_t vRead = pos;
-    for (int i = 0; i < vnum; i++) {
-      Vertex v;
-      memcpy(&v.pos, &data[vRead], 12);
-      v.uv = {0, 0};
-      v.color = {1.0f, 1.0f, 1.0f, 1.0f};
-      if (isV4_16 && vRead + 14 < sz) {
-        uint16_t w;
-        memcpy(&w, &data[vRead + 12], 2);
-        if (w != 0) {
-          adcFlags[i] = true;
-          hasAdc = true;
-        }
-      }
-      rawVerts.push_back(v);
-      vRead += stride;
-    }
-
-    size_t nextMV = FindPattern(data, MV, cS + 1);
-    size_t searchEnd = (nextMV != (size_t)-1) ? nextMV : sz;
-
-    size_t uvPos = FindPattern(data, MUV, cS);
-    if (uvPos != (size_t)-1 && uvPos < searchEnd) {
-      uint8_t uvFmt = (uvPos + 8 < sz) ? data[uvPos + 8] : 0x64;
-      bool useI16 = (uvFmt == 0x65);
-      int uvStride = useI16 ? 4 : 8;
-      uvPos += 9;
-      for (int i = 0; i < vnum && i < (int)rawVerts.size(); i++) {
-        if (uvPos + (size_t)uvStride <= sz) {
-          if (useI16) {
-            int16_t u_i, v_i;
-            memcpy(&u_i, &data[uvPos], 2);
-            memcpy(&v_i, &data[uvPos + 2], 2);
-            rawVerts[i].uv.x = (float)u_i / 4096.0f;
-            rawVerts[i].uv.y = (float)v_i / 4096.0f;
-          } else {
-            float u_f, v_f;
-            memcpy(&u_f, &data[uvPos], 4);
-            memcpy(&v_f, &data[uvPos + 4], 4);
-            if (std::abs(u_f) > 64.0f || std::abs(v_f) > 64.0f ||
-                std::isnan(u_f) || std::isnan(v_f)) {
-              int16_t u_i, v_i;
-              memcpy(&u_i, &data[uvPos], 2);
-              memcpy(&v_i, &data[uvPos + 2], 2);
-              rawVerts[i].uv.x = (float)u_i / 4096.0f;
-              rawVerts[i].uv.y = (float)v_i / 4096.0f;
-            } else {
-              rawVerts[i].uv.x = u_f;
-              rawVerts[i].uv.y = v_f;
-            }
-          }
-          uvPos += uvStride;
-        }
-      }
-    }
-
-    size_t colPos = FindPattern(data, MCOL, cS);
-    if (colPos != (size_t)-1 && colPos < searchEnd) {
-      colPos += 9;
-      for (int i = 0; i < vnum && i < (int)rawVerts.size(); i++) {
-        if (colPos + 4 <= sz) {
-          uint8_t r = data[colPos + 0], g = data[colPos + 1];
-          uint8_t b = data[colPos + 2], a = data[colPos + 3];
-          // PS2 vertex colour range: 0-128 where 128 = full white (not 0-255)
-          rawVerts[i].color = glm::vec4(std::min(r * (1.0f / 128.0f), 1.0f),
-                                        std::min(g * (1.0f / 128.0f), 1.0f),
-                                        std::min(b * (1.0f / 128.0f), 1.0f),
-                                        std::min(a * (1.0f / 128.0f), 1.0f));
-          colPos += 4;
-        }
-      }
-    }
-
-    std::vector<Vertex> triVerts;
-    bool prevWasRestart = true;
-    int stripPos = 0;
-    for (int i = 2; i < vnum; i++) {
-      Vertex &v1 = rawVerts[i - 2];
-      Vertex &v2 = rawVerts[i - 1];
-      Vertex &v3 = rawVerts[i];
-      bool skip =
-          hasAdc ? adcFlags[i]
-                 : (v1.pos == v2.pos || v2.pos == v3.pos || v1.pos == v3.pos);
-      if (skip) {
-        prevWasRestart = true;
-        continue;
-      }
-      if (prevWasRestart) {
-        stripPos = 0;
-        prevWasRestart = false;
-      }
-      if (stripPos % 2 == 0) {
-        triVerts.push_back(v1);
-        triVerts.push_back(v2);
-        triVerts.push_back(v3);
-      } else {
-        triVerts.push_back(v2);
-        triVerts.push_back(v1);
-        triVerts.push_back(v3);
-      }
-      stripPos++;
-    }
-
-    if (!triVerts.empty()) {
-      MeshChunk m;
-      m.vertices = triVerts;
-
-      // Assign material from this object's batch list
-      int &bi = batchIdx[geoIdx];
-      int &acc = batchAcc[geoIdx];
-      if (bi < (int)go.batches.size()) {
-        int globalMatIdx = (int)matBase[geoIdx] + go.batches[bi].matIndex;
-        m.materialIndex = globalMatIdx;
-        m.texName = (globalMatIdx < (int)g_MaterialNames.size())
-                        ? g_MaterialNames[globalMatIdx]
-                        : "NULL";
-        acc += vnum;
-        if (acc >= go.batches[bi].vertexQuota) {
-          bi++;
-          acc = 0;
-        }
-      } else {
-        m.materialIndex = (int)matBase[geoIdx];
-        m.texName = go.matNames.empty() ? "NULL" : go.matNames[0];
-      }
-
-      // Remember which 0x0716 section this geometry lives in. World
-      // sections draw with identity; model sections are placed by the game
-      // objects that reference them.
-      m.sectionIndex = -1;
-      for (size_t si = 0; si < g_ShoSections.size(); si++) {
-        const auto &sec = g_ShoSections[si];
-        if (cS >= sec.offset && cS < (size_t)sec.offset + 12 + sec.size) {
-          m.sectionIndex = (int)si;
+    // Finds the Extension of a chunk and hands it over.
+    auto handleOwner = [&](size_t a, size_t b) {
+      for (size_t c = a; c + 12 <= b;) {
+        const uint32_t ct = ru32(c), cs = ru32(c + 4);
+        if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)
           break;
-        }
+        if (ct == 0x0003)
+          buildFromExtension(c + 12, c + 12 + cs, (int)si);
+        c += 12 + cs;
       }
+    };
 
-      glGenVertexArrays(1, &m.vao);
-      glGenBuffers(1, &m.vbo);
-      glBindVertexArray(m.vao);
-      glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
-      glBufferData(GL_ARRAY_BUFFER,
-                   (GLsizei)(m.vertices.size() * sizeof(Vertex)),
-                   m.vertices.data(), GL_STATIC_DRAW);
-      glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                            (void *)0);
-      glEnableVertexAttribArray(0);
-      glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                            (void *)offsetof(Vertex, uv));
-      glEnableVertexAttribArray(1);
-      glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                            (void *)offsetof(Vertex, color));
-      glEnableVertexAttribArray(2);
-      g_Chunks.push_back(std::move(m));
+    if (rootType == 0x000B) { // World -> AtomicSect / PlaneSect
+      std::function<void(size_t, size_t)> walk = [&](size_t a, size_t b) {
+        for (size_t c = a; c + 12 <= b;) {
+          const uint32_t ct = ru32(c), cs = ru32(c + 4);
+          if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)
+            break;
+          if (ct == 0x0009)
+            handleOwner(c + 12, c + 12 + cs);
+          else if (ct == 0x000A)
+            walk(c + 12, c + 12 + cs);
+          c += 12 + cs;
+        }
+      };
+      walk(root + 12, rootEnd);
+    } else if (rootType == 0x0010) { // Clump -> GeometryList -> Geometry
+      for (size_t c = root + 12; c + 12 <= rootEnd;) {
+        const uint32_t ct = ru32(c), cs = ru32(c + 4);
+        if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
+          break;
+        if (ct == 0x001A) {
+          for (size_t g = c + 12; g + 12 <= c + 12 + cs;) {
+            const uint32_t gt = ru32(g), gs = ru32(g + 4);
+            if (ru32(g + 8) != 0x1C020065 || gs == 0 || g + 12 + gs > c + 12 + cs)
+              break;
+            if (gt == 0x000F)
+              handleOwner(g + 12, g + 12 + gs);
+            g += 12 + gs;
+          }
+        }
+        c += 12 + cs;
+      }
     }
-    pos = cS + 20;
   }
+
+  size_t nullNames = 0;
+  for (const auto &n : g_MaterialNames)
+    if (n == "NULL")
+      nullNames++;
+  size_t untex = 0, untexTri = 0, emitTri = 0;
+  for (const auto &c : g_Chunks) {
+    emitTri += c.vertices.size() / 3;
+    if (c.untextured) { untex++; untexTri += c.vertices.size() / 3; }
+  }
+  size_t secWithMats = 0;
+  for (const auto &v : sectionMats)
+    if (!v.empty())
+      secWithMats++;
+  std::cerr << "[materials] " << secWithMats << "/" << sectionMats.size()
+            << " sections carry a material list, " << g_MaterialNames.size()
+            << " names, " << nullNames << " unresolved\n";
+  std::cerr << "[geometry] " << totalSplits << " splits, " << totalPackets
+            << " VIF packets, " << totalVerts << " strip verts -> "
+            << g_Chunks.size() << " meshes, " << emitTri << " tris ("
+            << untexTri << " flat-colour)\n";
 }
 
 void LoadLevelData(const std::string &displayName,

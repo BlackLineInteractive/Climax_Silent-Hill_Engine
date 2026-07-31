@@ -309,6 +309,8 @@ in vec4  VC;
 in vec3  fragWorldPos;
 uniform sampler2D t;
 uniform bool  useVertexColors;
+uniform bool  untextured;
+uniform vec4  matColor;
 uniform float brightness;
 uniform int   renderMode;
 // 0=Textured 1=VertexColor 2=FlatShaded 3=Normals 4=Depth 5=Checker 6=Unlit
@@ -348,6 +350,15 @@ void main(){
         vec4 tex = texture(t, TC);
         if(tex.a < 0.1) discard;
         FragColor = vec4(tex.rgb * brightness, tex.a);
+    } else if(untextured){
+        // A material with no texture chunk: flat colour times vertex colour,
+        // which is how the game shades it. Sampling the unbound sampler here
+        // returned solid black instead.
+        vec4 col = matColor;
+        if(useVertexColors) col *= VC;
+        col.rgb *= brightness;
+        if(col.a < 0.05) discard;
+        FragColor = col;
     } else {
         // Textured (default, renderMode == 0)
         vec4 tex = texture(t, TC);
@@ -573,7 +584,9 @@ void main(){
             glUniform1f(glGetUniformLocation(p, "depthMax"),     state.camDist * 4.5f);
 
             const GLint uM     = glGetUniformLocation(p, "m");
-            const GLint uModel = glGetUniformLocation(p, "model");
+            const GLint uModel  = glGetUniformLocation(p, "model");
+        const GLint uUntex  = glGetUniformLocation(p, "untextured");
+        const GLint uMatCol = glGetUniformLocation(p, "matColor");
             const glm::mat4 identity(1.0f);
             for (const auto& chunk : g_Chunks) {
                 // Use the directly stored texName (set at load time per-geometry-object)
@@ -586,6 +599,9 @@ void main(){
                     if (g_TextureMap.count(upper)) tid = g_TextureMap[upper];
                 }
                 glBindTexture(GL_TEXTURE_2D, tid);
+                // A resolved-but-missing texture still renders as a flat material.
+                glUniform1i(uUntex, (chunk.untextured || tid == 0) ? 1 : 0);
+                glUniform4fv(uMatCol, 1, glm::value_ptr(chunk.matColor));
                 glBindVertexArray(chunk.vao);
 
                 // World geometry draws once; a model section draws once per game

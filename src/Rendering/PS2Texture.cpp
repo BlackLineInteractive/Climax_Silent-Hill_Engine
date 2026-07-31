@@ -50,9 +50,16 @@ void ProcessAndUploadTexture(RawTexture& raw) {
         indices = Unswizzle8(unpacked, w, h);
     }
 
+    // The GS stores 256-entry CLUTs interleaved; 16-entry ones are linear.
+    // Trim to the raster's declared palette size first, so a 4-bit texture
+    // cannot read colours belonging to the padding behind its 16 entries.
+    std::vector<uint8_t> pal = raw.palette;
+    const size_t wanted = (size_t)std::max(raw.paletteColors, 1) * 4;
+    if (pal.size() > wanted) pal.resize(wanted);
+
     std::vector<uint8_t> finalPal;
-    if (raw.depth == 8) finalPal = UnswizzlePalette(raw.palette);
-    else finalPal = raw.palette;
+    if (raw.paletteColors == 256) finalPal = UnswizzlePalette(pal);
+    else finalPal = pal;
 
     std::vector<uint8_t> rgba(w * h * 4, 255);
     for (int i = 0; i < w * h; ++i) {

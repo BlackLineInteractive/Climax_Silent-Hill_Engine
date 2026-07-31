@@ -374,9 +374,8 @@ commands that upload vertex data to VU1 memory and invoke a microprogram. The
 format therefore cannot be read as a plain vertex array; the command stream must
 be walked.
 
-> **Status.** The structure in this section has been confirmed against
-> `IntroRoad` and several smaller containers, but the traversal is not yet
-> complete — see §4.5. The loader currently in the repository uses an older
+> **Status.** The structure and the traversal rule below have been confirmed
+> against `IntroRoad`. The loader currently in the repository still uses an older
 > byte-pattern scan and does not implement what follows.
 
 ### 4.1 Material list
@@ -478,25 +477,35 @@ table and the payload-size rule follows the VIF1 interpreter in the
 
 ### 4.4 Vertex packet
 
-A packet uploads one strip and kicks the microprogram. The layout is constant:
+A packet uploads one triangle strip and kicks the microprogram. Its layout is
+fixed, and each of the four data streams is preceded by its own `STCYCL`:
 
 ```
-STCYCL   CL=4, WL=1
-UNPACK   V3-32  addr 0    positions        12 bytes per vertex
-UNPACK   V2-32  addr 1    texture coords    8 bytes per vertex
-UNPACK   V4-8   addr 2    vertex colours    4 bytes per vertex
-UNPACK   V3-8   addr 3    normals           3 bytes per vertex
+STCYCL   CL=4 WL=1
+UNPACK   V3-32   imm 0x8000    positions        12 bytes per vertex
+STCYCL   CL=4 WL=1
+UNPACK   V2-32   imm 0x8001    texture coords    8 bytes per vertex
+STCYCL   CL=4 WL=1
+UNPACK   V4-8    imm 0xC002    vertex colours    4 bytes per vertex
+STCYCL   CL=4 WL=1
+UNPACK   V3-8    imm 0x8003    normals           3 bytes per vertex
 ITOP     vertex count
-MSCALF   kick
+MSCALF
 FLUSH
 FLUSH
 ```
 
 `CL = 4` with `WL = 1` writes every fourth VU quadword, so the four streams
-interleave into a stride-4 vertex layout: positions occupy addresses 0, 4, 8 and
-so on, texture coordinates 1, 5, 9, and so forth. The `immediate` of each
-`UNPACK` has bit 15 set, meaning the address is relative to the double-buffer
-pointer `TOPS`.
+interleave into a stride-4 vertex layout: positions occupy VU addresses 0, 4, 8
+and so on, texture coordinates 1, 5, 9, and so forth.
+
+Bit 15 of each `immediate` marks the address as relative to the double-buffer
+pointer `TOPS`; the low bits give the stream's slot, 0 through 3. The colour
+stream additionally sets bit 14, which selects zero-extension rather than sign-
+extension of its 8-bit components — correct for unsigned colour.
+
+Some sections use `V4-32` for positions instead of `V3-32`, giving a 16-byte
+stride. Both forms occur in `IntroRoad`.
 
 Every `UNPACK` in a packet carries the same `num`. That value is the vertex count
 of the strip.
@@ -505,32 +514,47 @@ Vertex colours are stored here, in the same packet as the positions. They are th
 level's baked lighting; a level that renders unlit is a symptom of the colour
 stream being missed, not of the data being absent.
 
-Packets are separated by two things a walker must handle: a run of filler bytes
-`0xE5` extending to the start of the next packet, and a 16-byte packet header
-that is not VIF and whose words will decode as nonsense opcodes if fed to the
-command interpreter.
+Packets are separated by a run of the filler byte `0xE5` extending to the start of
+the next packet, and by a 16-byte header that is not VIF. Neither needs to be
+decoded if the walker anchors on packet starts rather than reading the stream
+continuously — see §4.5.
 
-Large batches exceed the 256-vector `UNPACK` limit and are split across several
-packets, each with its own `MSCAL`. There is therefore no one-to-one
-correspondence between packets and batch-table records; packet vertex counts must
-be accumulated until a batch's declared count is reached.
+### 4.5 Traversal
 
-### 4.5 Open problems
+A packet is located by scanning 4-byte-aligned words for the position `UNPACK`:
+a 32-bit unpack of three or four components whose `immediate` is exactly
+`0x8000`. From that anchor the packet reads cleanly to its `MSCAL`, and the
+inter-packet filler and header are stepped over without being interpreted.
 
-Two aspects of the traversal are unresolved.
+Anchoring on `STCYCL` alone does not work. Its encoded word occurs frequently
+inside vertex data — 3548 times in the first `rwID_WORLD` section of `IntroRoad`
+at arbitrary alignment against 1200 genuine occurrences — so the anchor must be
+the `UNPACK` itself.
 
-The 16-byte inter-packet header has not been decoded. Stepping over it a word at
-a time recovers synchronisation, but individual words of the header occasionally
-decode as plausible `UNPACK` codes and introduce spurious streams into the
-output.
+Applied to the first `rwID_WORLD` section of `IntroRoad`, the scan finds 300
+packets. Every one of them has the identical four-stream layout above, with no
+spurious streams. The count is corroborated independently: the section contains
+1200 aligned `STCYCL` words, exactly four per packet, and 300 position `UNPACK`
+words.
 
-Packet extents are not yet bounded correctly. Bounding a walk by the next
-`0x050E` chunk overruns the end of small objects, because trailing data separates
-the two. The bound should be derived from the enclosing section's declared size.
+### 4.6 Relating packets to materials
 
-Walking `IntroRoad` under the current rules recovers 669 packets carrying 47 112
-vertices against the 57 396 declared, so a portion of the stream is still being
-skipped.
+The batch table counts triangle indices; a packet carries strip vertices. The two
+are related by
+
+```
+indices contributed by a packet = 3 * (vertexCount - 2)
+```
+
+For the first `rwID_WORLD` section of `IntroRoad`, 300 packets carrying 20 054
+strip vertices yield roughly 59 400 indices against the 57 396 the batch table
+declares, the remainder being accounted for by short strips.
+
+Material assignment therefore walks packets in order, accumulating that index
+count against each batch's declared `indexCount` and advancing to the next batch
+when the total is reached. Accumulating raw upload counts instead, as the older
+loader does, drifts immediately and shifts every subsequent piece of geometry
+onto the wrong material.
 
 ---
 

@@ -31,6 +31,14 @@ struct MeshChunk {
     GLuint vbo = 0;
     int materialIndex = 0;  // kept for backward compat, use texName instead
     std::string texName;    // resolved texture name (directly from per-object MaterialList)
+
+    // A RenderWare material may legitimately carry no texture at all: its Struct
+    // has textured = 0 and there is no Texture chunk, only a flat colour. The
+    // game shades those with material colour x vertex colour. Binding texture 0
+    // instead made every such surface come out solid black — most of the ground
+    // and walls in the second half of IntroRoad.
+    bool      untextured = false;
+    glm::vec4 matColor   = glm::vec4(1.0f);
     int sectionIndex = -1;  // index into g_ShoSections, -1 = not inside any section
 };
 
@@ -42,6 +50,7 @@ struct RawTexture {
     GLuint glID = 0;
     bool clampU = false;
     bool clampV = false;
+    int  paletteColors = 256;  // 16 for 4-bit rasters, 256 for 8-bit
 };
 
 // Texture metadata for the TXD preview window
