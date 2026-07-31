@@ -37,3 +37,6 @@ void RenderTxdWindow();
 
 // SH.ARC contents browser — levels by their real archive names
 void RenderArcWindow();
+
+// Built-in manual
+void RenderManualWindow();

@@ -90,6 +90,7 @@ set(APP_SOURCES
     src/Loader.cpp
     src/UI.cpp
     src/Arc.cpp
+    src/Export.cpp
 )
 
 # ── ImGui sources (fetched) ───────────────────────────────────────────────────

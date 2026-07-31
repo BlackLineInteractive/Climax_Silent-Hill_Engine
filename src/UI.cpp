@@ -189,6 +189,115 @@ void FileBrowserState::Render() {
 }
 
 // ---------------------------------------------------------------------------
+// Built-in manual
+// ---------------------------------------------------------------------------
+namespace {
+
+void Head(const char* s) {
+    ImGui::Spacing();
+    ImGui::TextColored(ImVec4(0.62f, 0.80f, 1.00f, 1.0f), "%s", s);
+    ImGui::Separator();
+}
+
+void Key(const char* k, const char* what) {
+    ImGui::TextColored(ImVec4(0.95f, 0.85f, 0.45f, 1.0f), "%-18s", k);
+    ImGui::SameLine(150);
+    ImGui::TextUnformatted(what);
+}
+
+} // namespace
+
+void RenderManualWindow() {
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(
+        ImVec2(vp->Pos.x + vp->Size.x * 0.5f, vp->Pos.y + vp->Size.y * 0.5f),
+        ImGuiCond_FirstUseEver, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowSize(ImVec2(620, 620), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("Manual", &state.showManual)) { ImGui::End(); return; }
+
+    ImGui::TextWrapped("A viewer for Silent Hill Origins levels. It reads the game "
+                       "archive directly, so you do not have to unpack anything first.");
+
+    Head("Loading a level");
+    ImGui::BulletText("Click \"Open SH.ARC\" and pick SH.ARC from your game folder.");
+    ImGui::BulletText("The Archive panel lists every level by its real name.");
+    ImGui::BulletText("Click a name to load it. Textures are found automatically.");
+    ImGui::BulletText("\"Levels only\" hides textures and other files from the list.");
+    ImGui::Spacing();
+    ImGui::TextWrapped("Already extracted files still work - use \"Open Loose File\".");
+
+    Head("Moving the camera");
+    Key("Right-drag",   "Turn the camera around the pivot");
+    Key("Scroll wheel", "Zoom in and out");
+    Key("Drag the ball","Same as right-drag (top right corner)");
+    Key("Arrows",       "Drag the coloured arrows to move the pivot");
+    Key("Ctrl + drag",  "Move the pivot in fixed steps");
+    Key("1",            "Reset the camera");
+    ImGui::Spacing();
+    ImGui::TextWrapped("Levels have fixed cameras built in. Pick one from "
+                       "\"Jump to camera\" to see the room the way the game shows it.");
+
+    Head("Keyboard");
+    Key("F1", "Hide or show the whole interface");
+    Key("F2", "Open or close this manual");
+    Key("G",  "Hide or show the pivot arrows");
+    Key("1",  "Reset the camera");
+
+    Head("What you see");
+    ImGui::TextWrapped(
+        "Blue markers are game objects: spawn points, cameras, pickups, lights and "
+        "triggers. They sit where the game puts them.");
+    ImGui::Spacing();
+    ImGui::TextWrapped(
+        "Some objects have no position of their own - zones, messages and other "
+        "logic. They all sit at 0,0,0. Turn on \"At origin\" if you want to see them.");
+    ImGui::Spacing();
+    ImGui::TextWrapped(
+        "\"Unplaced models\" shows models that no object in the level uses. They have "
+        "no position either, so they stack up in the middle of the scene. Off by default.");
+    ImGui::Spacing();
+    ImGui::TextWrapped(
+        "\"Collision Wire\" draws the collision mesh - the invisible shape the player "
+        "walks on. Not every level has one.");
+
+    Head("Textures");
+    ImGui::BulletText("The Textures panel lists every texture with its size.");
+    ImGui::BulletText("Double-click a texture to open it full screen.");
+    ImGui::BulletText("In full screen: scroll to zoom, or use +, -, 1:1 and Fit.");
+    ImGui::BulletText("Escape closes it.");
+
+    Head("Render modes");
+    ImGui::BulletText("Textured - normal view");
+    ImGui::BulletText("Vert.Color - the baked lighting, without textures");
+    ImGui::BulletText("Flat / Normals - shape only, useful for spotting holes");
+    ImGui::BulletText("Depth - distance from the camera");
+    ImGui::BulletText("Checker - a grid on the UVs, shows stretched textures");
+    ImGui::BulletText("Unlit - texture with no shading at all");
+
+    Head("Exporting to glTF");
+    ImGui::TextWrapped(
+        "\"Export glTF\" writes a .glb next to the program. The level is split by "
+        "texture: every piece that uses the same texture becomes one object named "
+        "after that texture, instead of one giant mesh or thousands of fragments.");
+    ImGui::Spacing();
+    ImGui::BulletText("Embed textures - pack the images into the .glb");
+    ImGui::BulletText("Vertex colors - keep the baked lighting");
+    ImGui::BulletText("Lights - export the level lights with their real colours");
+    ImGui::BulletText("Bake instances - write a copy of a model at each place it is used");
+    ImGui::Spacing();
+    ImGui::TextWrapped("From the command line:");
+    ImGui::TextDisabled("  SHOViewer SH.ARC MO_1_Room102 --export room.glb");
+
+    Head("Known limits");
+    ImGui::BulletText("Animations are read but not played yet.");
+    ImGui::BulletText("The game's own fog is not reproduced.");
+    ImGui::BulletText("A few levels have textures that look stretched or misplaced.");
+
+    ImGui::Spacing();
+    ImGui::End();
+}
+
+// ---------------------------------------------------------------------------
 // SH.ARC contents browser
 //
 // The archive carries the real internal name of every file, so levels can be

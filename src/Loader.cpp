@@ -411,6 +411,18 @@ void LoadGeometryData(const std::vector<uint8_t>& data) {
                 m.texName       = go.matNames.empty() ? "NULL" : go.matNames[0];
             }
 
+            // Remember which 0x0716 section this geometry lives in. World
+            // sections draw with identity; model sections are placed by the game
+            // objects that reference them.
+            m.sectionIndex = -1;
+            for (size_t si = 0; si < g_ShoSections.size(); si++) {
+                const auto& sec = g_ShoSections[si];
+                if (cS >= sec.offset && cS < (size_t)sec.offset + 12 + sec.size) {
+                    m.sectionIndex = (int)si;
+                    break;
+                }
+            }
+
             glGenVertexArrays(1, &m.vao);
             glGenBuffers(1, &m.vbo);
             glBindVertexArray(m.vao);
@@ -445,6 +457,9 @@ void LoadLevelData(const std::string& displayName,
     // kept drawing with names that had just been deleted.
     g_TexInfo.clear();
 
+    // Structure first: LoadGeometryData needs the section ranges to know which
+    // section each mesh belongs to, and therefore how it should be placed.
+    ParseContainerStructureData(container);
     LoadGeometryData(container);
 
     // 1. Спочатку шукаємо строго за іменем
@@ -474,8 +489,6 @@ void LoadLevelData(const std::string& displayName,
         const std::string& tName = g_Chunks[ci].texName;
         g_MeshTexMap[tName.empty() ? "NULL" : tName].push_back(ci);
     }
-
-    ParseContainerStructureData(container);
 }
 
 // ── Path-based wrappers ─────────────────────────────────────────────────────
@@ -588,6 +601,9 @@ static void ParseGameObject(const std::vector<uint8_t>& data, size_t off, uint32
             if (!haveClass) { go.className = readName(payOff, payLen); haveClass = true; }
         } else if (kind == 0x80) {
             if (go.instName.empty()) go.instName = readName(payOff, payLen);
+        } else if (kind == 0x00 && payLen == 16) {
+            // A 16-byte property is a reference to a resource section's GUID.
+            go.guidRefs.emplace_back((const char*)&data[payOff], 16);
         } else if (kind == 0x00 && idx == 1 && payLen == 64 && !haveXform) {
             // Column-major 4x4; glm::mat4 has the same memory order.
             glm::mat4 m;
@@ -601,6 +617,43 @@ static void ParseGameObject(const std::vector<uint8_t>& data, size_t off, uint32
     }
 
     if (go.className.empty()) return;
+
+    // Second pass for CColorLight: the payload is spread over two components.
+    if (go.className == "CColorLight") {
+        go.isLight = true;
+        // Property indices restart at 0 for each component of the object, so a
+        // group boundary is simply "the index stopped increasing". That is more
+        // reliable than guessing which record type delimits a component.
+        int  group   = 0;
+        long lastIdx = -1;
+        size_t q = body + 4;
+        while (q + 8 <= bodyEnd) {
+            const uint32_t rs  = ru32l(q);
+            const uint32_t rid = ru32l(q + 4);
+            if (rs < 8 || q + rs > bodyEnd) break;
+            const size_t payOff = q + 8, payLen = rs - 8;
+            const uint32_t kind = rid >> 24, idx = rid & 0x00FFFFFF;
+
+            if (kind == 0x00) {
+                if ((long)idx <= lastIdx) { ++group; }
+                lastIdx = (long)idx;
+
+                if (payLen == 4) {
+                    float f; memcpy(&f, &data[payOff], 4);
+                    if (group == 0 && idx == 0) {
+                        go.lightColor = glm::vec3(data[payOff + 0] / 255.0f,
+                                                  data[payOff + 1] / 255.0f,
+                                                  data[payOff + 2] / 255.0f);
+                    } else if (group == 1) {
+                        if      (idx == 0) memcpy(&go.lightType, &data[payOff], 4);
+                        else if (idx == 1) go.lightAngle = f;
+                        else if (idx == 2) go.lightRange = f;
+                    }
+                }
+            }
+            q += rs;
+        }
+    }
 
     go.label = go.className;
     if (!go.instName.empty() && go.instName != go.className)
@@ -698,12 +751,6 @@ void ParseContainerStructureData(const std::vector<uint8_t>& data) {
         if (nameLen < 256 && nameOff + nameLen <= sz)
             secName = safeCStr(nameOff, nameLen);
 
-        ShoSection sec;
-        sec.offset = (uint32_t)off716;
-        sec.size   = s;
-        sec.name   = secName;
-        g_ShoSections.push_back(sec);
-
         // Navigate past the two embedded path strings to object_start
         size_t p1off = nameOff + nameLen;
         uint32_t p1len = ru32(p1off);
@@ -711,6 +758,17 @@ void ParseContainerStructureData(const std::vector<uint8_t>& data) {
         if (p2off + 4 > sz) { off716 += 12 + s; continue; }
         uint32_t p2len = ru32(p2off);
         size_t objStart = p2off + 4 + (p2len < 1024 ? p2len : 0);
+
+        ShoSection sec;
+        sec.offset    = (uint32_t)off716;
+        sec.size      = s;
+        sec.name      = secName;
+        sec.dataStart = (uint32_t)objStart;
+        if (guidOff + 16 <= sz) sec.guid.assign((const char*)&data[guidOff], 16);
+        // World geometry is baked into level space; everything else is a model
+        // that a game object has to place.
+        sec.isWorldSpace = (secName == "rwID_WORLD");
+        g_ShoSections.push_back(sec);
 
         // ── 2a. CBSP collision ─────────────────────────────────────
         if (secName == "rwID_CBSP" && objStart + 12 < sz) {
@@ -844,15 +902,66 @@ void ParseContainerStructureData(const std::vector<uint8_t>& data) {
     if (!g_Collision.verts.empty())
         g_Collision.Upload();
 
+    // ── 3b. Resolve GUID references: place re-usable model sections ─
+    //
+    // A 0x0704 object holds the GUIDs of the sections it owns and a world
+    // matrix. rwID_RWS / rwID_CLUMP sections are models, and the same section is
+    // frequently referenced by several objects — e.g. in IntroRoad one RWS model
+    // is instanced at four different spots. Collect one instance matrix per
+    // reference so the renderer can draw the geometry where it actually belongs
+    // instead of leaving every model stacked on the origin.
+    {
+        std::map<std::string, int> byGuid;
+        for (size_t i = 0; i < g_ShoSections.size(); i++)
+            if (!g_ShoSections[i].guid.empty())
+                byGuid.emplace(g_ShoSections[i].guid, (int)i);
+
+        for (const auto& go : g_GameObjects) {
+            for (const auto& ref : go.guidRefs) {
+                auto it = byGuid.find(ref);
+                if (it == byGuid.end()) continue;
+                ShoSection& sec = g_ShoSections[it->second];
+                if (sec.isWorldSpace) continue;   // already in level space
+                sec.instances.push_back(go.transform);
+            }
+        }
+    }
+
+    // ── 3c. Camera objects ────────────────────────────────────────
+    // The game places fixed cameras in the level and cuts between them; the
+    // object's matrix is the camera's world transform.
+    g_Cameras.clear();
+    for (const auto& go : g_GameObjects) {
+        const bool isCam = go.className.find("Camera") != std::string::npos;
+        if (!isCam || go.atOrigin) continue;
+        LevelCamera cam;
+        cam.name     = go.instName.empty() ? go.className : go.instName;
+        cam.position = go.position;
+        // Column 2 is the look direction, column 1 is up (RenderWare convention).
+        cam.forward  = glm::normalize(glm::vec3(go.transform[2]));
+        glm::vec3 up = glm::vec3(go.transform[1]);
+        cam.up       = (glm::length(up) > 1e-4f) ? glm::normalize(up) : glm::vec3(0, 1, 0);
+        g_Cameras.push_back(std::move(cam));
+    }
+
     // ── 4. Summary ────────────────────────────────────────────────
     {
         size_t placed = 0;
         for (const auto& go : g_GameObjects) if (!go.atOrigin) placed++;
         uint32_t declared = 0;
         for (const auto& t : g_ShoTypes) declared += t.count;
+        size_t modelSecs = 0, instances = 0, orphans = 0;
+        for (const auto& s : g_ShoSections) {
+            if (s.isWorldSpace) continue;
+            modelSecs++;
+            instances += s.instances.size();
+            if (s.instances.empty()) orphans++;
+        }
         std::cerr << "[container] " << g_ShoSections.size() << " sections, "
                   << g_GameObjects.size() << "/" << declared << " game objects ("
-                  << placed << " placed), " << g_Clumps.size() << " clumps, "
+                  << placed << " placed), " << g_Cameras.size() << " cameras, "
+                  << modelSecs << " model sections -> " << instances
+                  << " instances (" << orphans << " unreferenced), "
                   << g_Collision.verts.size() << " collision verts\n";
     }
 

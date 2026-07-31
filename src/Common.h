@@ -31,6 +31,7 @@ struct MeshChunk {
     GLuint vbo = 0;
     int materialIndex = 0;  // kept for backward compat, use texName instead
     std::string texName;    // resolved texture name (directly from per-object MaterialList)
+    int sectionIndex = -1;  // index into g_ShoSections, -1 = not inside any section
 };
 
 struct RawTexture {
@@ -65,9 +66,21 @@ struct ShoTypeEntry {
 
 // A game section inside the container (per 0x716 block)
 struct ShoSection {
-    uint32_t    offset;
-    uint32_t    size;
+    uint32_t    offset = 0;
+    uint32_t    size   = 0;
     std::string name;   // e.g. "rwID_WORLD", "rwID_CBSP", "rwID_CLUMP"
+    std::string guid;   // raw 16 bytes; game objects reference sections by this
+    uint32_t    dataStart = 0;  // first byte after the two build-path strings
+
+    // Where in the level this section's geometry belongs.
+    //
+    // rwID_WORLD geometry is already baked into world space and is drawn once
+    // with identity. rwID_RWS / rwID_CLUMP sections are re-usable models: a
+    // 0x0704 object references the section by GUID and supplies the placement,
+    // and the same model is often instanced several times. Without this the
+    // models were all drawn once, untransformed, piled up on the origin.
+    std::vector<glm::mat4> instances;
+    bool isWorldSpace = false;
 };
 
 // Collision geometry (from CBSP / second RW_WORLD)
@@ -106,6 +119,24 @@ struct GameObject {
     glm::vec3   position  = glm::vec3(0.0f);
     bool        atOrigin  = true;   // identity transform → not spatially placed
     uint32_t    offset    = 0;      // chunk offset, for the structure panel
+    std::vector<std::string> guidRefs;  // raw 16-byte GUIDs of referenced sections
+
+    // CColorLight payload. Component 1 property 0 is an RGBA colour; component 2
+    // carries [type][cone angle in degrees][range][enabled].
+    bool      isLight     = false;
+    glm::vec3 lightColor  = glm::vec3(1.0f);
+    float     lightRange  = 10.0f;
+    float     lightAngle  = 45.0f;   // >180 means omnidirectional
+    int       lightType   = 0;
+};
+
+// A camera position recovered from a CStaticCamera / CIGCCamera object.
+struct LevelCamera {
+    std::string name;      // instance name, e.g. "camRoom102Toilet"
+    glm::vec3   position = glm::vec3(0.0f);
+    glm::vec3   forward  = glm::vec3(0, 0, 1);
+    glm::vec3   up       = glm::vec3(0, 1, 0);
+    float       fovDeg   = 60.0f;
 };
 
 // Render mode for the 3D viewport
@@ -132,7 +163,11 @@ struct ViewerState {
     float uvScaleX = 1.0f, uvScaleY = 1.0f;
     bool showWireframe    = false;
     bool linearFilter     = true;
-    bool forceRepeat      = false;
+    // The PS2 UVs regularly run outside 0..1 and only look right with REPEAT
+    // wrapping, so this is no longer optional and no longer has a UI toggle.
+    static constexpr bool forceRepeat = true;
+    bool showUnplacedModels = false; // draw model sections no game object placed
+    bool showUI           = true;   // master switch for every panel (F1)
     bool useVertexColors  = true;
     float brightness      = 1.3f;
     bool showCollision    = false;  // overlay collision wireframe
@@ -144,6 +179,7 @@ struct ViewerState {
     bool showStructure    = true;   // show Structure hierarchy panel
     bool showTextures     = true;   // show Textures browser panel
     bool showArc          = true;   // show the SH.ARC contents browser
+    bool showManual       = false;  // show the built-in manual (F2)
     RenderMode renderMode = RenderMode::Textured;
 
     // Pivot gizmo (ImGuizmo)
@@ -172,6 +208,7 @@ extern std::vector<ShoSection>       g_ShoSections;  // all 0x716 blocks
 extern CollisionMesh                 g_Collision;    // CBSP floor collision
 extern std::vector<ClumpObject>      g_Clumps;       // animated/placed objects
 extern std::vector<GameObject>       g_GameObjects;  // 0x0704 placed instances
+extern std::vector<LevelCamera>      g_Cameras;      // camera objects in the level
 
 extern std::string              g_CurrentMeshContainer;
 extern std::vector<std::string> g_CurrentTxdPaths;

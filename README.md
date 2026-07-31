@@ -25,6 +25,10 @@ full level geometry, baked lighting, collision mesh, and placed objects interact
   (`MO_1_Room102`, `TH_E_Lobby`, …), with matching texture dictionaries pulled in automatically
 - **Placed game objects** — reads the `0x0704` instance chunks, so spawners, cameras,
   pickups, lights and triggers appear at their real world coordinates instead of the origin
+- **Correct model placement** — models stored in `rwID_RWS` / `rwID_CLUMP` sections are
+  instanced wherever the game objects that reference them say, instead of piling up at 0,0,0
+- **Level cameras** — jump to any of the fixed cameras the game cuts between
+- **glTF 2.0 export** — one mesh per texture name, with embedded textures and level lights
 - Parse and render SHO container files with embedded geometry, materials, and PS2 textures
 - Decode native PS2 PSMT4 / PSMT8 / PSMCT32 texture formats via software unswizzle
 - Seven render modes: Textured, Vertex Color, Flat Shaded, Normals, Depth, Checkerboard, Unlit
@@ -81,6 +85,17 @@ A `0x0704` body is a flat list of tagged records — `[u32 size][u32 id][payload
 where the top byte of `id` selects the kind (`0x20` class name, `0x40` GUID,
 `0x80` instance name, `0x00` indexed property). **Property 1 is a 64-byte
 column-major 4×4 world matrix** — the object's placement. Names are 0xBF-padded.
+Property indices restart at 0 for each component of an object, so a group boundary
+is simply "the index stopped increasing".
+
+A 16-byte property is the GUID of a `0x0716` section the object owns. That is how
+geometry gets placed: `rwID_WORLD` sections are already in level space, but
+`rwID_RWS` and `rwID_CLUMP` sections are re-usable models, and the object holding
+the reference supplies the transform. The same model is often referenced several
+times — in `IntroRoad` one RWS model is instanced at four different spots.
+
+`CColorLight` carries an RGBA colour in group 0 property 0, and
+`[type][cone angle°][range][enabled]` in group 1.
 
 Cross-checked over the whole retail archive: 254 of 255 containers parse to exactly
 the object count their own type directory declares (11 834 objects, 7 065 of them
@@ -184,6 +199,12 @@ Loose, already-extracted files still work:
 SHOViewer path/to/MO_1_Room102 [txd1 txd2 ...]
 ```
 
+Export a level to glTF without opening the window:
+
+```
+SHOViewer path/to/SH.ARC MO_1_Room102 --export room.glb
+```
+
 Container files have **no extension** — `MO_1_Room102`, `MO_1_Courtyard`, etc.
 Textures can be embedded in the container or supplied as separate TXD archives.
 
@@ -191,20 +212,23 @@ Textures can be embedded in the container or supplied as separate TXD archives.
 
 ## Controls
 
+Press **F2** in the application for the full manual.
+
 | Action                  | Input                                    |
 |-------------------------|------------------------------------------|
 | Orbit camera            | Right-click drag / orbit sphere (top-right) |
 | Zoom                    | Scroll wheel (proportional to distance)  |
-| Move pivot              | ImGuizmo arrows / plane handles — follows the cursor 1:1 |
-| Snap pivot while moving | Hold **Ctrl** (or tick **Snap**, step is configurable) |
-| Toggle pivot gizmo      | **Pivot gizmo** checkbox                 |
-| Reset camera            | Key **1** or **Reset Camera** button     |
-| Mount archive           | Open SH.ARC button                       |
-| Open loose file         | Open Loose File button                   |
+| Move pivot              | Gizmo arrows / plane handles — follows the cursor 1:1 |
+| Snap pivot while moving | Hold **Ctrl** (or tick **Snap**)         |
+| Jump to a level camera  | **Jump to camera** dropdown              |
+| Reset camera            | **1**                                    |
+| Hide / show the UI      | **F1**                                   |
+| Manual                  | **F2**                                   |
+| Hide / show the gizmo   | **G**                                    |
 
 The gizmo, the orbit sphere and the camera never fight over the mouse: a hovered
-gizmo no longer blocks wheel-zoom or right-drag orbit, and only one of them can
-claim a left-button drag at a time.
+gizmo does not block wheel-zoom or right-drag orbit, only one of them can claim a
+left-button drag at a time, and the gizmo only appears once a level is loaded.
 
 ---
 
@@ -231,6 +255,7 @@ src/
   UI.cpp/h        — structure tree, texture browser, file browser
   PS2Texture.cpp/h— PS2 VRAM format decoder
   Arc.cpp/h       — SH.ARC ("A2.0") archive reader
+  Export.cpp/h    — glTF 2.0 / GLB writer (groups geometry by texture)
   Common.h/cpp    — shared state, types, globals
 vendor/            (Makefile build only — CMake fetches these into build/_deps)
   imgui/

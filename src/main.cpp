@@ -16,6 +16,7 @@
 
 #include "Arc.h"
 #include "Common.h"
+#include "Export.h"
 #include "Loader.h"
 #include "UI.h"
 
@@ -212,7 +213,7 @@ int main(int argc, char* argv[]) {
         if (looksLikeArc && g_Arc.Open(first)) {
             std::cerr << "[arc] mounted " << first << " ("
                       << g_Arc.Entries().size() << " files)\n";
-            if (argc >= 3) {
+            if (argc >= 3 && std::string(argv[2]) != "--export") {
                 const int idx = g_Arc.Find(argv[2]);
                 if (idx >= 0) LoadLevelFromArc(idx);
                 else std::cerr << "[arc] no entry named '" << argv[2] << "'\n";
@@ -283,13 +284,14 @@ out vec2  TC;
 out vec4  VC;
 out vec3  fragWorldPos;
 uniform mat4  m;
+uniform mat4  model;     // instance placement, identity for world geometry
 uniform bool  flipU;
 uniform bool  flipV;
 uniform vec2  uvOffset;
 uniform vec2  uvScale;
 void main(){
     gl_Position  = m * vec4(P, 1.0);
-    fragWorldPos = P;
+    fragWorldPos = vec3(model * vec4(P, 1.0));
     vec2 coord = T;
     if(flipU) coord.x = 1.0 - coord.x;
     if(flipV) coord.y = 1.0 - coord.y;
@@ -411,6 +413,20 @@ void main(){
     glEnableVertexAttribArray(0);
     glBindVertexArray(0);
 
+    // Batch export: `--export out.glb` writes the loaded scene and exits.
+    for (int i = 1; i + 1 < argc; i++) {
+        if (std::string(argv[i]) != "--export") continue;
+        std::string err;
+        GlbExportOptions eo;
+        const bool ok = ExportGLB(argv[i + 1], eo, err);
+        std::cerr << "[export] " << (ok ? "wrote " + std::string(argv[i + 1])
+                                        : "failed: " + err) << "\n";
+        ImGui_ImplOpenGL3_Shutdown(); ImGui_ImplSDL2_Shutdown();
+        ImGui::DestroyContext();
+        SDL_GL_DeleteContext(ctx); SDL_DestroyWindow(win); SDL_Quit();
+        return ok ? 0 : 1;
+    }
+
     // Mouse orbit state
     bool  mouseRight = false;
     int   prevMouseX = 0, prevMouseY = 0;
@@ -486,11 +502,17 @@ void main(){
         ImGui_ImplOpenGL3_NewFrame(); ImGui_ImplSDL2_NewFrame(); ImGui::NewFrame();
         ImGuizmo::BeginFrame();
 
-        // Key 1 → reset camera
+        // Key 1 → reset camera, F1 → hide/show the whole interface
         if (!io.WantCaptureKeyboard && ImGui::IsKeyPressed(ImGuiKey_1, false)) {
             state.camTargetX = 0; state.camTargetY = 2; state.camTargetZ = 0;
             state.camYaw = 0; state.camPitch = 20; state.camDist = 15;
         }
+        if (ImGui::IsKeyPressed(ImGuiKey_F1, false)) state.showUI = !state.showUI;
+        if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) state.showManual = !state.showManual;
+        if (ImGui::IsKeyPressed(ImGuiKey_G,  false) && !io.WantCaptureKeyboard)
+            state.showPivotGizmo = !state.showPivotGizmo;
+
+        const bool haveModel = !g_Chunks.empty();
 
         glViewport(0, 0, fbW, fbH);
         glClearColor(state.skyColorBot[0], state.skyColorBot[1], state.skyColorBot[2], 1.0f);
@@ -539,6 +561,9 @@ void main(){
         glUniform3f(glGetUniformLocation(p, "eyePos"),       eye.x, eye.y, eye.z);
         glUniform1f(glGetUniformLocation(p, "depthMax"),     state.camDist * 4.5f);
 
+        const GLint uM     = glGetUniformLocation(p, "m");
+        const GLint uModel = glGetUniformLocation(p, "model");
+        const glm::mat4 identity(1.0f);
         for (const auto& chunk : g_Chunks) {
             // Use the directly stored texName (set at load time per-geometry-object)
             const std::string& tName = chunk.texName;
@@ -551,8 +576,27 @@ void main(){
             }
             glBindTexture(GL_TEXTURE_2D, tid);
             glBindVertexArray(chunk.vao);
-            glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
+
+            // World geometry draws once; a model section draws once per game
+            // object that placed it, and not at all when nothing references it.
+            const ShoSection* sec = (chunk.sectionIndex >= 0 &&
+                                     chunk.sectionIndex < (int)g_ShoSections.size())
+                                    ? &g_ShoSections[chunk.sectionIndex] : nullptr;
+            if (!sec || sec->isWorldSpace || sec->instances.empty()) {
+                if (sec && !sec->isWorldSpace && !state.showUnplacedModels) continue;
+                glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(mvp));
+                glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(identity));
+                glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
+            } else {
+                for (const auto& inst : sec->instances) {
+                    glm::mat4 m = mvp * inst;
+                    glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(m));
+                    glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(inst));
+                    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
+                }
+            }
         }
+        glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
         glBindVertexArray(0);
 
         // --- Collision render pass (solid fill + wireframe) ---
@@ -658,7 +702,9 @@ void main(){
         // its hover/use state inside Manipulate(), so querying it earlier in the
         // frame returned data from the previous frame.
         gizmoUsing = false;
-        if (state.showPivotGizmo) {
+        // No level, no gizmo: the arrows used to float in an empty viewport with
+        // nothing to aim at.
+        if (state.showPivotGizmo && state.showUI && haveModel) {
             // Enable() only suppresses interaction — Manipulate() still draws the
             // gizmo — so hiding it has to skip the call entirely.
             // Hand the left button to the orbit sphere when the cursor is on it,
@@ -707,7 +753,7 @@ void main(){
         }
 
         // -- Orbit sphere overlay (top-right, direct circular hit-test) ------
-        {
+        if (state.showUI) {
             DrawOrbitSphere(ImGui::GetForegroundDrawList(), sphereCtr, SR, view);
 
             if (!sphereDragging && overSphere
@@ -729,6 +775,7 @@ void main(){
         }
 
         // -- Main control panel (pinned top-left, fixed 256 px, scrollable) --
+        if (state.showUI) {
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(256, (float)winH - 20.0f), ImGuiCond_Always);
         ImGui::Begin("SHO Viewer", nullptr,
@@ -763,6 +810,38 @@ void main(){
             state.camYaw = 0; state.camPitch = 20; state.camDist = 15;
         }
 
+        // ---- Level cameras ------------------------------------------
+        if (!g_Cameras.empty()) {
+            ImGui::Spacing();
+            ImGui::TextDisabled("Level cameras (%zu)", g_Cameras.size());
+            ImGui::SetNextItemWidth(-1);
+            if (ImGui::BeginCombo("##camsel", "Jump to camera...")) {
+                for (size_t i = 0; i < g_Cameras.size(); i++) {
+                    const LevelCamera& c = g_Cameras[i];
+                    ImGui::PushID((int)i);
+                    if (ImGui::Selectable(c.name.c_str())) {
+                        // Orbit around a point in front of the camera so the
+                        // existing orbit controls keep working from there.
+                        const float d = 3.0f;
+                        glm::vec3 target = c.position + c.forward * d;
+                        state.camTargetX = target.x;
+                        state.camTargetY = target.y;
+                        state.camTargetZ = target.z;
+                        state.camDist    = d;
+                        glm::vec3 back   = -c.forward;
+                        state.camPitch   = glm::degrees(asinf(glm::clamp(back.y, -1.0f, 1.0f)));
+                        state.camYaw     = glm::degrees(atan2f(back.x, back.z));
+                    }
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("(%.2f, %.2f, %.2f)",
+                                          c.position.x, c.position.y, c.position.z);
+                    ImGui::PopID();
+                }
+                ImGui::EndCombo();
+            }
+            ImGui::Spacing();
+        }
+
         ImGui::Checkbox("Pivot gizmo", &state.showPivotGizmo);
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Drag the arrows/planes to move the orbit pivot.\n"
@@ -776,6 +855,7 @@ void main(){
             ImGui::TextDisabled("Pivot %.2f  %.2f  %.2f",
                 state.camTargetX, state.camTargetY, state.camTargetZ);
         }
+        ImGui::TextDisabled("G gizmo  F1 hide UI  F2 manual");
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
 
         // ---- Render mode ------------------------------------------------
@@ -810,11 +890,27 @@ void main(){
         ImGui::TextDisabled("Display");
         ImGui::Checkbox("Wireframe",   &state.showWireframe); ImGui::SameLine(128);
         ImGui::Checkbox("Linear",      &state.linearFilter);
-        ImGui::Checkbox("Vert.Colors", &state.useVertexColors); ImGui::SameLine(128);
-        ImGui::Checkbox("Repeat UV",   &state.forceRepeat);
+        ImGui::Checkbox("Vert.Colors", &state.useVertexColors);
         ImGui::SetNextItemWidth(-44.0f);
         ImGui::SliderFloat("##bright", &state.brightness, 0.5f, 3.0f);
         ImGui::SameLine(); ImGui::TextDisabled("Bright");
+
+        // ---- Model sections nothing placed --------------------------
+        {
+            size_t orphan = 0, placedSecs = 0;
+            for (const auto& s : g_ShoSections) {
+                if (s.isWorldSpace) continue;
+                if (s.instances.empty()) orphan++; else placedSecs++;
+            }
+            if (orphan || placedSecs) {
+                ImGui::Checkbox("Unplaced models", &state.showUnplacedModels);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip(
+                        "%zu model sections are placed by game objects.\n"
+                        "%zu are referenced by nothing; showing them piles\n"
+                        "their geometry on the origin.", placedSecs, orphan);
+            }
+        }
 
         // ---- Overlay objects (shown when loaded) -------------------
         if (g_Collision.uploaded || !g_Clumps.empty()) {
@@ -861,7 +957,44 @@ void main(){
         ImGui::TextDisabled("Panels");
         ImGui::Checkbox("Structure", &state.showStructure); ImGui::SameLine(128);
         ImGui::Checkbox("Textures",  &state.showTextures);
-        ImGui::Checkbox("Archive",   &state.showArc);
+        ImGui::Checkbox("Archive",   &state.showArc); ImGui::SameLine(128);
+        ImGui::Checkbox("Manual",    &state.showManual);
+
+        // ---- Export -------------------------------------------------
+        if (haveModel) {
+            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+            if (ImGui::CollapsingHeader("Export glTF")) {
+                static GlbExportOptions opt;
+                static std::string exportMsg;
+                static bool exportOk = false;
+
+                ImGui::Checkbox("Embed textures",  &opt.embedTextures);
+                ImGui::Checkbox("Vertex colors",   &opt.includeVertexColors);
+                ImGui::Checkbox("Lights",          &opt.includeLights);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Export CColorLight objects as\nKHR_lights_punctual lights");
+                ImGui::Checkbox("Bake instances",  &opt.bakeInstances);
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Write one copy of a model per placement.\n"
+                                      "Off: only the first placement is written.");
+
+                ImGui::TextDisabled("One mesh per texture name");
+                if (ImGui::Button("Export .glb", ImVec2(-1, 0))) {
+                    std::string name = g_CurrentMeshContainer.empty()
+                        ? std::string("scene")
+                        : fs::path(g_CurrentMeshContainer).filename().string();
+                    const std::string out = name + ".glb";
+                    std::string err;
+                    exportOk = ExportGLB(out, opt, err);
+                    exportMsg = exportOk ? ("Saved " + out) : ("Failed: " + err);
+                    std::cerr << "[export] " << exportMsg << "\n";
+                }
+                if (!exportMsg.empty())
+                    ImGui::TextColored(exportOk ? ImVec4(0.52f, 0.86f, 0.52f, 1.0f)
+                                                : ImVec4(1.0f, 0.45f, 0.45f, 1.0f),
+                                       "%s", exportMsg.c_str());
+            }
+        }
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
 
@@ -908,9 +1041,16 @@ void main(){
         if (state.showStructure) RenderStructureWindow();
         if (state.showTextures)  RenderTxdWindow();
         if (state.showArc)       RenderArcWindow();
+        if (state.showManual)    RenderManualWindow();
 
         // File browser
         g_FileBrowser.Render();
+        } else {
+            // F1 hides everything; leave one hint so the UI is recoverable.
+            auto* dl = ImGui::GetForegroundDrawList();
+            dl->AddText(ImVec2(12.0f, (float)winH - 22.0f),
+                        IM_COL32(190, 190, 200, 150), "F1 - show interface");
+        }
 
         // Decide who owns the mouse for the *next* frame's event loop. Panels and
         // active widgets win; a hovered (but not dragged) gizmo does not.
