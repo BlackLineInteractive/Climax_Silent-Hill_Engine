@@ -2,7 +2,7 @@
 
 [![build](https://github.com/BlackLineInteractive/SilentHillOrigins-LevelViewer/actions/workflows/build.yml/badge.svg)](https://github.com/BlackLineInteractive/SilentHillOrigins-LevelViewer/actions/workflows/build.yml)
 
-**Climax Silent Hill Engine Toolkit** — a real-time 3D level viewer, asset decoder, and archive extraction toolkit for game levels and locations from **Silent Hill Origins** (PS2 / PSP) and **Silent Hill: Shattered Memories** (Wii / PS2 / PSP).
+**Climax Silent Hill Engine Toolkit** — a real-time 3D level viewer, asset decoder, and archive extraction toolkit for game levels and locations built on Climax Engine: **Silent Hill Origins** (PS2 / PSP), **Silent Hill: Shattered Memories** (Wii / PS2 / PSP), and **Ghost Rider** (PS2 / PSP).
 
 Opens proprietary Climax Engine container files (no file extension — named like `MO_1_Room102`), decodes native PS2 and Wii GPU textures, and renders full level geometry, baked lighting, collision meshes, and placed game objects interactively. Includes full archive unpackers for `SH.ARC`, `data.arc`, and `igc.arc`.
 
