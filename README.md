@@ -1,5 +1,7 @@
 # Silent Hill Origins — 3D Level Viewer
 
+[![build](https://github.com/BlackLineInteractive/SilentHillOrigins-LevelViewer/actions/workflows/build.yml/badge.svg)](https://github.com/BlackLineInteractive/SilentHillOrigins-LevelViewer/actions/workflows/build.yml)
+
 A real-time 3D viewer for game levels and locations from **Silent Hill Origins** (PS2 / PSP),
 with potential compatibility for **Silent Hill: Shattered Memories**.
 
