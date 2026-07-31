@@ -3,6 +3,7 @@ name: build
 on:
   push:
     branches: [ "**" ]
+    tags: [ "v*", "Climax_Game_Engine_Toolkit_v*" ]
   pull_request:
   workflow_dispatch:
 
@@ -42,8 +43,6 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install sdl2 glew glm
 
-      # vcpkg ships preinstalled on the windows runners; the manifest in
-      # vcpkg.json decides what gets built.
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         run: vcpkg install --triplet x64-windows
@@ -63,10 +62,6 @@ jobs:
         run: cmake --build build --config Release --parallel
 
       # ── Smoke test ──────────────────────────────────────────────────────────
-      # The viewer needs a GL context, so on Linux we run it under a virtual
-      # display to prove the binary actually starts, gets a 3.3 core context and
-      # links all three shader programs. Init and shader failures are reported on
-      # stderr by MakeProgram()/main(); Mesa's own chatter is ignored.
       - name: Smoke test (Linux)
         run: |
           sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri
@@ -85,20 +80,43 @@ jobs:
         run: |
           test -f build/SHOViewer || test -f build/Release/SHOViewer.exe
 
-      # ── Artifacts ───────────────────────────────────────────────────────────
-      - name: Collect artifact
+      # ── Package Archive ─────────────────────────────────────────────────────
+      - name: Package release archive
         shell: bash
         run: |
           mkdir -p dist
           if [ "${{ runner.os }}" = "Windows" ]; then
             cp build/Release/*.exe build/Release/*.dll dist/ 2>/dev/null || true
+            cp README.md LICENSE dist/
+            cd dist && 7z a "../Climax_Game_Engine_Toolkit-${{ matrix.name }}.zip" *
           else
             cp build/SHOViewer dist/
+            cp README.md LICENSE dist/
+            cd dist && tar -czf "../Climax_Game_Engine_Toolkit-${{ matrix.name }}.tar.gz" *
           fi
-          cp README.md LICENSE dist/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: SHOViewer-${{ matrix.name }}
-          path: dist/
+          name: Climax_Game_Engine_Toolkit-${{ matrix.name }}
+          path: Climax_Game_Engine_Toolkit-*.*
           if-no-files-found: error
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/Climax_Game_Engine_Toolkit_v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+
