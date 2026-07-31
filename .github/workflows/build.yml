@@ -1,0 +1,104 @@
+name: build
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x64
+            os: ubuntu-latest
+          - name: macos-arm64
+            os: macos-latest
+          - name: windows-x64
+            os: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Dependencies ────────────────────────────────────────────────────────
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential cmake pkg-config \
+            libsdl2-dev libglew-dev libglm-dev \
+            libgl1-mesa-dev
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install sdl2 glew glm
+
+      # vcpkg ships preinstalled on the windows runners; the manifest in
+      # vcpkg.json decides what gets built.
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: vcpkg install --triplet x64-windows
+        shell: pwsh
+
+      # ── Configure + build ───────────────────────────────────────────────────
+      - name: Configure
+        shell: bash
+        run: |
+          EXTRA=""
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            EXTRA="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
+          fi
+          cmake -B build -DCMAKE_BUILD_TYPE=Release $EXTRA
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      # ── Smoke test ──────────────────────────────────────────────────────────
+      # The viewer needs a GL context, so on Linux we run it under a virtual
+      # display to prove the binary actually starts, creates a 3.3 core context
+      # and compiles all three shader programs. Any shader/init failure is
+      # printed to stderr by MakeProgram(), so a non-empty stderr fails the job.
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get install -y --no-install-recommends xvfb mesa-utils libgl1-mesa-dri
+          export LIBGL_ALWAYS_SOFTWARE=1
+          xvfb-run -a --server-args="-screen 0 1280x720x24" \
+            timeout 10s ./build/SHOViewer 2> stderr.txt || true
+          echo "--- stderr ---"; cat stderr.txt
+          if [ -s stderr.txt ]; then
+            echo "::error::viewer reported errors on startup"; exit 1
+          fi
+
+      - name: Check binary exists (macOS / Windows)
+        if: runner.os != 'Linux'
+        shell: bash
+        run: |
+          test -f build/SHOViewer || test -f build/Release/SHOViewer.exe
+
+      # ── Artifacts ───────────────────────────────────────────────────────────
+      - name: Collect artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp build/Release/*.exe build/Release/*.dll dist/ 2>/dev/null || true
+          else
+            cp build/SHOViewer dist/
+          fi
+          cp README.md LICENSE dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SHOViewer-${{ matrix.name }}
+          path: dist/
+          if-no-files-found: error

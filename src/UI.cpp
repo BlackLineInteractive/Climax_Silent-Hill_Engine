@@ -1,7 +1,7 @@
 #include "UI.h"
 #include "Loader.h"
 #include "Common.h"
-#include "imgui/imgui.h"
+#include "imgui.h"
 #include <algorithm>
 #include <iostream>
 
@@ -168,7 +168,9 @@ void FileBrowserState::Render() {
 // Structure / hierarchy window
 // ---------------------------------------------------------------------------
 void RenderStructureWindow() {
-    ImGui::SetNextWindowPos(ImVec2(10, 290), ImGuiCond_FirstUseEver);
+    // Placed to the right of the pinned 256 px control panel — the old default
+    // opened it straight on top of that panel.
+    ImGui::SetNextWindowPos(ImVec2(276, 10), ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize(ImVec2(340, 460), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Structure")) { ImGui::End(); return; }
 
@@ -350,8 +352,16 @@ static bool IsAllUpper(const std::string& s) {
 }
 
 void RenderTxdWindow() {
-    ImGui::SetNextWindowPos(ImVec2(1050, 10), ImGuiCond_FirstUseEver);
-    ImGui::SetNextWindowSize(ImVec2(230, 600), ImGuiCond_FirstUseEver);
+    // Anchored to the right edge of the viewport rather than to a hard-coded
+    // 1280 px width, and pushed below the orbit sphere overlay it used to sit under.
+    const ImGuiViewport* vp = ImGui::GetMainViewport();
+    const float TXD_W = 230.0f, TXD_TOP = 140.0f;
+    ImGui::SetNextWindowPos(
+        ImVec2(vp->Pos.x + vp->Size.x - TXD_W - 10.0f, vp->Pos.y + TXD_TOP),
+        ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSize(
+        ImVec2(TXD_W, std::max(200.0f, vp->Size.y - TXD_TOP - 10.0f)),
+        ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Textures")) { ImGui::End(); return; }
 
     if (g_TexInfo.empty()) {

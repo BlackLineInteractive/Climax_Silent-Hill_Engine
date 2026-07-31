@@ -4,7 +4,12 @@ CXXFLAGS = -std=c++17 -Wall -g
 SDL2_CFLAGS := $(shell pkg-config --cflags sdl2)
 SDL2_LIBS   := $(shell pkg-config --libs sdl2)
 
-INCLUDES = -I./src -I./vendor -I./vendor/imgui -I./vendor/imgui/backends -I./vendor/imguizmo $(SDL2_CFLAGS)
+INCLUDES = -I./src -I./vendor -I./vendor/imgui -I./vendor/imgui/backends \
+           -I./vendor/imguizmo -I./vendor/imguizmo/src $(SDL2_CFLAGS)
+
+# ImGuizmo lives in src/ on recent revisions and in the repo root on older ones.
+IMGUIZMO_SRC := $(firstword $(wildcard vendor/imguizmo/src/ImGuizmo.cpp \
+                                       vendor/imguizmo/ImGuizmo.cpp))
 
 # Список усіх вихідних файлів
 SRCS = src/main.cpp src/Common.cpp src/PS2Texture.cpp src/Loader.cpp src/UI.cpp \
@@ -14,7 +19,7 @@ SRCS = src/main.cpp src/Common.cpp src/PS2Texture.cpp src/Loader.cpp src/UI.cpp 
        vendor/imgui/imgui_widgets.cpp \
        vendor/imgui/backends/imgui_impl_sdl2.cpp \
        vendor/imgui/backends/imgui_impl_opengl3.cpp \
-       vendor/imguizmo/ImGuizmo.cpp
+       $(IMGUIZMO_SRC)
 
 # Автоматично створюємо список .o файлів з .cpp файлів
 OBJS = $(SRCS:.cpp=.o)

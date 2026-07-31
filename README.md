@@ -45,30 +45,63 @@ Each section may contain:
 | TEXDICTION | Texture dictionary (TXD)       |
 | BINMESH    | Pre-indexed triangle lists     |
 
-See [SHO_FORMAT.md](SHO_FORMAT.md) for a detailed breakdown of the binary layout.
+The parser lives in [src/Loader.cpp](src/Loader.cpp); the PS2 texture decoder is in
+[src/PS2Texture.cpp](src/PS2Texture.cpp).
 
 ---
 
 ## Build
 
+Builds on **Linux, macOS and Windows**; every push is built on all three by
+[GitHub Actions](.github/workflows/build.yml), which also uploads a ready binary
+per platform as a workflow artifact.
+
 ### Requirements
 
-| Dependency | Notes                       |
-|------------|-----------------------------|
-| CMake 3.16 | or newer                    |
-| GCC / Clang (C++17) |                  |
-| OpenGL 3.3 | core profile                |
-| GLEW       | `libglew-dev`               |
-| SDL2       | `libsdl2-dev`               |
-| GLM        | `libglm-dev` (header-only)  |
+| Dependency | Notes                                    |
+|------------|------------------------------------------|
+| CMake 3.16 | 3.21+ on Windows to auto-copy the DLLs   |
+| GCC / Clang / MSVC (C++17) |                          |
+| OpenGL 3.3 | core profile                             |
+| GLEW       | system package                           |
+| SDL2       | system package                           |
+| GLM        | header-only; fetched automatically if missing |
 
-ImGui and ImGuizmo are downloaded automatically during the CMake configure step.
+ImGui and ImGuizmo are always downloaded during the CMake configure step.
 
-### CMake (recommended)
+### Install the system dependencies
+
+```bash
+# Debian / Ubuntu
+sudo apt install build-essential cmake pkg-config libsdl2-dev libglew-dev libglm-dev
+```
+
+```bash
+# macOS (Homebrew)
+brew install cmake sdl2 glew glm
+```
+
+```bash
+# Windows (vcpkg — reads the dependency list from vcpkg.json)
+vcpkg install --triplet x64-windows
+```
+
+### Build
 
 ```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(nproc)
+cmake --build build --config Release --parallel
+```
+
+On Windows add the vcpkg toolchain to the configure step:
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake
+```
+
+Then run it — the TXD list is optional, textures may be embedded in the container:
+
+```bash
 ./build/SHOViewer path/to/MO_1_Room102 [texture.txd ...]
 ```
 
@@ -100,10 +133,16 @@ The file browser inside the application can also open files at runtime.
 | Action                  | Input                                    |
 |-------------------------|------------------------------------------|
 | Orbit camera            | Right-click drag / orbit sphere (top-right) |
-| Zoom                    | Scroll wheel                             |
-| Move pivot              | ImGuizmo translate arrows (drag XYZ)     |
+| Zoom                    | Scroll wheel (proportional to distance)  |
+| Move pivot              | ImGuizmo arrows / plane handles — follows the cursor 1:1 |
+| Snap pivot while moving | Hold **Ctrl** (or tick **Snap**, step is configurable) |
+| Toggle pivot gizmo      | **Pivot gizmo** checkbox                 |
 | Reset camera            | Key **1** or **Reset Camera** button     |
 | Open file               | Open Level button                        |
+
+The gizmo, the orbit sphere and the camera never fight over the mouse: a hovered
+gizmo no longer blocks wheel-zoom or right-drag orbit, and only one of them can
+claim a left-button drag at a time.
 
 ---
 
@@ -130,10 +169,9 @@ src/
   UI.cpp/h        — structure tree, texture browser, file browser
   PS2Texture.cpp/h— PS2 VRAM format decoder
   Common.h/cpp    — shared state, types, globals
-vendor/
-  stb_image.h / stb_image_write.h
-  json.hpp
-  tiny_gltf.h
+vendor/            (Makefile build only — CMake fetches these into build/_deps)
+  imgui/
+  imguizmo/
 ```
 
 ---

@@ -28,7 +28,10 @@ void LoadTexturesFromTxd(const std::string& txdPath, const std::vector<std::stri
     std::ifstream f(txdPath, std::ios::binary | std::ios::ate);
     if (!f) return;
 
-    size_t sz = f.tellg(); f.seekg(0);
+    size_t sz = (size_t)f.tellg(); f.seekg(0);
+    // `pos < sz - 100` underflows on any file smaller than 100 bytes and turns the
+    // loop bound into SIZE_MAX, walking off the end of the buffer.
+    if (sz < 128) return;
     std::vector<uint8_t> data(sz); f.read((char*)data.data(), sz);
 
     const int MAGIC_OFFSET = 80;
@@ -61,7 +64,7 @@ void LoadTexturesFromTxd(const std::string& txdPath, const std::vector<std::stri
                 bool nameAllowed = fallback;
                 if (!fallback) {
                     for (const auto& allowed : allowedNames) {
-                        if (strcasecmp(t.name.c_str(), allowed.c_str()) == 0) {
+                        if (sho_stricmp(t.name.c_str(), allowed.c_str()) == 0) {
                             nameAllowed = true;
                             break;
                         }
@@ -420,10 +423,18 @@ void LoadGeometry(const std::string& geomPath) {
 }
 
 void LoadLevel(const std::string& meshContainerPath, const std::vector<std::string>& txdPaths) {
-    for (auto& [name, id] : g_TextureMap) {
-        glDeleteTextures(1, &id);
-    }
+    // Every texture is registered under both its original and its upper-case name,
+    // so delete each GL object once instead of once per alias.
+    std::vector<GLuint> uniqueIds;
+    for (auto& [name, id] : g_TextureMap)
+        if (std::find(uniqueIds.begin(), uniqueIds.end(), id) == uniqueIds.end())
+            uniqueIds.push_back(id);
+    if (!uniqueIds.empty())
+        glDeleteTextures((GLsizei)uniqueIds.size(), uniqueIds.data());
     g_TextureMap.clear();
+    // g_TexInfo held the same GL ids and was never cleared, so the texture browser
+    // kept drawing with names that had just been deleted.
+    g_TexInfo.clear();
 
     LoadGeometry(meshContainerPath);
 

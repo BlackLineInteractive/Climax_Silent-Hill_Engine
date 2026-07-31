@@ -1,0 +1,10 @@
+{
+  "name": "shoviewer",
+  "version-string": "1.0.0",
+  "description": "Silent Hill Origins 3D level viewer",
+  "dependencies": [
+    "sdl2",
+    "glew",
+    "glm"
+  ]
+}

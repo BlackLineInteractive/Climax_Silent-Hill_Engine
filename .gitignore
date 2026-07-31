@@ -26,6 +26,8 @@ Motel/
 *.txd
 *.TXD
 
+game/
+
 # Editor / IDE
 .vscode/
 .idea/

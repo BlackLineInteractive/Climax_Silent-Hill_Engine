@@ -9,6 +9,15 @@
 
 namespace fs = std::filesystem;
 
+// strcasecmp is POSIX; MSVC spells it _stricmp.
+#ifdef _MSC_VER
+  #include <string.h>
+  #define sho_stricmp _stricmp
+#else
+  #include <strings.h>
+  #define sho_stricmp strcasecmp
+#endif
+
 // ------------------- СТРУКТУРИ -------------------
 struct Vertex {
     glm::vec3 pos;
@@ -116,6 +125,11 @@ struct ViewerState {
     bool showStructure    = true;   // show Structure hierarchy panel
     bool showTextures     = true;   // show Textures browser panel
     RenderMode renderMode = RenderMode::Textured;
+
+    // Pivot gizmo (ImGuizmo)
+    bool  showPivotGizmo  = true;   // draw / allow dragging the pivot gizmo
+    bool  pivotSnapOn     = false;  // snap translation to a grid (also forced by Ctrl)
+    float pivotSnap       = 1.0f;   // grid step in world units
 
     // Sky / background
     float skyColorTop[3] = {0.07f, 0.07f, 0.09f};  // horizon-to-top colour

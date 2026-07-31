@@ -9,9 +9,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "imgui/imgui.h"
-#include "imgui/backends/imgui_impl_sdl2.h"
-#include "imgui/backends/imgui_impl_opengl3.h"
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_opengl3.h"
 #include "ImGuizmo.h"
 
 #include "Common.h"
@@ -79,19 +79,90 @@ static void DrawOrbitSphere(ImDrawList* dl, ImVec2 ctr, float R, const glm::mat4
     }
 }
 
+// Compile + link a program, reporting the driver's log instead of silently
+// handing back a broken (black-screen) program object.
+static GLuint MakeProgram(const char* name, const char* vsSrc, const char* fsSrc) {
+    auto compile = [&](GLenum stage, const char* src, const char* stageName) -> GLuint {
+        GLuint sh = glCreateShader(stage);
+        glShaderSource(sh, 1, &src, nullptr);
+        glCompileShader(sh);
+        GLint ok = GL_FALSE;
+        glGetShaderiv(sh, GL_COMPILE_STATUS, &ok);
+        if (!ok) {
+            char log[2048];
+            glGetShaderInfoLog(sh, sizeof(log), nullptr, log);
+            std::cerr << "[shader] " << name << " / " << stageName
+                      << " failed to compile:\n" << log << std::endl;
+        }
+        return sh;
+    };
+
+    GLuint vs = compile(GL_VERTEX_SHADER,   vsSrc, "vertex");
+    GLuint fs = compile(GL_FRAGMENT_SHADER, fsSrc, "fragment");
+    GLuint prog = glCreateProgram();
+    glAttachShader(prog, vs);
+    glAttachShader(prog, fs);
+    glLinkProgram(prog);
+
+    GLint ok = GL_FALSE;
+    glGetProgramiv(prog, GL_LINK_STATUS, &ok);
+    if (!ok) {
+        char log[2048];
+        glGetProgramInfoLog(prog, sizeof(log), nullptr, log);
+        std::cerr << "[shader] " << name << " failed to link:\n" << log << std::endl;
+    }
+    glDetachShader(prog, vs); glDeleteShader(vs);
+    glDetachShader(prog, fs); glDeleteShader(fs);
+    return prog;
+}
+
 int main(int argc, char* argv[]) {
-    if (argc >= 3) {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
+        return 1;
+    }
+
+    // The shaders are `#version 330 core`, so ask for a matching context instead
+    // of taking whatever the driver defaults to (a compatibility/2.1 context on
+    // macOS, where every shader would then fail to compile).
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+    SDL_Window* win = SDL_CreateWindow("SHO Viewer",
+        SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720,
+        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+    if (!win) {
+        std::cerr << "SDL_CreateWindow failed: " << SDL_GetError() << std::endl;
+        SDL_Quit();
+        return 1;
+    }
+    SDL_GLContext ctx = SDL_GL_CreateContext(win);
+    if (!ctx) {
+        std::cerr << "SDL_GL_CreateContext failed: " << SDL_GetError() << std::endl;
+        SDL_DestroyWindow(win); SDL_Quit();
+        return 1;
+    }
+    SDL_GL_SetSwapInterval(1);
+
+    glewExperimental = GL_TRUE;   // required for a core profile context
+    GLenum glewErr = glewInit();
+    if (glewErr != GLEW_OK) {
+        std::cerr << "glewInit failed: " << glewGetErrorString(glewErr) << std::endl;
+        return 1;
+    }
+    glGetError();   // swallow the spurious INVALID_ENUM glewExperimental produces
+
+    // Load only once a GL context exists — LoadLevel() uploads buffers and
+    // textures, and it used to run before SDL was even initialised.
+    // The TXD list is optional: textures may be embedded in the container.
+    if (argc >= 2) {
         std::vector<std::string> txds;
         for (int i = 2; i < argc; i++) txds.push_back(argv[i]);
         LoadLevel(argv[1], txds);
     }
-
-    SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window* win = SDL_CreateWindow("SHO Viewer", 0, 0, 1280, 720,
-        SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
-    SDL_GLContext ctx = SDL_GL_CreateContext(win);
-    SDL_GL_SetSwapInterval(1);
-    glewInit();
 
     IMGUI_CHECKVERSION(); ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -223,12 +294,7 @@ void main(){
 }
 )";
 
-    GLuint vs = glCreateShader(GL_VERTEX_SHADER);
-    GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
-    GLuint p  = glCreateProgram();
-    glShaderSource(vs, 1, &vS, 0); glCompileShader(vs);
-    glShaderSource(fs, 1, &fS, 0); glCompileShader(fs);
-    glAttachShader(p, vs); glAttachShader(p, fs); glLinkProgram(p);
+    GLuint p = MakeProgram("scene", vS, fS);
 
     // ---- Solid-colour shader (collision wireframe + clump markers) ----
     const char* colvS = R"(
@@ -243,12 +309,7 @@ out vec4 FragColor;
 uniform vec4 solidColor;
 void main(){ FragColor = solidColor; }
 )";
-    GLuint cvs = glCreateShader(GL_VERTEX_SHADER);
-    GLuint cfs = glCreateShader(GL_FRAGMENT_SHADER);
-    GLuint collProg = glCreateProgram();
-    glShaderSource(cvs, 1, &colvS, 0); glCompileShader(cvs);
-    glShaderSource(cfs, 1, &colfS, 0); glCompileShader(cfs);
-    glAttachShader(collProg, cvs); glAttachShader(collProg, cfs); glLinkProgram(collProg);
+    GLuint collProg = MakeProgram("solid", colvS, colfS);
 
     // ---- Sky / gradient background shader (fullscreen quad via gl_VertexID) ----
     const char* skyVS = R"(
@@ -273,12 +334,7 @@ void main(){
     FragColor = vec4(mix(skyBot, skyTop, fragY.y), 1.0);
 }
 )";
-    GLuint svs = glCreateShader(GL_VERTEX_SHADER);
-    GLuint sfs = glCreateShader(GL_FRAGMENT_SHADER);
-    GLuint skyProg = glCreateProgram();
-    glShaderSource(svs, 1, &skyVS, 0); glCompileShader(svs);
-    glShaderSource(sfs, 1, &skyFS, 0); glCompileShader(sfs);
-    glAttachShader(skyProg, svs); glAttachShader(skyProg, sfs); glLinkProgram(skyProg);
+    GLuint skyProg = MakeProgram("sky", skyVS, skyFS);
     // Empty VAO required by core profile for attributeless draws
     GLuint skyVao;
     glGenVertexArrays(1, &skyVao);
@@ -286,6 +342,20 @@ void main(){
     // Mouse orbit state
     bool  mouseRight = false;
     int   prevMouseX = 0, prevMouseY = 0;
+
+    // Who owns the mouse. Computed at the end of each frame and consumed by the
+    // next frame's event loop, because SDL events are polled before NewFrame().
+    //
+    // io.WantCaptureMouse is deliberately NOT used here: ImGuizmo raises it via
+    // SetNextFrameWantCaptureMouse() as soon as the cursor merely *hovers* a gizmo
+    // handle, which used to kill wheel-zoom and right-drag orbit across the whole
+    // middle of the viewport. Hovering the gizmo must not block the camera —
+    // only an active left-button manipulation does.
+    bool viewportOwnsMouse = true;
+
+    // Gizmo / orbit-sphere interaction state (persist across frames)
+    bool sphereDragging = false;
+    bool gizmoUsing     = false;
 
     bool run = true;
     while (run) {
@@ -295,13 +365,14 @@ void main(){
 
             if (e.type == SDL_QUIT) run = false;
 
-            // Mouse wheel zoom — only when ImGui is not capturing
-            if (e.type == SDL_MOUSEWHEEL && !io.WantCaptureMouse) {
-                state.camDist = std::max(0.5f, state.camDist - e.wheel.y * 1.5f);
+            // Mouse wheel zoom — proportional so zooming stays usable at any scale
+            if (e.type == SDL_MOUSEWHEEL && viewportOwnsMouse) {
+                state.camDist = glm::clamp(
+                    state.camDist * powf(0.9f, (float)e.wheel.y), 0.5f, 2000.0f);
             }
 
             // Right mouse button drag → orbit (yaw / pitch)
-            if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT && !io.WantCaptureMouse) {
+            if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT && viewportOwnsMouse) {
                 mouseRight = true;
                 prevMouseX = e.button.x;
                 prevMouseY = e.button.y;
@@ -309,7 +380,9 @@ void main(){
             if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_RIGHT) {
                 mouseRight = false;
             }
-            if (e.type == SDL_MOUSEMOTION && mouseRight && !io.WantCaptureMouse) {
+            // Once a drag has started it keeps running even if the cursor leaves the
+            // viewport, otherwise the orbit stutters whenever it crosses a panel.
+            if (e.type == SDL_MOUSEMOTION && mouseRight) {
                 float dx = (float)(e.motion.x - prevMouseX);
                 float dy = (float)(e.motion.y - prevMouseY);
                 state.camYaw   += dx * 0.4f;
@@ -319,10 +392,17 @@ void main(){
             }
         }
 
-        // Window size (handles resize)
+        // Logical window size — this is the coordinate space ImGui and ImGuizmo
+        // report mouse positions in, so all UI/gizmo rects must use it.
         int winW, winH;
         SDL_GetWindowSize(win, &winW, &winH);
-        float aspect = winH > 0 ? (float)winW / winH : 1.0f;
+        // Framebuffer size — differs from the logical size on HiDPI/Retina displays.
+        // glViewport must use this one; using winW/winH rendered the 3-D scene into
+        // a fraction of the framebuffer while the gizmo overlay covered the whole
+        // window, so the gizmo did not line up with the geometry at all.
+        int fbW, fbH;
+        SDL_GL_GetDrawableSize(win, &fbW, &fbH);
+        float aspect = fbH > 0 ? (float)fbW / fbH : 1.0f;
 
         // Build matrices
         glm::vec3 eye;
@@ -340,7 +420,7 @@ void main(){
             state.camYaw = 0; state.camPitch = 20; state.camDist = 15;
         }
 
-        glViewport(0, 0, winW, winH);
+        glViewport(0, 0, fbW, fbH);
         glClearColor(state.skyColorBot[0], state.skyColorBot[1], state.skyColorBot[2], 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
@@ -423,7 +503,11 @@ void main(){
             glBindVertexArray(0);
 
             if (!state.showWireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-            glEnable(GL_CULL_FACE);
+            // Restore, don't enable: culling is off for the whole viewer (the PS2
+            // strips have inconsistent winding). Unconditionally enabling it here
+            // made half the level vanish from the frame after collision was first
+            // switched on, and it never came back.
+            glDisable(GL_CULL_FACE);
             glLineWidth(1.0f);
         }
 
@@ -504,28 +588,78 @@ void main(){
 
         glUseProgram(p);
 
+        // -- Orbit sphere geometry (hit region only; drawn further down) -----
+        // The circle is computed before the gizmo runs so the two widgets can
+        // arbitrate over the same left button instead of both grabbing it.
+        const float SR = 54.0f;
+        const ImVec2 sphereCtr((float)winW - 10.0f - 122.0f * 0.5f, 10.0f + SR + 8.0f);
+        const float sdx = io.MousePos.x - sphereCtr.x;
+        const float sdy = io.MousePos.y - sphereCtr.y;
+        const bool  overSphere = (sdx*sdx + sdy*sdy <= (SR + 3.0f)*(SR + 3.0f));
+
+        // -- ImGuizmo translate pivot ----------------------------------------
+        // Runs before every IsOver()/IsUsing() query below: ImGuizmo only refreshes
+        // its hover/use state inside Manipulate(), so querying it earlier in the
+        // frame returned data from the previous frame.
+        gizmoUsing = false;
+        if (state.showPivotGizmo) {
+            // Enable() only suppresses interaction — Manipulate() still draws the
+            // gizmo — so hiding it has to skip the call entirely.
+            // Hand the left button to the orbit sphere when the cursor is on it,
+            // but never cancel a manipulation that is already in progress.
+            ImGuizmo::Enable(!sphereDragging && (ImGuizmo::IsUsing() || !overSphere));
+
+            ImGuizmo::SetOrthographic(false);
+            ImGuizmo::AllowAxisFlip(false);          // no confusing flips
+            ImGuizmo::SetGizmoSizeClipSpace(0.12f);
+            // No SetDrawlist(): ImGuizmo::BeginFrame() already installed its own
+            // full-screen NoInputs window. Pointing it at the foreground draw list
+            // made the gizmo paint over every panel and broke the hover test that
+            // keeps it from reacting to clicks landing on the UI.
+            ImGuizmo::SetRect(0.0f, 0.0f, (float)winW, (float)winH);
+
+            float viewArr[16], projArr[16], matArr[16];
+            memcpy(viewArr, glm::value_ptr(view), sizeof(viewArr));
+            memcpy(projArr, glm::value_ptr(proj), sizeof(projArr));
+            glm::mat4 pivotMat = glm::translate(glm::mat4(1.0f),
+                glm::vec3(state.camTargetX, state.camTargetY, state.camTargetZ));
+            memcpy(matArr, glm::value_ptr(pivotMat), sizeof(matArr));
+
+            const bool snapping = state.pivotSnapOn || io.KeyCtrl;
+            const float snapStep = std::max(state.pivotSnap, 0.001f);
+            const float snapVec[3] = { snapStep, snapStep, snapStep };
+
+            // Take the manipulated matrix verbatim. The previous code applied only
+            // 35 % of (result - current) per frame as a "sensitivity" tweak, but
+            // ImGuizmo returns the *absolute* position the cursor projects to, not
+            // an incremental delta — so scaling it turned the drag into a per-frame
+            // exponential lag: the pivot never reached the cursor, kept creeping for
+            // a while after the mouse stopped, and moved at a different speed
+            // depending on the frame rate.
+            if (ImGuizmo::Manipulate(viewArr, projArr,
+                    ImGuizmo::TRANSLATE, ImGuizmo::WORLD, matArr,
+                    nullptr, snapping ? snapVec : nullptr)) {
+                state.camTargetX = matArr[12];
+                state.camTargetY = matArr[13];
+                state.camTargetZ = matArr[14];
+            }
+
+            gizmoUsing = ImGuizmo::IsUsing();
+            // No SDL_CaptureMouse() here: imgui_impl_sdl2 already calls it every
+            // frame from the button mask, so the manual calls were dead at best and
+            // released a capture the orbit sphere still needed at worst.
+        }
+
         // -- Orbit sphere overlay (top-right, direct circular hit-test) ------
         {
-            const float SR  = 54.0f;
-            const float OVW = 122.0f;
-            const float OVX = (float)winW - OVW - 10.0f;
-            const float OVY = 10.0f;
-            ImVec2 sphereCtr(OVX + OVW * 0.5f, OVY + SR + 8.0f);
-
             DrawOrbitSphere(ImGui::GetForegroundDrawList(), sphereCtr, SR, view);
-
-            // Hit-test directly against the sphere circle, no extra ImGui window
-            static bool sphereDragging = false;
-            float sdx = io.MousePos.x - sphereCtr.x;
-            float sdy = io.MousePos.y - sphereCtr.y;
-            bool overSphere = (sdx*sdx + sdy*sdy <= (SR + 3.0f)*(SR + 3.0f));
 
             if (!sphereDragging && overSphere
                     && ImGui::IsMouseClicked(ImGuiMouseButton_Left)
+                    && !gizmoUsing
                     && !ImGuizmo::IsOver()
                     && !io.WantCaptureMouse) {
                 sphereDragging = true;
-                SDL_CaptureMouse(SDL_TRUE);
             }
             if (sphereDragging) {
                 if (ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
@@ -534,46 +668,7 @@ void main(){
                         state.camPitch - io.MouseDelta.y * 0.32f, -89.0f, 89.0f);
                 } else {
                     sphereDragging = false;
-                    SDL_CaptureMouse(SDL_FALSE);
                 }
-            }
-        }
-
-        // -- ImGuizmo translate pivot (top-level, full-screen rect) ----------
-        {
-            static bool guizmoDragging = false;
-
-            float viewArr[16], projArr[16], matArr[16];
-            memcpy(viewArr, glm::value_ptr(view), 64);
-            memcpy(projArr, glm::value_ptr(proj), 64);
-            glm::mat4 pivotMat = glm::translate(glm::mat4(1.0f),
-                glm::vec3(state.camTargetX, state.camTargetY, state.camTargetZ));
-            memcpy(matArr, glm::value_ptr(pivotMat), 64);
-
-            ImGuizmo::SetOrthographic(false);
-            ImGuizmo::AllowAxisFlip(false);          // no confusing flips
-            ImGuizmo::SetGizmoSizeClipSpace(0.20f);  // larger arrows = finer control
-            ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
-            ImGuizmo::SetRect(0.0f, 0.0f, (float)winW, (float)winH);
-
-            float prevMat[16]; memcpy(prevMat, matArr, 64);
-            if (ImGuizmo::Manipulate(viewArr, projArr,
-                    ImGuizmo::TRANSLATE, ImGuizmo::WORLD, matArr)) {
-                // Scale down sensitivity: arrows move at half world speed
-                const float SENS = 0.35f;
-                state.camTargetX += (matArr[12] - prevMat[12]) * SENS;
-                state.camTargetY += (matArr[13] - prevMat[13]) * SENS;
-                state.camTargetZ += (matArr[14] - prevMat[14]) * SENS;
-            }
-
-            // SDL mouse capture while dragging so cursor stays tracked
-            bool usingNow = ImGuizmo::IsUsing();
-            if (usingNow && !guizmoDragging) {
-                guizmoDragging = true;
-                SDL_CaptureMouse(SDL_TRUE);
-            } else if (!usingNow && guizmoDragging) {
-                guizmoDragging = false;
-                SDL_CaptureMouse(SDL_FALSE);
             }
         }
 
@@ -602,6 +697,20 @@ void main(){
         if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) {
             state.camTargetX = 0; state.camTargetY = 2; state.camTargetZ = 0;
             state.camYaw = 0; state.camPitch = 20; state.camDist = 15;
+        }
+
+        ImGui::Checkbox("Pivot gizmo", &state.showPivotGizmo);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Drag the arrows/planes to move the orbit pivot.\n"
+                              "Hold Ctrl while dragging to snap.");
+        if (state.showPivotGizmo) {
+            ImGui::SameLine(128);
+            ImGui::Checkbox("Snap", &state.pivotSnapOn);
+            ImGui::SetNextItemWidth(-44.0f);
+            ImGui::DragFloat("##snapstep", &state.pivotSnap, 0.05f, 0.01f, 100.0f, "%.2f");
+            ImGui::SameLine(); ImGui::TextDisabled("Step");
+            ImGui::TextDisabled("Pivot %.2f  %.2f  %.2f",
+                state.camTargetX, state.camTargetY, state.camTargetZ);
         }
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
 
@@ -719,6 +828,17 @@ void main(){
 
         // File browser
         g_FileBrowser.Render();
+
+        // Decide who owns the mouse for the *next* frame's event loop. Panels and
+        // active widgets win; a hovered (but not dragged) gizmo does not.
+        {
+            const bool overPanel = ImGui::IsWindowHovered(
+                ImGuiHoveredFlags_AnyWindow |
+                ImGuiHoveredFlags_AllowWhenBlockedByPopup |
+                ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+            viewportOwnsMouse = !overPanel && !ImGui::IsAnyItemActive()
+                                && !gizmoUsing && !sphereDragging;
+        }
 
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
