@@ -598,6 +598,7 @@ void main(){
                     for (auto& ch : upper) ch = (char)toupper((unsigned char)ch);
                     if (g_TextureMap.count(upper)) tid = g_TextureMap[upper];
                 }
+                if (chunk.untextured) continue;   // TEMP: identify the white sheets
                 glBindTexture(GL_TEXTURE_2D, tid);
                 // A resolved-but-missing texture still renders as a flat material.
                 glUniform1i(uUntex, (chunk.untextured || tid == 0) ? 1 : 0);

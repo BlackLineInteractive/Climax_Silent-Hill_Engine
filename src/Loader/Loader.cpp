@@ -174,7 +174,7 @@ void LoadTexturesFromTxdData(const std::vector<uint8_t> &data,
 //   * The anchor must be the UNPACK, not STCYCL. The encoded STCYCL word occurs
 //     3548 times inside vertex data in that same section.
 // ---------------------------------------------------------------------------
-static size_t g_DbgNoBatch = 0, g_DbgBadIdx = 0;
+static size_t g_DbgNoBatch = 0, g_DbgBadIdx = 0, g_DbgNoColor = 0;
 
 namespace {
 
@@ -306,6 +306,9 @@ void DecodePacket(const std::vector<uint8_t> &d, const VifPacket &pk,
     v.color = {1.0f, 1.0f, 1.0f, 1.0f};
   }
 
+  bool haveColor = false;
+  for (const auto &s : pk.streams) if (s.addr == 2) haveColor = true;
+  if (!haveColor) g_DbgNoColor++;
   for (const auto &s : pk.streams) {
     const int count = std::min(n, s.num);
     switch (s.addr) {
@@ -598,7 +601,7 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   for (size_t si = 0; si < g_ShoSections.size(); si++) {
     const auto &sec = g_ShoSections[si];
     const size_t secEnd = (size_t)sec.offset + 12 + sec.size;
-    size_t root = (size_t)sec.dataStart + 8;
+    size_t root = (size_t)sec.dataStart + 4;
     if (root + 12 > sz || root + 12 > secEnd)
       continue;
     if (ru32(root + 8) != 0x1C020065)
@@ -676,6 +679,7 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   }
   g_Chunks.clear();
 
+  g_DbgNoColor = 0;
   size_t totalPackets = 0, totalVerts = 0, totalSplits = 0;
   std::vector<Vertex> rawVerts, triVerts;
   std::vector<bool> adcFlags;
@@ -693,6 +697,16 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
       if (matId < (int)names.size())
         m.texName = names[matId];
     }
+    // "GreyAlpha_<base>" is not a colour map: it is the alpha pass of a two-pass
+    // transparency setup, a white-on-black mask drawn over the same geometry as
+    // <base>. Rendering it as an ordinary texture painted large black-and-white
+    // sheets over the scene. Flag it so the renderer can leave it out; the mask
+    // still belongs to the base texture's alpha and merging the two is the next
+    // step.
+    if (m.texName.size() > 10 &&
+        sho_strnicmp(m.texName.c_str(), "GreyAlpha_", 10) == 0)
+      m.alphaPass = true;
+
     if (m.texName == "NULL" || m.texName.empty()) {
       m.untextured = true;
       if (sectionIdx >= 0 && matId >= 0 &&
@@ -779,7 +793,7 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   for (size_t si = 0; si < g_ShoSections.size(); si++) {
     const auto &sec = g_ShoSections[si];
     const size_t secEnd = (size_t)sec.offset + 12 + sec.size;
-    const size_t root = (size_t)sec.dataStart + 8;
+    const size_t root = (size_t)sec.dataStart + 4;
     if (root + 12 > secEnd || ru32(root + 8) != 0x1C020065)
       continue;
     const uint32_t rootType = ru32(root);
@@ -831,6 +845,65 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
     }
   }
 
+  // Sections whose root is neither World nor Clump — rwID_RWS wraps a 0x23/0x24
+  // chunk whose layout is not yet known — still contain VIF packets. Recover
+  // their geometry by scanning the section, confined to its own range and its
+  // own material list, so those props stop vanishing from the scene. Once the
+  // 0x23/0x24 header is understood this fallback goes away.
+  size_t fallbackSecs = 0, fallbackChunks = 0;
+  for (size_t si = 0; si < g_ShoSections.size(); si++) {
+    const auto &sec = g_ShoSections[si];
+    bool produced = false;
+    for (const auto &c : g_Chunks)
+      if (c.sectionIndex == (int)si) { produced = true; break; }
+    if (produced)
+      continue;
+    const size_t secBegin = (size_t)sec.dataStart;
+    const size_t secEnd = (size_t)sec.offset + 12 + sec.size;
+    if (secBegin + 16 >= secEnd)
+      continue;
+    const auto packets = PacketsIn(data, secBegin, secEnd);
+    if (packets.empty())
+      continue;
+
+    // One BinMesh inside this section, if there is one, gives the split order.
+    std::vector<std::pair<int, int>> splits; // (matId, vertexQuota)
+    for (size_t c = secBegin; c + 24 < secEnd; c++) {
+      if (ru32(c) != 0x050E || ru32(c + 8) != 0x1C020065)
+        continue;
+      const uint32_t n = ru32(c + 16);
+      if (n == 0 || n > 4096)
+        continue;
+      size_t q = c + 24;
+      for (uint32_t i = 0; i < n && q + 8 <= secEnd; i++, q += 8)
+        splits.emplace_back((int)ru32(q + 4), (int)ru32(q));
+      break;
+    }
+
+    int bi = 0, acc = 0;
+    for (const auto &pk : packets) {
+      DecodePacket(data, pk, rawVerts, adcFlags);
+      triVerts.clear();
+      StripToTriangles(rawVerts, adcFlags, triVerts);
+      int matId = -1;
+      if (bi < (int)splits.size()) {
+        matId = splits[bi].first;
+        acc += pk.vertexCount;
+        if (acc >= splits[bi].second) { bi++; acc = 0; }
+      }
+      totalVerts += pk.vertexCount;
+      if (!triVerts.empty()) {
+        addChunk(triVerts, (int)si, matId);
+        fallbackChunks++;
+      }
+    }
+    totalPackets += packets.size();
+    fallbackSecs++;
+  }
+  if (fallbackSecs)
+    std::cerr << "[geometry] scanned fallback used on " << fallbackSecs
+              << " sections -> " << fallbackChunks << " meshes\n";
+
   size_t nullNames = 0;
   for (const auto &n : g_MaterialNames)
     if (n == "NULL")
@@ -847,10 +920,96 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   std::cerr << "[materials] " << secWithMats << "/" << sectionMats.size()
             << " sections carry a material list, " << g_MaterialNames.size()
             << " names, " << nullNames << " unresolved\n";
+  {
+    size_t missTex = 0, missTri = 0;
+    for (const auto &c : g_Chunks) {
+      if (c.untextured) continue;
+      std::string up = c.texName;
+      for (auto &ch : up) ch = (char)toupper((unsigned char)ch);
+      if (!g_TextureMap.count(c.texName) && !g_TextureMap.count(up)) {
+        missTex++; missTri += c.vertices.size() / 3;
+      }
+    }
+    std::cerr << "[textures] " << g_TextureMap.size() / 2 << " loaded; "
+              << missTex << " meshes (" << missTri
+              << " tris) name a texture that is not present\n";
+    std::cerr << "[colors] " << g_DbgNoColor << " of " << totalPackets
+              << " packets carry no vertex-colour stream\n";
+  }
+  {
+    double ur=0,ug=0,ub=0,ua=0; size_t un=0;
+    double tr=0,tn=0;
+    for (const auto &c : g_Chunks) {
+      for (const auto &v : c.vertices) {
+        if (c.untextured) { ur+=v.color.r; ug+=v.color.g; ub+=v.color.b; ua+=v.color.a; un++; }
+        else { tr+=v.color.r; tn++; }
+      }
+    }
+    if (un) std::cerr << "[vcolor] untextured meshes avg RGBA = "
+      << ur/un << " " << ug/un << " " << ub/un << " " << ua/un
+      << "   (textured avg R = " << (tn?tr/tn:0) << ")\n";
+  }
   std::cerr << "[geometry] " << totalSplits << " splits, " << totalPackets
             << " VIF packets, " << totalVerts << " strip verts -> "
             << g_Chunks.size() << " meshes, " << emitTri << " tris ("
             << untexTri << " flat-colour)\n";
+}
+
+
+// ---------------------------------------------------------------------------
+// Two-pass transparency: "GreyAlpha_<base>" is a white-on-black mask that the
+// game draws over the same geometry as <base>. Rather than replay the second
+// pass, fold the mask's luminance into the base texture's alpha so the ordinary
+// alpha test cuts the foliage out.
+// ---------------------------------------------------------------------------
+static void ApplyAlphaMasks() {
+  auto findBase = [](const std::string &n) -> TexPreviewInfo * {
+    auto it = g_TexInfo.find(n);
+    if (it != g_TexInfo.end())
+      return &it->second;
+    std::string up = n;
+    for (auto &c : up)
+      c = (char)toupper((unsigned char)c);
+    it = g_TexInfo.find(up);
+    return it != g_TexInfo.end() ? &it->second : nullptr;
+  };
+
+  size_t merged = 0;
+  for (const auto &[name, mask] : g_TexInfo) {
+    if (name.size() <= 10 || sho_strnicmp(name.c_str(), "GreyAlpha_", 10) != 0)
+      continue;
+    TexPreviewInfo *base = findBase(name.substr(10));
+    if (!base || !base->glID || !mask.glID)
+      continue;
+    if (base->width != mask.width || base->height != mask.height)
+      continue;
+
+    const size_t n = (size_t)base->width * base->height * 4;
+    std::vector<uint8_t> m(n), c(n);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, mask.glID);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, m.data());
+    glBindTexture(GL_TEXTURE_2D, base->glID);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, c.data());
+    if (glGetError() != GL_NO_ERROR)
+      continue;
+
+    // Build the cut-out INTO the mask's own texture, not into the base.
+    // "GreyAlpha_X" is a material in its own right: it wants X's colour with its
+    // own luminance as alpha. Writing that into X instead punched holes in every
+    // other surface that shares X — the fences and planks that must stay solid.
+    for (size_t i = 0; i + 3 < n; i += 4) {
+      c[i + 3] = m[i]; // mask is greyscale: white = opaque, black = cut away
+    }
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, mask.glID);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mask.width, mask.height, GL_RGBA,
+                    GL_UNSIGNED_BYTE, c.data());
+    merged++;
+  }
+  if (merged)
+    std::cerr << "[textures] folded " << merged << " alpha masks into their base\n";
 }
 
 void LoadLevelData(const std::string &displayName,
@@ -889,6 +1048,8 @@ void LoadLevelData(const std::string &displayName,
   // Textures may also be embedded directly in the container.
   if (g_TextureMap.empty())
     LoadTexturesFromTxdData(container, g_MaterialNames, true);
+
+  ApplyAlphaMasks();
 
   g_CurrentMeshContainer = displayName;
   g_CurrentTxdPaths.clear();
@@ -1254,7 +1415,25 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
     sec.offset = (uint32_t)off716;
     sec.size = s;
     sec.name = secName;
-    sec.dataStart = (uint32_t)objStart;
+    // The first field of a section header is its own length, so the payload is
+    // reachable without walking the strings at all:
+    //
+    //     dataOff  = inner + 4 + headerSize   -> u32 payload length
+    //     chunk    = dataOff + 4              -> the RenderWare chunk
+    //
+    // This is what the QuickBMS unpack script does, and unlike stepping over the
+    // tag, GUID and build paths it holds for every section type — including the
+    // rwID_RWS 0x23/0x24 variants whose header layout is still unknown.
+    {
+      const uint32_t headerSize = ru32(inner);
+      const size_t dataOff = inner + 4 + headerSize;
+      if (headerSize > 0 && dataOff + 8 <= sz) {
+        sec.dataStart = (uint32_t)dataOff;
+        sec.payloadSize = ru32(dataOff);
+      } else {
+        sec.dataStart = (uint32_t)objStart;
+      }
+    }
     if (guidOff + 16 <= sz)
       sec.guid.assign((const char *)&data[guidOff], 16);
     // World geometry is baked into level space; everything else is a model

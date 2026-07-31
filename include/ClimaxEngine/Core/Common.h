@@ -13,9 +13,11 @@ namespace fs = std::filesystem;
 #ifdef _MSC_VER
   #include <string.h>
   #define sho_stricmp _stricmp
+  #define sho_strnicmp _strnicmp
 #else
   #include <strings.h>
   #define sho_stricmp strcasecmp
+  #define sho_strnicmp strncasecmp
 #endif
 
 // ------------------- СТРУКТУРИ -------------------
@@ -38,6 +40,7 @@ struct MeshChunk {
     // instead made every such surface come out solid black — most of the ground
     // and walls in the second half of IntroRoad.
     bool      untextured = false;
+    bool      alphaPass  = false;  // GreyAlpha_* mask, not a colour map
     glm::vec4 matColor   = glm::vec4(1.0f);
     int sectionIndex = -1;  // index into g_ShoSections, -1 = not inside any section
 };
@@ -79,7 +82,8 @@ struct ShoSection {
     uint32_t    size   = 0;
     std::string name;   // e.g. "rwID_WORLD", "rwID_CBSP", "rwID_CLUMP"
     std::string guid;   // raw 16 bytes; game objects reference sections by this
-    uint32_t    dataStart = 0;  // first byte after the two build-path strings
+    uint32_t    dataStart = 0;  // header-size field points here; payload length follows
+    uint32_t    payloadSize = 0; // declared length of the RenderWare chunk
 
     // Where in the level this section's geometry belongs.
     //

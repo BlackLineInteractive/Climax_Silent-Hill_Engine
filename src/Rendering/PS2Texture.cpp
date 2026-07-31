@@ -32,9 +32,29 @@ std::vector<uint8_t> UnswizzlePalette(const std::vector<uint8_t>& pal) {
     return newPal;
 }
 
+static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w, int h);
+
 void ProcessAndUploadTexture(RawTexture& raw) {
     int w = raw.width, h = raw.height;
     if (w <= 0 || h <= 0) return;
+
+    // PSMCT32: no palette, the texel data is already RGBA and stored linearly.
+    // Only 4- and 8-bit paletted rasters were handled before, so every 32-bit
+    // texture decoded to a blank white image — which in IntroRoad is exactly the
+    // tree and grass sheets.
+    if (raw.depth == 32) {
+        std::vector<uint8_t> rgba((size_t)w * h * 4, 255);
+        const size_t have = std::min(raw.pixels.size(), rgba.size());
+        for (size_t i = 0; i + 3 < have; i += 4) {
+            rgba[i + 0] = raw.pixels[i + 0];
+            rgba[i + 1] = raw.pixels[i + 1];
+            rgba[i + 2] = raw.pixels[i + 2];
+            // Same PS2 convention as the palette: 0x80 is fully opaque.
+            rgba[i + 3] = (uint8_t)std::min((int)raw.pixels[i + 3] * 2, 255);
+        }
+        UploadRGBA(raw, rgba, w, h);
+        return;
+    }
 
     std::vector<uint8_t> indices;
     if (raw.depth == 8) {
@@ -54,11 +74,16 @@ void ProcessAndUploadTexture(RawTexture& raw) {
     // Trim to the raster's declared palette size first, so a 4-bit texture
     // cannot read colours belonging to the padding behind its 16 entries.
     std::vector<uint8_t> pal = raw.palette;
-    const size_t wanted = (size_t)std::max(raw.paletteColors, 1) * 4;
-    if (pal.size() > wanted) pal.resize(wanted);
+    if (raw.depth == 4 && raw.paletteColors == 16) {
+        const size_t wanted = 16 * 4;
+        if (pal.size() > wanted) pal.resize(wanted);
+    }
 
+    // The CLUT reorder applies to 8-bit rasters only; 16-entry palettes are
+    // stored linearly. Keying this on the declared palette size instead of the
+    // pixel depth mangled every texture whose rasterFormat says otherwise.
     std::vector<uint8_t> finalPal;
-    if (raw.paletteColors == 256) finalPal = UnswizzlePalette(pal);
+    if (raw.depth == 8) finalPal = UnswizzlePalette(pal);
     else finalPal = pal;
 
     std::vector<uint8_t> rgba(w * h * 4, 255);
@@ -75,6 +100,10 @@ void ProcessAndUploadTexture(RawTexture& raw) {
         }
     }
 
+    UploadRGBA(raw, rgba, w, h);
+}
+
+static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w, int h) {
     glGenTextures(1, &raw.glID);
     glBindTexture(GL_TEXTURE_2D, raw.glID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
