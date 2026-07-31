@@ -1,7 +1,7 @@
 {
-  "name": "shoviewer",
+  "name": "climax-silent-hill-engine-toolkit",
   "version-string": "1.0.0",
-  "description": "Silent Hill Origins 3D level viewer",
+  "description": "Climax Silent Hill Engine Toolkit — 3D Level Viewer & Archive Extractor",
   "dependencies": [
     "sdl2",
     "glew",

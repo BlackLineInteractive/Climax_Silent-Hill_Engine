@@ -215,8 +215,8 @@ void RenderManualWindow() {
     ImGui::SetNextWindowSize(ImVec2(620, 620), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Manual", &state.showManual)) { ImGui::End(); return; }
 
-    ImGui::TextWrapped("A viewer for Silent Hill Origins levels. It reads the game "
-                       "archive directly, so you do not have to unpack anything first.");
+    ImGui::TextWrapped("Climax Silent Hill Engine Toolkit — 3D Level Viewer, Asset Decoder & Archive Extractor "
+                       "for Silent Hill Origins and Silent Hill: Shattered Memories.");
 
     Head("Loading a level");
     ImGui::BulletText("Click \"Open SH.ARC\" and pick SH.ARC from your game folder.");
