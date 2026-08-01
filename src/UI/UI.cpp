@@ -757,3 +757,31 @@ void RenderTxdWindow() {
     ImGui::End();
 }
 
+
+void RenderAudioPlayer() {
+    if (!state.showAudioPlayer) {
+        if (state.isAudioPlaying) ToggleAudioPlayback();
+        return;
+    }
+    
+    ImGui::SetNextWindowSize(ImVec2(400, 140), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Audio Player", &state.showAudioPlayer)) {
+        ImGui::Text("File: %s", state.audioFileName.c_str());
+        ImGui::Separator();
+        
+        if (ImGui::Button(state.isAudioPlaying ? "Pause" : "Play ")) {
+            ToggleAudioPlayback();
+        }
+        
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 10);
+        float prog = state.audioProgress;
+        if (ImGui::SliderFloat("##progress", &prog, 0.0f, 1.0f, "")) {
+            SetAudioProgress(prog);
+        }
+        
+        ImGui::SetNextItemWidth(150.0f);
+        ImGui::SliderFloat("Volume", &state.audioVolume, 0.0f, 1.5f, "%.2f");
+    }
+    ImGui::End();
+}

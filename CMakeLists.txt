@@ -108,6 +108,7 @@ set(APP_SOURCES
     src/main.cpp
     src/Core/Common.cpp
     src/Core/Arc.cpp
+    src/Core/AudioParser.cpp
     src/Rendering/PS2Texture.cpp
     src/Rendering/RenderBackend.cpp
     src/Rendering/GLSLBackend.cpp

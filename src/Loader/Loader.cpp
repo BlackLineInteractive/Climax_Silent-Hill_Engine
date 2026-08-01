@@ -431,10 +431,13 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         if (cType == 0x01 && cSize >= 16) {
           // Material struct: flags, RGBA colour, unused, textured, surface props
           const uint32_t rgba = ru32(child + 16);
-          matCol = glm::vec4(((rgba >> 0) & 0xFF) / 255.0f,
-                             ((rgba >> 8) & 0xFF) / 255.0f,
-                             ((rgba >> 16) & 0xFF) / 255.0f,
-                             ((rgba >> 24) & 0xFF) / 255.0f);
+          // Alpha follows the same PS2 convention as the palettes: 0x80 is
+          // fully opaque, not half. Dividing it by 255 made every flat-shaded
+          // material render at 50% and washed the models out.
+          matCol = glm::vec4(
+              ((rgba >> 0) & 0xFF) / 255.0f, ((rgba >> 8) & 0xFF) / 255.0f,
+              ((rgba >> 16) & 0xFF) / 255.0f,
+              std::min((((rgba >> 24) & 0xFF) * 2) / 255.0f, 1.0f));
         }
         if (cType == 0x06) { // Texture chunk
           size_t texChild = child + 12;
@@ -975,6 +978,60 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
       };
       walk(root + 12, rootEnd);
     } else if (rootType == 0x0010) { // Clump -> GeometryList -> Geometry
+      // A clump is a hierarchy, not one rigid model. FrameList holds a local
+      // matrix per frame, and every Atomic binds one geometry to one frame.
+      // Ignoring that drew every part at the clump's origin — which is why the
+      // character's head floated above the body and why props whose frame
+      // carries a scale came out the wrong size.
+      std::vector<glm::mat4> frameWorld;
+      {
+        for (size_t c = root + 12; c + 12 <= rootEnd;) {
+          const uint32_t ct = ru32(c), cs = ru32(c + 4);
+          if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
+            break;
+          if (ct == 0x000E) { // FrameList
+            const size_t st = c + 12;
+            if (ru32(st) == 0x01 && ru32(st + 8) == 0x1C020065) {
+              const uint32_t n = ru32(st + 12);
+              if (n > 0 && n <= 1024 && st + 16 + (size_t)n * 56 <= rootEnd) {
+                std::vector<glm::mat4> local(n, glm::mat4(1.0f));
+                std::vector<int32_t> parent(n, -1);
+                for (uint32_t i = 0; i < n; i++) {
+                  const size_t fb = st + 16 + (size_t)i * 56;
+                  glm::mat4 m(1.0f);
+                  for (int r = 0; r < 3; r++)
+                    for (int cc = 0; cc < 3; cc++)
+                      memcpy(&m[r][cc], &data[fb + (r * 3 + cc) * 4], 4);
+                  memcpy(&m[3][0], &data[fb + 36], 4);
+                  memcpy(&m[3][1], &data[fb + 40], 4);
+                  memcpy(&m[3][2], &data[fb + 44], 4);
+                  memcpy(&parent[i], &data[fb + 48], 4);
+                  local[i] = m;
+                }
+                frameWorld.assign(n, glm::mat4(1.0f));
+                for (uint32_t i = 0; i < n; i++)
+                  frameWorld[i] = (parent[i] >= 0 && parent[i] < (int32_t)i)
+                                      ? frameWorld[parent[i]] * local[i]
+                                      : local[i];
+              }
+            }
+          }
+          c += 12 + cs;
+        }
+      }
+
+      // Atomic (0x0014) binds geometryIndex -> frameIndex.
+      std::map<uint32_t, uint32_t> geomFrame;
+      for (size_t c = root + 12; c + 12 <= rootEnd;) {
+        const uint32_t ct = ru32(c), cs = ru32(c + 4);
+        if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
+          break;
+        if (ct == 0x0014 && ru32(c + 12) == 0x01)
+          geomFrame[ru32(c + 28)] = ru32(c + 24); // struct: frameIdx, geomIdx
+        c += 12 + cs;
+      }
+
+      uint32_t geomIndex = 0;
       for (size_t c = root + 12; c + 12 <= rootEnd;) {
         const uint32_t ct = ru32(c), cs = ru32(c + 4);
         if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
@@ -997,7 +1054,27 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
                 }
                 gc += 12 + gcs;
               }
+              // Bake this geometry's frame into its vertices, so instancing and
+              // export keep working unchanged.
+              glm::mat4 fm(1.0f);
+              auto itF = geomFrame.find(geomIndex);
+              if (itF != geomFrame.end() && itF->second < frameWorld.size())
+                fm = frameWorld[itF->second];
+              const size_t firstChunk = g_Chunks.size();
               handleOwner(g + 12, g + 12 + gs, geomMats, geomCols);
+              if (fm != glm::mat4(1.0f)) {
+                for (size_t k = firstChunk; k < g_Chunks.size(); k++) {
+                  auto &ch = g_Chunks[k];
+                  for (auto &v : ch.vertices)
+                    v.pos = glm::vec3(fm * glm::vec4(v.pos, 1.0f));
+                  // The VBO was filled before the transform, so refresh it.
+                  glBindBuffer(GL_ARRAY_BUFFER, ch.vbo);
+                  glBufferData(GL_ARRAY_BUFFER,
+                               (GLsizeiptr)(ch.vertices.size() * sizeof(Vertex)),
+                               ch.vertices.data(), GL_STATIC_DRAW);
+                }
+              }
+              geomIndex++;
             }
             g += 12 + gs;
           }

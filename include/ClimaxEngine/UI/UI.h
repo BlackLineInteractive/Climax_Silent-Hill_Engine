@@ -40,3 +40,9 @@ void RenderArcWindow();
 
 // Built-in manual
 void RenderManualWindow();
+
+// Audio player panel
+void RenderAudioPlayer();
+void ToggleAudioPlayback();
+void SetAudioProgress(float progress);
+

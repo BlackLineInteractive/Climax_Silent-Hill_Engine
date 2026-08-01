@@ -270,6 +270,13 @@ struct ViewerState {
   float skyColorTop[3] = {0.07f, 0.07f, 0.09f}; // horizon-to-top colour
   float skyColorBot[3] = {0.11f, 0.11f, 0.14f}; // ground colour
   bool skyGradient = false;                     // draw gradient vs solid
+
+  // Audio Player
+  bool showAudioPlayer = false;
+  std::string audioFileName = "";
+  bool isAudioPlaying = false;
+  float audioVolume = 1.0f;
+  float audioProgress = 0.0f;
 };
 
 // ------------------- ГЛОБАЛЬНІ ДАНІ (Оголошення) -------------------

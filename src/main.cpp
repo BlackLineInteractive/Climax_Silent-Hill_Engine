@@ -21,6 +21,59 @@
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Rendering/CPURasterizer.h"
 #include "ClimaxEngine/UI/UI.h"
+#include "ClimaxEngine/Core/AudioParser.h"
+
+// Audio Stream Global State
+static AudioStream g_AudioStream;
+static SDL_AudioDeviceID g_AudioDevice = 0;
+static size_t g_AudioSamplePos = 0;
+
+static void AudioCallback(void* userdata, Uint8* stream, int len) {
+    if (!state.isAudioPlaying || !g_AudioStream.valid) {
+        std::memset(stream, 0, len);
+        return;
+    }
+
+    int16_t* out = (int16_t*)stream;
+    int samplesNeeded = len / sizeof(int16_t);
+    int samplesAvailable = (int)(g_AudioStream.pcmData.size() - g_AudioSamplePos);
+    
+    if (samplesAvailable <= 0) {
+        std::memset(stream, 0, len);
+        state.isAudioPlaying = false;
+        return;
+    }
+
+    int copyCount = std::min(samplesNeeded, samplesAvailable);
+    
+    // Apply volume
+    for (int i = 0; i < copyCount; i++) {
+        float s = (float)g_AudioStream.pcmData[g_AudioSamplePos + i] * state.audioVolume;
+        s = std::max(-32768.0f, std::min(32767.0f, s));
+        out[i] = (int16_t)s;
+    }
+    
+    if (copyCount < samplesNeeded) {
+        std::memset(out + copyCount, 0, (samplesNeeded - copyCount) * sizeof(int16_t));
+        state.isAudioPlaying = false;
+    }
+    
+    g_AudioSamplePos += copyCount;
+    state.audioProgress = (float)g_AudioSamplePos / g_AudioStream.pcmData.size();
+}
+
+void ToggleAudioPlayback() {
+    if (g_AudioDevice == 0) return;
+    state.isAudioPlaying = !state.isAudioPlaying;
+    SDL_PauseAudioDevice(g_AudioDevice, state.isAudioPlaying ? 0 : 1);
+}
+
+void SetAudioProgress(float progress) {
+    if (g_AudioStream.pcmData.empty()) return;
+    g_AudioSamplePos = (size_t)(progress * g_AudioStream.pcmData.size());
+    // align to frame
+    g_AudioSamplePos -= g_AudioSamplePos % g_AudioStream.channels;
+}
 
 // ---------------------------------------------------------------------------
 // Prefs: persist the last opened .arc path so the next launch auto-mounts it.
@@ -195,7 +248,7 @@ static GLuint MakeProgram(const char* name, const char* vsSrc, const char* fsSrc
 }
 
 int main(int argc, char* argv[]) {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
         std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
         return 1;
     }
@@ -423,7 +476,7 @@ void main(){
         // which is how the game shades it. Sampling the unbound sampler here
         // returned solid black instead.
         vec4 col = matColor;
-        if(useVertexColors) col *= VC;
+        if(useVertexColors && !unlitGeometry) col *= VC;
         col.rgb *= brightness;
         if(col.a < 0.05) discard;
         FragColor = col;
@@ -550,6 +603,50 @@ void main(){
             }
             if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_RIGHT) {
                 mouseRight = false;
+            }
+            if (e.type == SDL_DROPFILE) {
+                std::string path = e.drop.file;
+                SDL_free(e.drop.file);
+                
+                // If it ends with .IGC, .IGCStream, .abc or .ads, load audio
+                if (path.size() >= 4) {
+                    std::string ext = path.substr(path.find_last_of("."));
+                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+                    if (ext == ".igc" || ext == ".igcstream" || ext == ".abc" || ext == ".ads") {
+                        if (g_AudioDevice > 0) {
+                            SDL_CloseAudioDevice(g_AudioDevice);
+                            g_AudioDevice = 0;
+                        }
+                        
+                        g_AudioStream = AudioParser::Load(path);
+                        if (g_AudioStream.valid) {
+                            state.showAudioPlayer = true;
+                            state.audioFileName = path.substr(path.find_last_of("/\\") + 1);
+                            state.isAudioPlaying = false;
+                            state.audioProgress = 0.0f;
+                            g_AudioSamplePos = 0;
+                            
+                            SDL_AudioSpec want, have;
+                            SDL_zero(want);
+                            want.freq = g_AudioStream.sampleRate;
+                            want.format = AUDIO_S16SYS;
+                            want.channels = g_AudioStream.channels;
+                            want.samples = 4096;
+                            want.callback = AudioCallback;
+                            
+                            g_AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
+                            if (g_AudioDevice > 0) {
+                                SDL_PauseAudioDevice(g_AudioDevice, 0);
+                                state.isAudioPlaying = true;
+                            } else {
+                                std::cerr << "Failed to open audio: " << SDL_GetError() << std::endl;
+                                g_AudioStream.valid = false;
+                            }
+                        } else {
+                            std::cerr << "Failed to load audio: " << path << std::endl;
+                        }
+                    }
+                }
             }
             // Once a drag has started it keeps running even if the cursor leaves the
             // viewport, otherwise the orbit stutters whenever it crosses a panel.
@@ -703,12 +800,9 @@ void main(){
                 // A material with no texture chunk and a pure white colour is a
                 // placeholder sheet the game does not draw — those were the white
                 // cards standing in front of the fir trees. Untextured materials
-                // that carry a real colour are ordinary flat-shaded geometry (the
-                // TV, the wall map, the props sitting at the origin) and must be
-                // drawn.
-                // Materials with no texture chunk are placeholder and trigger
-                // volumes the game does not draw — the white cards in front of
-                // the fir trees and the logic boxes around the truck.
+                // Materials with no texture chunk paint solid white cards over
+                // characters and props, so they stay hidden until the real rule
+                // for them is known.
                 if (chunk.untextured) continue;
                 glUniform1i(uAdd, chunk.additive ? 1 : 0);
                 glUniform1i(uUnlit, chunk.unlitGeometry ? 1 : 0);
@@ -1277,6 +1371,8 @@ void main(){
                 state.skyGradient = false;
             }
         }
+        
+        RenderAudioPlayer();
 
         ImGui::End();
 
