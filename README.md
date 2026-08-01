@@ -1,4 +1,4 @@
-# Climax Silent Hill Engine Toolkit 0.2
+# Climax Silent Hill Engine Toolkit
 
 [![build](https://github.com/BlackLineInteractive/SilentHillOrigins-LevelViewer/actions/workflows/build.yml/badge.svg)](https://github.com/BlackLineInteractive/SilentHillOrigins-LevelViewer/actions/workflows/build.yml)
 
