@@ -707,6 +707,10 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         sho_strnicmp(m.texName.c_str(), "GreyAlpha_", 10) == 0)
       m.alphaPass = true;
 
+    if (m.texName.size() > 3 &&
+        sho_strnicmp(m.texName.c_str(), "FX_", 3) == 0)
+      m.additive = true;
+
     if (m.texName == "NULL" || m.texName.empty()) {
       m.untextured = true;
       if (sectionIdx >= 0 && matId >= 0 &&
@@ -1009,6 +1013,48 @@ void LoadLevelData(const std::string &displayName,
   // Textures may also be embedded directly in the container.
   if (g_TextureMap.empty())
     LoadTexturesFromTxdData(container, g_MaterialNames, true);
+
+  // Names a texture that no loaded dictionary provides. Those meshes bind
+  // texture 0 and come out solid black, which looks exactly like an untextured
+  // material — report them so the two cases stop being confused.
+  {
+    std::map<std::string, size_t> missing;
+    for (const auto &c : g_Chunks) {
+      if (c.untextured || c.texName.empty() || c.texName == "NULL") continue;
+      std::string up = c.texName, lo = c.texName;
+      for (auto &ch : up) ch = (char)toupper((unsigned char)ch);
+      for (auto &ch : lo) ch = (char)tolower((unsigned char)ch);
+      if (g_TextureMap.count(c.texName) || g_TextureMap.count(up) ||
+          g_TextureMap.count(lo)) continue;
+      missing[c.texName] += c.vertices.size() / 3;
+    }
+    if (!missing.empty()) {
+      std::cerr << "[textures] " << missing.size()
+                << " named textures are not in any loaded dictionary:\n";
+      for (const auto &[nm, tris] : missing)
+        std::cerr << "    " << nm << "  (" << tris << " tris)\n";
+    }
+  }
+
+  {
+    struct Row { std::string n; size_t tris; float r, g, b, a; };
+    std::vector<Row> rows;
+    for (const auto &c : g_Chunks) {
+      if (c.vertices.empty()) continue;
+      double r=0,g=0,b=0,a=0;
+      for (const auto &v : c.vertices) { r+=v.color.r; g+=v.color.g; b+=v.color.b; a+=v.color.a; }
+      const double k = 1.0 / c.vertices.size();
+      rows.push_back({c.texName, c.vertices.size()/3,
+                      (float)(r*k), (float)(g*k), (float)(b*k), (float)(a*k)});
+    }
+    std::sort(rows.begin(), rows.end(),
+              [](const Row &x, const Row &y){ return x.tris > y.tris; });
+    std::cerr << "[vcolor] biggest meshes, average vertex colour:\n";
+    for (size_t i = 0; i < rows.size() && i < 12; i++)
+      std::cerr << "    " << rows[i].tris << " tris  " << rows[i].n
+                << "   rgba " << rows[i].r << " " << rows[i].g << " "
+                << rows[i].b << " " << rows[i].a << "\n";
+  }
 
   ApplyAlphaMasks();
 

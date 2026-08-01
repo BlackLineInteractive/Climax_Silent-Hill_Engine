@@ -115,10 +115,17 @@ static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
+    // Materials and texture dictionaries do not agree on capitalisation, and
+    // registering only the original plus an all-caps alias missed any spelling
+    // in between — those meshes then bound texture 0 and came out black even
+    // though the texture sat right there in the browser. Register a lower-case
+    // alias too and look up with all three.
     g_TextureMap[raw.name] = raw.glID;
-    std::string upper = raw.name;
-    for (auto& c : upper) c = toupper(c);
+    std::string upper = raw.name, lower = raw.name;
+    for (auto& c : upper) c = (char)toupper((unsigned char)c);
+    for (auto& c : lower) c = (char)tolower((unsigned char)c);
     g_TextureMap[upper] = raw.glID;
+    g_TextureMap[lower] = raw.glID;
 
     raw.pixels = rgba;
     g_RawTextures.push_back(raw);

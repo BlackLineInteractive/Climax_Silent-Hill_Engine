@@ -39,6 +39,19 @@ struct MeshChunk {
     // game shades those with material colour x vertex colour. Binding texture 0
     // instead made every such surface come out solid black — most of the ground
     // and walls in the second half of IntroRoad.
+    // Effect sheets (save points, TV glow, candles, blood) are opaque black
+    // with the effect painted on top: the game draws them additively, so black
+    // contributes nothing. Their palettes are fully opaque, so no alpha test can
+    // hide the background.
+    // Keyed on the "FX_" name prefix, and that is not a shortcut: the blend mode
+    // is not stored in the asset at all. Checked and ruled out — the material
+    // Extension is an empty UV-anim plugin (0x0A01), byte-identical across all
+    // 68 materials of HO_1_Lobby; TEX0 differs only in PSM (pixel format) with
+    // TFX=0/TCC=1 everywhere; rasterFormat differs only in the palette-size
+    // nibble. On PS2 the blend function lives in the GS ALPHA register, which
+    // the engine sets per draw. The naming convention is the only marker the
+    // data carries.
+    bool      additive   = false;
     bool      untextured = false;
     bool      alphaPass  = false;  // GreyAlpha_* mask, not a colour map
     glm::vec4 matColor   = glm::vec4(1.0f);

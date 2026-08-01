@@ -310,6 +310,7 @@ in vec3  fragWorldPos;
 uniform sampler2D t;
 uniform bool  useVertexColors;
 uniform bool  untextured;
+uniform bool  additive;
 uniform vec4  matColor;
 uniform float brightness;
 uniform int   renderMode;
@@ -363,7 +364,10 @@ void main(){
         // Textured (default, renderMode == 0)
         vec4 tex = texture(t, TC);
         if(tex.a < 0.1) discard;
-        vec4 col = useVertexColors ? tex * VC : tex;
+        // Additive effect sheets carry their own brightness. Multiplying them by
+        // the baked vertex lighting drives them to black in a dark room, which
+        // is why they only showed up with vertex colours switched off.
+        vec4 col = (useVertexColors && !additive) ? tex * VC : tex;
         col.rgb *= brightness;
         FragColor = col;
     }
@@ -586,6 +590,7 @@ void main(){
             const GLint uM     = glGetUniformLocation(p, "m");
             const GLint uModel  = glGetUniformLocation(p, "model");
         const GLint uUntex  = glGetUniformLocation(p, "untextured");
+        const GLint uAdd    = glGetUniformLocation(p, "additive");
         const GLint uMatCol = glGetUniformLocation(p, "matColor");
             const glm::mat4 identity(1.0f);
             for (const auto& chunk : g_Chunks) {
@@ -593,12 +598,34 @@ void main(){
                 const std::string& tName = chunk.texName;
                 GLuint tid = 0;
                 if (g_TextureMap.count(tName)) tid = g_TextureMap[tName];
-                else {
-                    std::string upper = tName;
-                    for (auto& ch : upper) ch = (char)toupper((unsigned char)ch);
-                    if (g_TextureMap.count(upper)) tid = g_TextureMap[upper];
+                if (!tid) {
+                    std::string alt = tName;
+                    for (auto& ch : alt) ch = (char)toupper((unsigned char)ch);
+                    if (g_TextureMap.count(alt)) tid = g_TextureMap[alt];
                 }
-                if (chunk.untextured) continue;   // TEMP: identify the white sheets
+                if (!tid) {
+                    std::string alt = tName;
+                    for (auto& ch : alt) ch = (char)tolower((unsigned char)ch);
+                    if (g_TextureMap.count(alt)) tid = g_TextureMap[alt];
+                }
+                // A material with no texture chunk and a pure white colour is a
+                // placeholder sheet the game does not draw — those were the white
+                // cards standing in front of the fir trees. Untextured materials
+                // that carry a real colour are ordinary flat-shaded geometry (the
+                // TV, the wall map, the props sitting at the origin) and must be
+                // drawn.
+                // Materials with no texture chunk are placeholder and trigger
+                // volumes the game does not draw — the white cards in front of
+                // the fir trees and the logic boxes around the truck.
+                if (chunk.untextured) continue;
+                glUniform1i(uAdd, chunk.additive ? 1 : 0);
+                if (chunk.additive) {
+                    glBlendFunc(GL_ONE, GL_ONE);
+                    glDepthMask(GL_FALSE);
+                } else {
+                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                    glDepthMask(GL_TRUE);
+                }
                 glBindTexture(GL_TEXTURE_2D, tid);
                 // A resolved-but-missing texture still renders as a flat material.
                 glUniform1i(uUntex, (chunk.untextured || tid == 0) ? 1 : 0);
@@ -625,6 +652,8 @@ void main(){
                 }
             }
             glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_TRUE);
             glBindVertexArray(0);
         }
 
