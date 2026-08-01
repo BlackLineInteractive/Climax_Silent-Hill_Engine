@@ -134,6 +134,10 @@ reassembles the ADS exactly. Decoder: [src/Core/AudioParser.cpp](src/Core/AudioP
 See **[docs/ANIMATION_SPEC.md](docs/ANIMATION_SPEC.md)** for the animation
 plan: skeleton, skinning, compressed keyframes and the playback UI.
 
+See **[docs/SHSM_ARC_FORMAT.md](docs/SHSM_ARC_FORMAT.md)** for the Wii *Shattered
+Memories* archives and containers: the `0x0000FA10` archive, the big-endian
+section and game-object records, and the GameCube/Wii texture formats.
+
 See **[docs/SH_FORMAT.md](docs/SH_FORMAT.md)** for the full format reference: archive
 layout, container chunks, the game-object record encoding, the PS2 display-list
 geometry, collision and texture formats, with the verification figures behind
