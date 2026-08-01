@@ -696,7 +696,7 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   std::vector<Vertex> rawVerts, triVerts;
   std::vector<bool> adcFlags;
 
-  auto addChunk = [&](std::vector<Vertex> &verts, int sectionIdx, int matId) {
+  auto addChunk = [&](std::vector<Vertex> &verts, int sectionIdx, int matId, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols) {
     if (verts.empty())
       return;
     MeshChunk m;
@@ -704,10 +704,8 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
     m.sectionIndex = sectionIdx;
     m.materialIndex = matId;
     m.texName = "NULL";
-    if (sectionIdx >= 0 && matId >= 0) {
-      const auto &names = sectionMats[sectionIdx];
-      if (matId < (int)names.size())
-        m.texName = names[matId];
+    if (matId >= 0 && matId < (int)localMats.size()) {
+      m.texName = localMats[matId];
     }
     // "GreyAlpha_<base>" is not a colour map: it is the alpha pass of a two-pass
     // transparency setup, a white-on-black mask drawn over the same geometry as
@@ -736,9 +734,8 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
 
     if (m.texName == "NULL" || m.texName.empty()) {
       m.untextured = true;
-      if (sectionIdx >= 0 && matId >= 0 &&
-          matId < (int)sectionCols[sectionIdx].size())
-        m.matColor = sectionCols[sectionIdx][matId];
+      if (matId >= 0 && matId < (int)localCols.size())
+        m.matColor = localCols[matId];
     }
     glGenVertexArrays(1, &m.vao);
     glGenBuffers(1, &m.vbo);
@@ -766,7 +763,7 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   };
 
   // Reads the BinMesh split table and the matching native VIF blocks.
-  auto buildFromExtension = [&](size_t extBegin, size_t extEnd, int sectionIdx) {
+  auto buildFromExtension = [&](size_t extBegin, size_t extEnd, int sectionIdx, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols) {
     auto rf32 = [&](size_t off) -> float {
       float f;
       memcpy(&f, &data[off], 4);
@@ -912,7 +909,7 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
       }
       totalPackets += packets.size();
       totalSplits++;
-      addChunk(triVerts, sectionIdx, matIds[i]);
+      addChunk(triVerts, sectionIdx, matIds[i], localMats, localCols);
       p = blockEnd;
     }
   };
@@ -952,13 +949,13 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
     const size_t rootEnd = std::min(root + 12 + (size_t)ru32(root + 4), secEnd);
 
     // Finds the Extension of a chunk and hands it over.
-    auto handleOwner = [&](size_t a, size_t b) {
+    auto handleOwner = [&](size_t a, size_t b, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols) {
       for (size_t c = a; c + 12 <= b;) {
         const uint32_t ct = ru32(c), cs = ru32(c + 4);
         if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)
           break;
         if (ct == 0x0003)
-          buildFromExtension(c + 12, c + 12 + cs, (int)si);
+          buildFromExtension(c + 12, c + 12 + cs, (int)si, localMats, localCols);
         c += 12 + cs;
       }
     };
@@ -970,7 +967,7 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
           if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)
             break;
           if (ct == 0x0009)
-            handleOwner(c + 12, c + 12 + cs);
+            handleOwner(c + 12, c + 12 + cs, sectionMats[si], sectionCols[si]);
           else if (ct == 0x000A)
             walk(c + 12, c + 12 + cs);
           c += 12 + cs;
@@ -987,8 +984,21 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
             const uint32_t gt = ru32(g), gs = ru32(g + 4);
             if (ru32(g + 8) != 0x1C020065 || gs == 0 || g + 12 + gs > c + 12 + cs)
               break;
-            if (gt == 0x000F)
-              handleOwner(g + 12, g + 12 + gs);
+            if (gt == 0x000F) {
+              std::vector<std::string> geomMats;
+              std::vector<glm::vec4> geomCols;
+              for (size_t gc = g + 12; gc + 12 <= g + 12 + gs;) {
+                const uint32_t gct = ru32(gc), gcs = ru32(gc + 4);
+                if (ru32(gc + 8) != 0x1C020065 || gcs == 0 || gc + 12 + gcs > g + 12 + gs)
+                  break;
+                if (gct == 0x08) {
+                  geomMats = parseMaterialList(gc);
+                  geomCols = matColors; // parseMaterialList writes to this global
+                }
+                gc += 12 + gcs;
+              }
+              handleOwner(g + 12, g + 12 + gs, geomMats, geomCols);
+            }
             g += 12 + gs;
           }
         }
@@ -1902,9 +1912,9 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
       if (!g_ShoSections[i].guid.empty())
         byGuid.emplace(g_ShoSections[i].guid, (int)i);
 
-      int goIdx = 0;
-      for (auto &go : g_GameObjects) {
-        bool isVolume = (go.className == "CPhysicsObject" || 
+    int goIdx = 0;
+    for (auto &go : g_GameObjects) {
+      bool isVolume = (go.className == "CPhysicsObject" || 
                          go.className == "CZone" ||
                          go.className == "CWaterZone" ||
                          go.className == "CCameraZone" ||
