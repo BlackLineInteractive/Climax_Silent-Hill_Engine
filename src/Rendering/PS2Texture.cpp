@@ -100,6 +100,14 @@ void ProcessAndUploadTexture(RawTexture& raw) {
         }
     }
 
+    {
+      size_t partial = 0, total = (size_t)w * h;
+      for (size_t i = 0; i + 3 < rgba.size(); i += 4) {
+        const uint8_t a = rgba[i + 3];
+        if (a > 8 && a < 248) partial++;
+      }
+      raw.hasAlphaGradient = total && (partial * 100 / total) >= 15;
+    }
     UploadRGBA(raw, rgba, w, h);
 }
 
@@ -132,6 +140,9 @@ static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w,
 
     // Store preview info for the TXD browser window
     TexPreviewInfo pi; pi.glID = raw.glID; pi.width = w; pi.height = h; pi.depth = raw.depth;
+    g_TexGradient[raw.name] = raw.hasAlphaGradient;
+    g_TexGradient[upper]    = raw.hasAlphaGradient;
+    g_TexGradient[lower]    = raw.hasAlphaGradient;
     g_TexInfo[raw.name]  = pi;
     g_TexInfo[upper]     = pi;
 }

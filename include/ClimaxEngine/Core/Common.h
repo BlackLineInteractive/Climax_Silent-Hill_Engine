@@ -97,6 +97,10 @@ struct RawTexture {
   bool clampU = false;
   bool clampV = false;
   int paletteColors = 256; // 16 for 4-bit rasters, 256 for 8-bit
+  // True when a meaningful share of texels are partially transparent. Such a
+  // texture fades out on its own and must be alpha-blended; a sheet whose alpha
+  // is uniformly opaque with a black surround is an additive effect instead.
+  bool hasAlphaGradient = false;
 };
 
 // Texture metadata for the TXD preview window
@@ -286,6 +290,7 @@ extern std::vector<RawTexture> g_RawTextures;
 extern std::vector<std::string> g_MaterialNames;
 extern std::map<std::string, GLuint> g_TextureMap;
 extern std::map<std::string, TexPreviewInfo> g_TexInfo;
+extern std::map<std::string, bool> g_TexGradient;
 extern std::vector<ContainerChunkInfo> g_ContainerChunks;
 extern std::map<std::string, std::vector<int>> g_MeshTexMap;
 

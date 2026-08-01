@@ -8,6 +8,7 @@ std::vector<RawTexture>       g_RawTextures;
 std::vector<std::string>      g_MaterialNames;
 std::map<std::string, GLuint>           g_TextureMap;
 std::map<std::string, TexPreviewInfo>   g_TexInfo;
+std::map<std::string, bool>             g_TexGradient;
 std::vector<ContainerChunkInfo>         g_ContainerChunks;
 std::map<std::string, std::vector<int>> g_MeshTexMap;
 

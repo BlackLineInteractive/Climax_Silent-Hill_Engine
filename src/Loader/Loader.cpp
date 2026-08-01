@@ -720,9 +720,12 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         sho_strnicmp(m.texName.c_str(), "GreyAlpha_", 10) == 0)
       m.alphaPass = true;
 
-    if (m.texName.size() > 3 &&
-        sho_strnicmp(m.texName.c_str(), "FX_", 3) == 0)
-      m.additive = true;
+    // Effect sheets are NOT additive. Their palette carries a transparent entry
+    // for the surround — FX_save_point1 and FX_TV each have 255 entries at alpha
+    // 128 and exactly one at 0 — so ordinary alpha blending cuts the background
+    // out. Forcing GL_ONE/GL_ONE ignored that alpha, which washed the TV screen
+    // out and made it looksemi-transparent.
+    (void)0;
 
     // Model clumps carry no baked lighting: their vertex colours are literally
     // zero (HO_Map and FX_save_point1 both average 0.0 with alpha 1). The game

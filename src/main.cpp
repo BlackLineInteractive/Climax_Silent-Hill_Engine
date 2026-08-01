@@ -483,7 +483,10 @@ void main(){
     } else {
         // Textured (default, renderMode == 0)
         vec4 tex = texture(t, TC);
-        if(tex.a < 0.1) discard;
+        // Discard only what is fully transparent. Cutting at 0.1 threw away the
+        // whole soft edge of a gradient and left a hard jagged border where the
+        // game fades out smoothly; the rest is handled by alpha blending.
+        if(tex.a < 0.02) discard;
         // Additive effect sheets carry their own brightness. Multiplying them by
         // the baked vertex lighting drives them to black in a dark room, which
         // is why they only showed up with vertex colours switched off.
@@ -782,7 +785,30 @@ void main(){
         const GLint uUnlit  = glGetUniformLocation(p, "unlitGeometry");
         const GLint uMatCol = glGetUniformLocation(p, "matColor");
             const glm::mat4 identity(1.0f);
+            // Two passes: opaque first with depth writes on, blended second
+            // with them off. A blended surface that writes depth hides whatever
+            // stands behind it, which is why one semi-transparent sheet made the
+            // next one disappear.
+            for (int pass = 0; pass < 2; pass++) {
             for (const auto& chunk : g_Chunks) {
+                // "GreyAlpha_<base>" is the mask half of a two-pass transparency
+                // setup, white shapes on black. Drawing it as a colour map paints
+                // white branches over the tree. The base texture already carries
+                // its own alpha, so the mask pass is redundant here.
+                if (chunk.alphaPass) continue;
+                {
+                    // Effect sheets must never occlude each other. Some fire and
+                    // ember cards have near-binary alpha (FX_ember_Dahlia is 70%
+                    // clear / 4% partial / 24% opaque), so a gradient test alone
+                    // left them in the opaque pass where they wrote depth and hid
+                    // the softer flames behind them.
+                    auto itG0 = g_TexGradient.find(chunk.texName);
+                    const bool isFx = chunk.texName.size() > 3 &&
+                        sho_strnicmp(chunk.texName.c_str(), "FX_", 3) == 0;
+                    const bool blended = isFx || chunk.additive ||
+                        (itG0 != g_TexGradient.end() && itG0->second);
+                    if ((pass == 0) == blended) continue;
+                }
                 // Use the directly stored texName (set at load time per-geometry-object)
                 const std::string& tName = chunk.texName;
                 GLuint tid = 0;
@@ -804,14 +830,25 @@ void main(){
                 // characters and props, so they stay hidden until the real rule
                 // for them is known.
                 if (chunk.untextured) continue;
-                glUniform1i(uAdd, chunk.additive ? 1 : 0);
+                // An FX sheet whose alpha is a gradient fades out by itself and
+                // must be alpha-blended: forcing it additive ignored the alpha
+                // entirely and drew the whole quad, so the fire cards showed
+                // their rectangular borders.
+                bool addNow = chunk.additive;
+                if (addNow) {
+                    auto itG = g_TexGradient.find(tName);
+                    if (itG != g_TexGradient.end() && itG->second) addNow = false;
+                }
+                glUniform1i(uAdd, addNow ? 1 : 0);
                 glUniform1i(uUnlit, chunk.unlitGeometry ? 1 : 0);
-                if (chunk.additive) {
+                if (addNow) {
                     glBlendFunc(GL_ONE, GL_ONE);
                     glDepthMask(GL_FALSE);
                 } else {
                     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    glDepthMask(GL_TRUE);
+                    // Blended geometry must not write depth or it hides whatever
+                    // stands behind it.
+                    glDepthMask(pass == 0 ? GL_TRUE : GL_FALSE);
                 }
                 glBindTexture(GL_TEXTURE_2D, tid);
                 // A resolved-but-missing texture still renders as a flat material.
@@ -907,6 +944,7 @@ void main(){
                     }
                 }
             }
+            } // opaque pass, then blended pass
             glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDepthMask(GL_TRUE);
