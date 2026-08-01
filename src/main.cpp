@@ -834,11 +834,27 @@ void main(){
                 // must be alpha-blended: forcing it additive ignored the alpha
                 // entirely and drew the whole quad, so the fire cards showed
                 // their rectangular borders.
-                bool addNow = chunk.additive;
-                if (addNow) {
-                    auto itG = g_TexGradient.find(tName);
-                    if (itG != g_TexGradient.end() && itG->second) addNow = false;
-                }
+                // Blending is NOT recorded in the container: on PS2 it is the
+                // GS ALPHA register, set per draw. FX_fire_Dahlia and FX_Flare_01
+                // have identical signatures in the asset (flat opaque alpha, no
+                // gradient, no clear texel) yet need opposite treatment, so no
+                // rule derived from the texture can separate them.
+                //
+                // Everything therefore blends normally — that is what makes the
+                // fire, the smoke and the TV screen come out right — and only the
+                // glow sprites listed here are additive. They fade through their
+                // COLOUR over a black surround, so alpha blending would draw that
+                // surround as a black card.
+                static const char* kAdditiveNames[] = {
+                    "FX_Flare", "FX_Glow", "FX_Halo", "FX_Corona", "FX_Lens",
+                };
+                bool addNow = false;
+                for (const char* pre : kAdditiveNames)
+                    if (tName.size() >= strlen(pre) &&
+                        sho_strnicmp(tName.c_str(), pre, strlen(pre)) == 0) {
+                        addNow = true;
+                        break;
+                    }
                 glUniform1i(uAdd, addNow ? 1 : 0);
                 glUniform1i(uUnlit, chunk.unlitGeometry ? 1 : 0);
                 if (addNow) {

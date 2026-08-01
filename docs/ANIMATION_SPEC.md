@@ -171,13 +171,14 @@ f32  inverseBoneMatrix[boneCount][16]
 i32  padding[7]
 ```
 
-**Note the asymmetry: the native layout contains no per-vertex indices or
-weights.** On PS2 those ride inside the VIF packets. This is unverified for our
-data and is the main open question of the whole feature — see §7.
+**Note the asymmetry: the native layout lists no per-vertex indices or weights
+after the inverse bind matrices.** The obvious assumption is that they ride in
+the VIF packets instead. **They do not** — see §3.2.
 
-### 3.2 Where PS2 skin weights actually are
+### 3.2 Where PS2 skin weights are — measured
 
-Our VIF packet walker currently reads four streams:
+Every packet of a character carries exactly the same four streams as static
+geometry:
 
 ```
 addr 0  V3-32 / V4-32   positions
@@ -186,12 +187,13 @@ addr 2  V4-8            vertex colours
 addr 3  V3-8            normals
 ```
 
-For skinned geometry expect additional `UNPACK`s in the same packet, most
-likely bone indices as `V4-8` and weights as `V4-8` or `V4-16`, at addresses
-beyond 3. **The walker already records every stream with its address, so the
-first task is simply to dump packet stream layouts for a section that has a
-`0x0116` chunk and compare against a static one.** Do this before writing any
-skinning code.
+Measured on `CIGCCharacter.Alessa`: **all 104 packets** use addresses 0..3 and
+nothing higher, with the layout `V3-32@0, V2-32@1, V4-8@2, V3-8@3` in every one.
+There is no bone stream in the display list.
+
+Indices and weights therefore have to be read out of the `Skin PLG (0x0116)`
+itself. This was the one unknown that could have invalidated the whole plan, and
+it is now closed.
 
 ---
 
@@ -336,10 +338,11 @@ Time advances from the frame delta, not from a fixed step, and wraps on
 
 ## 7. Risks, in the order they will bite
 
-1. **Native skin weights.** §3.2 is unverified. If the PS2 packets do not carry
-   indices and weights, they are encoded somewhere else entirely and the whole
-   feature stalls until that is found. **Resolve this first**, before writing
-   any other code — it is the only item that can invalidate the rest.
+1. ~~**Native skin weights.**~~ **Settled.** Measured on `CIGCCharacter.Alessa`:
+   all 104 packets carry exactly four streams at VU addresses 0..3 and nothing
+   higher, so weights are *not* in the display list. They live in the
+   `Skin PLG (0x0116)`, native layout, as described in §3.1. Step 1 of §8 can be
+   skipped.
 2. **Matrix convention.** The reference is row-vector; glm is column-vector.
    Compose order is wrong in exactly one place and the symptom — a subtly
    deformed model — looks like bad weights.
@@ -352,8 +355,7 @@ Time advances from the frame delta, not from a fixed step, and wraps on
 
 ## 8. Order of work
 
-1. Dump VIF stream layouts for a skinned section; confirm where weights live.
-   **Stop and reassess if they are not in the packets.**
+1. ~~Dump VIF stream layouts.~~ Done — weights are in `Skin PLG`, not the packets.
 2. FrameList + HAnim + names → skeleton, rendered as a bone overlay in the rest
    pose. Verifiable on its own.
 3. Skin PLG → inverse bind matrices, per-vertex indices and weights.

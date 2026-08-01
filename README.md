@@ -12,14 +12,15 @@ Opens proprietary Climax Engine container files (no file extension — named lik
 
 ## Screenshots
 
-![Screenshot 4](media/screenshot4.png)
-![Screenshot 6](media/screenshot6.png)
-![Screenshot 2](media/screenshot2.png)
-![Screenshot 1](media/screenshot1.png)
-![Screenshot 5](media/screenshot5.png)
-![Screenshot 3](media/screenshot3.png)
+![Screenshot 0](media/s2-v0.2.png)
+![Pool Area](media/s0-v0.2.png)
+![Intro Road](media/v0.2.png)
+![Intro Road 2](media/s1-v0.2.png)
+![Motel](media/screenshot4.png)
+![Butcher's Great Sword](media/ButchersGreatSword.png)
+![Audio Test Room](media/audio-test-room.png)
 ![Ghost Rider](media/GR.png)
-![SHO](media/ButchersGreatSword.png)
+
 ---
 
 ## Features

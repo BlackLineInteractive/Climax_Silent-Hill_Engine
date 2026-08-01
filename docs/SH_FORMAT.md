@@ -204,7 +204,20 @@ header:
 | `u32` | `path2Len` | |
 | `u8[path2Len]` | `path2` | Absolute build path of the source texture directory |
 
-The resource data follows immediately after `path2`.
+The resource data follows immediately after `path2`. It is reachable without
+walking the strings at all, which is what the QuickBMS unpack script does and
+what holds for every section type:
+
+```
+dataOffset = inner + 4 + headerSize     -> u32 payload length
+chunk      = dataOffset + 4             -> the first RenderWare chunk
+```
+
+**The payload is a SEQUENCE of chunks, not a single root.** `rwID_WORLD` and
+`rwID_CLUMP` happen to start with theirs, but `rwID_RWS` opens with header chunks
+`0x23`/`0x24` and `0x29` and only then holds the real `Clump` — at offset +116 in
+one `IntroRoad` section and +65976 in another. Reading only the first chunk misses
+that geometry entirely.
 
 `tagLen` is not constant, and a parser that assumes it is will read the section
 name from the wrong offset. Most sections leave the tag empty, but
@@ -374,9 +387,9 @@ commands that upload vertex data to VU1 memory and invoke a microprogram. The
 format therefore cannot be read as a plain vertex array; the command stream must
 be walked.
 
-> **Status.** The structure and the traversal rule below have been confirmed
-> against `IntroRoad`. The loader currently in the repository still uses an older
-> byte-pattern scan and does not implement what follows.
+> **Status.** Implemented. The loader walks the RenderWare tree and contains no
+> byte scanning at all. `IntroRoad` yields 66 splits, 1838 VIF packets and 37 992
+> triangles.
 
 ### 4.1 Material list
 
@@ -537,7 +550,32 @@ spurious streams. The count is corroborated independently: the section contains
 1200 aligned `STCYCL` words, exactly four per packet, and 300 position `UNPACK`
 words.
 
-### 4.6 Relating packets to materials
+### 4.6 Finding the packets without scanning
+
+Geometry is not something to search for. Every `Geometry (0x000F)` and every world
+`AtomicSect (0x0009)` carries an `Extension (0x0003)` holding two plugins:
+
+| Chunk | Contents |
+|-------|----------|
+| `BinMeshPLG` (`0x050E`) | `faceType`, `splitCount`, then `[numIndices, matID]` per split |
+| `NativeDataPLG` (`0x0510`) | one VIF block per split, each with an explicit size |
+
+`NativeDataPLG` opens with a struct chunk and the platform id, then per split:
+
+```
+u32 dataSize
+u32 meshType        // 0 -> the block opens with STROW; VIFn_R0 * 16 is the real length
+u8  vif[dataSize]
+```
+
+Split *i* uses material `matID[i]` directly — no accumulation, no drift.
+
+Material lists belong to the owner, not the section. A world has one
+`MaterialList` as a child of `World`; a clump has one per `Geometry`. Merging them
+per section shifts every index after the first geometry, which on a character
+gives the head the body's texture.
+
+### 4.7 Relating packets to materials (historical)
 
 The batch table counts triangle indices; a packet carries strip vertices. The two
 are related by
@@ -604,18 +642,38 @@ block:
 | 0x00 | `u32` | Width |
 | 0x04 | `u32` | Height |
 | 0x08 | `u32` | Bit depth |
+| 0x0C | `u32` | `rasterFormat` |
+| 0x10 | `u64[4]` | `TEX0`, `TEX1`, `MIPTBP1`, `MIPTBP2` GS registers |
 | 0x30 | `u32` | Pixel data size |
 | 0x34 | `u32` | Palette data size |
-| 0x38 | `u32` | Horizontal wrap mode |
-| 0x3C | `u32` | Vertical wrap mode |
+| 0x38 | `u32` | `gpuDataAlignedSize` |
+| 0x3C | `u32` | `skyMipmapVal` |
 
-Both the pixel block and the palette block begin with an 80-byte header that is
-skipped; the payload follows it.
+A 12-byte chunk header follows, then the data at 0x4C. Both the pixel block and
+the palette block open with an 80-byte header that is skipped.
+
+**Wrap modes are not in this header.** They live in the texture's
+`filterAddressing` word, 28 bytes into the `0x15` record: bits 8..11 select the
+U mode, bits 12..15 the V mode, with 1 = wrap, 2 = mirror, 3 = clamp. The two
+fields at 0x38/0x3C were previously read as wrap modes, which gave every texture
+an arbitrary clamp setting.
+
+The top nibble of `rasterFormat` gives the palette size: `0x2000` = 256 entries,
+`0x4000` = 16.
 
 ### 6.2 Pixel formats
 
 Textures are stored in native PlayStation 2 GS layouts and must be unswizzled.
-Only the 4- and 8-bit paletted formats are handled by the current decoder.
+Three formats occur:
+
+| Depth | Handling |
+|------:|----------|
+| 8 | PSMT8 deswizzle, CLUT reordered |
+| 4 | nibbles expanded, deswizzled, 16-entry CLUT used as-is |
+| 32 | PSMCT32 — raw RGBA, no palette, no deswizzle |
+
+The 32-bit case was missing for a long time and produced blank white sheets; in
+`IntroRoad` it covers the tree and grass cards.
 
 For 8-bit data the GS block layout is undone with the standard PSMT8
 deswizzle, and the 1024-byte palette itself is reordered, since the GS stores
@@ -625,17 +683,113 @@ CLUT entries in an interleaved order:
 newIndex = (p & 0xE7) + ((p & 0x08) << 1) + ((p & 0x10) >> 1)
 ```
 
-The 4-bit path currently expands nibbles to bytes and reuses the 8-bit
-deswizzle. **This is not the correct PSMT4 layout** and is a known source of
-incorrect texture appearance.
+The 4-bit path expands nibbles to bytes, runs the same deswizzle and repacks —
+this matches the reference implementation.
 
-Alpha is stored in the PlayStation 2 convention where 0x80 represents full
-opacity, so decoded alpha is doubled and clamped. Vertex colours use the same
-convention: 128 is full intensity, not 255.
+Alpha uses the PlayStation 2 convention where `0x80` is full opacity, so decoded
+alpha is doubled and clamped. The same convention applies to **vertex colours**
+and to the **material colour's alpha**; dividing the latter by 255 renders every
+flat-shaded material at half opacity.
+
+The decoder has been verified end to end: exporting `IntroRoad` and measuring the
+resulting images gives exactly 100% opaque for road, rock, truck and signs, and a
+clean cut-out for foliage. When measuring PNG output, remember each scanline
+begins with a filter byte — sampling without skipping it reads colour channels as
+alpha and makes a correct decoder look broken.
 
 ---
 
-## 7. Animation
+## 7. Rendering the assets
+
+The container describes *what* to draw but says very little about *how*. What
+follows is what had to be established by inspection, and what genuinely is not
+recoverable from the data.
+
+### 7.1 Material colour and untextured materials
+
+A material may carry no `Texture` chunk at all: its `Struct` has `textured = 0`
+and only a flat RGBA colour. In `IntroRoad`'s third world, material 0 is
+`0xFFFFFFFF` and material 8 is `0xFF666666`. The game shades these with material
+colour times vertex colour.
+
+In practice these are placeholder and trigger volumes — the white cards standing
+in front of the fir trees, the logic boxes around the truck — and drawing them
+paints solid sheets over the scene. They are currently skipped.
+
+### 7.2 Vertex colours
+
+World geometry carries baked lighting in its vertex colours. **Model clumps do
+not**: their vertex colours are exactly zero (`HO_Map`, `FX_save_point1`), and the
+game lights them at runtime. Multiplying by that zero turns the mesh black, so the
+multiply has to be skipped for such geometry — in *both* the textured and the
+untextured shader path. Fixing only one of them leaves a character's face black on
+black.
+
+### 7.3 Alpha masks
+
+A material named `GreyAlpha_<base>` is the mask half of a two-pass transparency
+setup: white shapes on a black field, drawn over the same geometry as `<base>`.
+It is not a colour map. Rendering it as one paints white branches across every
+tree.
+
+It is also redundant here, because the base texture already carries its own alpha
+— `In_road_Grassx` is 68% fully transparent texels. These meshes should simply not
+be drawn.
+
+### 7.4 Transparency
+
+Blended geometry needs a second pass with depth writes **off**, drawn after the
+opaque one. Otherwise the first transparent surface writes depth and hides every
+transparent surface behind it — visible as fire layers and light beams cutting
+each other out.
+
+Everything named `FX_*` goes into that pass regardless of its alpha, since effect
+sheets must never occlude one another. Some of them have near-binary alpha
+(`FX_ember_Dahlia`) and would otherwise land in the opaque pass.
+
+The pass is not depth-sorted, so two blended layers can still composite in the
+wrong order.
+
+### 7.5 Blend mode — not in the asset
+
+The blend function cannot be recovered from the container. This was checked
+exhaustively:
+
+| Where | Result |
+|-------|--------|
+| Material `Extension` | An empty UV-anim plugin (`0x0A01`), byte-identical across all 68 materials of `HO_1_Lobby` |
+| `TEX0` GS register | Differs only in `PSM` (pixel format); `TFX = 0`, `TCC = 1` everywhere |
+| `rasterFormat` | Differs only in the palette-size nibble |
+| Alpha distribution | `FX_fire_Dahlia` and `FX_Flare_01` have identical signatures — flat opaque alpha, no gradient, no transparent texel — yet need opposite treatment |
+
+On PlayStation 2 the blend function is the GS `ALPHA` register, which the engine
+sets per draw. It is state, not asset data, so no rule derived from the texture
+can separate a flame card from a lens flare.
+
+The workable answer is a short explicit list. Everything blends normally — which
+is what makes fire, smoke and the TV screen come out right — and only glow
+sprites (`FX_Flare`, `FX_Glow`, `FX_Halo`, `FX_Corona`, `FX_Lens`) are additive.
+Those fade through their *colour* over a black surround, so alpha blending would
+draw that surround as a black card.
+
+Several heuristics were tried before this and each broke on the next example.
+The list is short, visible in the source, and extending it is one line.
+
+### 7.6 Object placement
+
+Property 1 of a `0x0704` object is **not always a model transform**. On volume
+classes such as `CPhysicsObject` it is the extent of a collision box —
+`IntroRoad` carries scales of `(1.0, 3.54, 26.1)` and `(8.87, 5.54, 5.66)`.
+Applying those to the referenced model stretches it far past the camera and looks
+like the prop has vanished.
+
+`CSceneObject`, by contrast, carries genuine unit-scale placements. The
+distinction belongs in a per-class table; the current code falls back to
+normalising a basis that looks like a volume size, which is a heuristic.
+
+---
+
+## 8. Animation
 
 Two animation section types appear in containers, both tagged with their source
 filename:
@@ -649,11 +803,21 @@ The first is hierarchical skeletal animation, the second delta-morph animation
 used for faces. Animations are referenced by GUID from `0x0704` objects in the
 same way as geometry, so the object that owns an animation is identifiable.
 
-The internal layout of neither section has been analysed.
+The internal layout of neither section has been analysed, but one question that
+gates the whole feature is settled: **PS2 skin weights do not ride in the VIF
+packets.** Measured on `CIGCCharacter.Alessa` — all 104 packets carry exactly four
+streams at VU addresses 0..3 (`V3-32@0, V2-32@1, V4-8@2, V3-8@3`) and nothing
+higher. Indices and weights therefore live in the `Skin PLG (0x0116)` in its
+native layout.
+
+Character containers also ship their textures inside themselves rather than as
+separate `.txd` entries.
+
+The implementation plan is in [ANIMATION_SPEC.md](ANIMATION_SPEC.md).
 
 ---
 
-## 8. Coordinate system
+## 9. Coordinate system
 
 The engine uses a right-handed, Y-up coordinate system. Level geometry and object
 transforms share it directly; no conversion is applied when rendering, and none
@@ -661,7 +825,7 @@ is applied when exporting to glTF, which uses the same convention.
 
 ---
 
-## 9. Sources
+## 10. Sources
 
 All figures in this document were produced by parsing the retail PAL PlayStation 2
 release. The VIF opcode table and `UNPACK` sizing rules in §4.3 follow the VIF1

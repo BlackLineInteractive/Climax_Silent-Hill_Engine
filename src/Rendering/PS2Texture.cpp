@@ -1,4 +1,5 @@
 #include "ClimaxEngine/Rendering/PS2Texture.h"
+#include <iostream>
 #include <algorithm>
 #include <cstring>
 #include <cmath>
@@ -106,7 +107,11 @@ void ProcessAndUploadTexture(RawTexture& raw) {
         const uint8_t a = rgba[i + 3];
         if (a > 8 && a < 248) partial++;
       }
+      size_t clear = 0;
+      for (size_t i = 0; i + 3 < rgba.size(); i += 4)
+        if (rgba[i + 3] <= 8) clear++;
       raw.hasAlphaGradient = total && (partial * 100 / total) >= 15;
+      raw.hasTransparentTexels = total && (clear * 100 / total) >= 2;
     }
     UploadRGBA(raw, rgba, w, h);
 }
@@ -140,6 +145,9 @@ static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w,
 
     // Store preview info for the TXD browser window
     TexPreviewInfo pi; pi.glID = raw.glID; pi.width = w; pi.height = h; pi.depth = raw.depth;
+    g_TexOpaque[raw.name] = !raw.hasTransparentTexels;
+    g_TexOpaque[upper]    = !raw.hasTransparentTexels;
+    g_TexOpaque[lower]    = !raw.hasTransparentTexels;
     g_TexGradient[raw.name] = raw.hasAlphaGradient;
     g_TexGradient[upper]    = raw.hasAlphaGradient;
     g_TexGradient[lower]    = raw.hasAlphaGradient;

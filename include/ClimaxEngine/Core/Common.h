@@ -101,6 +101,9 @@ struct RawTexture {
   // texture fades out on its own and must be alpha-blended; a sheet whose alpha
   // is uniformly opaque with a black surround is an additive effect instead.
   bool hasAlphaGradient = false;
+  // No fully transparent texel anywhere: such a sheet cannot be alpha-cut, so a
+  // black-surrounded effect has to be drawn additively instead.
+  bool hasTransparentTexels = false;
 };
 
 // Texture metadata for the TXD preview window
@@ -291,6 +294,9 @@ extern std::vector<std::string> g_MaterialNames;
 extern std::map<std::string, GLuint> g_TextureMap;
 extern std::map<std::string, TexPreviewInfo> g_TexInfo;
 extern std::map<std::string, bool> g_TexGradient;
+// Texture name -> has no transparent texel at all; a black-backed effect using
+// it must be drawn additively because nothing can cut the background away.
+extern std::map<std::string, bool> g_TexOpaque;
 extern std::vector<ContainerChunkInfo> g_ContainerChunks;
 extern std::map<std::string, std::vector<int>> g_MeshTexMap;
 
