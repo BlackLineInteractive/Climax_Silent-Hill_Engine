@@ -174,7 +174,7 @@ void LoadTexturesFromTxdData(const std::vector<uint8_t> &data,
 //   * The anchor must be the UNPACK, not STCYCL. The encoded STCYCL word occurs
 //     3548 times inside vertex data in that same section.
 // ---------------------------------------------------------------------------
-static size_t g_DbgNoBatch = 0, g_DbgBadIdx = 0, g_DbgNoColor = 0;
+static size_t g_DbgNoColor = 0;
 
 namespace {
 
@@ -711,6 +711,17 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         sho_strnicmp(m.texName.c_str(), "FX_", 3) == 0)
       m.additive = true;
 
+    // Model clumps carry no baked lighting: their vertex colours are literally
+    // zero (HO_Map and FX_save_point1 both average 0.0 with alpha 1). The game
+    // lights them at runtime. Multiplying by that black turned the wall map into
+    // a black rectangle whenever vertex colours were on.
+    {
+      double sum = 0.0;
+      for (const auto &v : m.vertices) sum += v.color.r + v.color.g + v.color.b;
+      if (!m.vertices.empty() && sum / (m.vertices.size() * 3.0) < 0.004)
+        m.unlitGeometry = true;
+    }
+
     if (m.texName == "NULL" || m.texName.empty()) {
       m.untextured = true;
       if (sectionIdx >= 0 && matId >= 0 &&
@@ -737,12 +748,14 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   // Reads the BinMesh split table and the matching native VIF blocks.
   auto buildFromExtension = [&](size_t extBegin, size_t extEnd, int sectionIdx) {
     size_t binMesh = 0, binMeshEnd = 0, native = 0, nativeEnd = 0;
+    bool hasSkin = false;
     for (size_t c = extBegin; c + 12 <= extEnd;) {
       const uint32_t ct = ru32(c), cs = ru32(c + 4);
       if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > extEnd)
         break;
       if (ct == 0x050E) { binMesh = c + 12; binMeshEnd = c + 12 + cs; }
       else if (ct == 0x0510) { native = c + 12; nativeEnd = c + 12 + cs; }
+      else if (ct == 0x0116) { hasSkin = true; }
       c += 12 + cs;
     }
     if (!binMesh || !native)
@@ -782,6 +795,23 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
 
       triVerts.clear();
       const auto packets = PacketsIn(data, p, vifEnd);
+      
+      if (hasSkin) {
+          static int printCount = 0;
+          if (printCount < 20) {
+              std::cerr << "[VIF] Skinned split " << i << " with " << packets.size() << " packets:\n";
+              for (size_t pkIdx = 0; pkIdx < packets.size(); ++pkIdx) {
+                  const auto& pk = packets[pkIdx];
+                  std::cerr << "  packet " << pkIdx << " (" << pk.vertexCount << " verts): ";
+                  for (const auto& s : pk.streams) {
+                      std::cerr << "addr=" << (int)s.addr << " (vn=" << s.vn << ",vl=" << s.vl << ",bpv=" << s.bpv << ") ";
+                  }
+                  std::cerr << "\n";
+              }
+              printCount++;
+          }
+      }
+
       for (const auto &pk : packets) {
         DecodePacket(data, pk, rawVerts, adcFlags);
         StripToTriangles(rawVerts, adcFlags, triVerts);
@@ -800,7 +830,30 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
     const size_t root = (size_t)sec.dataStart + 4;
     if (root + 12 > secEnd || ru32(root + 8) != 0x1C020065)
       continue;
-    const uint32_t rootType = ru32(root);
+    // A section payload is a SEQUENCE of chunks, not one root. rwID_RWS opens
+    // with header chunks 0x23/0x24 and 0x29 and only then holds the real Clump
+    // (offset +116 and +65976 in IntroRoad), so looking at the first chunk alone
+    // missed it entirely.
+    std::vector<std::pair<size_t, uint32_t>> roots;
+    {
+      const size_t payEnd = std::min(root + (size_t)sec.payloadSize, secEnd);
+      size_t p = root;
+      while (p + 12 <= payEnd) {
+        const uint32_t ct = ru32(p), cs = ru32(p + 4);
+        if (ru32(p + 8) != 0x1C020065 || cs == 0 || p + 12 + cs > payEnd) {
+          p += 4;
+          continue;
+        }
+        roots.emplace_back(p, ct);
+        p += 12 + cs;
+      }
+      if (roots.empty())
+        roots.emplace_back(root, ru32(root));
+    }
+
+    for (const auto &[rootOff, rootTypeCur] : roots) {
+    const size_t root = rootOff;
+    const uint32_t rootType = rootTypeCur;
     const size_t rootEnd = std::min(root + 12 + (size_t)ru32(root + 4), secEnd);
 
     // Finds the Extension of a chunk and hands it over.
@@ -847,75 +900,17 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         c += 12 + cs;
       }
     }
+    } // per-root chunk loop
   }
-
-  // Sections whose root is neither World nor Clump — rwID_RWS wraps a 0x23/0x24
-  // chunk whose layout is not yet known — still contain VIF packets. Recover
-  // their geometry by scanning the section, confined to its own range and its
-  // own material list, so those props stop vanishing from the scene. Once the
-  // 0x23/0x24 header is understood this fallback goes away.
-  size_t fallbackSecs = 0, fallbackChunks = 0;
-  for (size_t si = 0; si < g_ShoSections.size(); si++) {
-    const auto &sec = g_ShoSections[si];
-    bool produced = false;
-    for (const auto &c : g_Chunks)
-      if (c.sectionIndex == (int)si) { produced = true; break; }
-    if (produced)
-      continue;
-    const size_t secBegin = (size_t)sec.dataStart;
-    const size_t secEnd = (size_t)sec.offset + 12 + sec.size;
-    if (secBegin + 16 >= secEnd)
-      continue;
-    const auto packets = PacketsIn(data, secBegin, secEnd);
-    if (packets.empty())
-      continue;
-
-    // One BinMesh inside this section, if there is one, gives the split order.
-    std::vector<std::pair<int, int>> splits; // (matId, vertexQuota)
-    for (size_t c = secBegin; c + 24 < secEnd; c++) {
-      if (ru32(c) != 0x050E || ru32(c + 8) != 0x1C020065)
-        continue;
-      const uint32_t n = ru32(c + 16);
-      if (n == 0 || n > 4096)
-        continue;
-      size_t q = c + 24;
-      for (uint32_t i = 0; i < n && q + 8 <= secEnd; i++, q += 8)
-        splits.emplace_back((int)ru32(q + 4), (int)ru32(q));
-      break;
-    }
-
-    int bi = 0, acc = 0;
-    for (const auto &pk : packets) {
-      DecodePacket(data, pk, rawVerts, adcFlags);
-      triVerts.clear();
-      StripToTriangles(rawVerts, adcFlags, triVerts);
-      int matId = -1;
-      if (bi < (int)splits.size()) {
-        matId = splits[bi].first;
-        acc += pk.vertexCount;
-        if (acc >= splits[bi].second) { bi++; acc = 0; }
-      }
-      totalVerts += pk.vertexCount;
-      if (!triVerts.empty()) {
-        addChunk(triVerts, (int)si, matId);
-        fallbackChunks++;
-      }
-    }
-    totalPackets += packets.size();
-    fallbackSecs++;
-  }
-  if (fallbackSecs)
-    std::cerr << "[geometry] scanned fallback used on " << fallbackSecs
-              << " sections -> " << fallbackChunks << " meshes\n";
 
   size_t nullNames = 0;
   for (const auto &n : g_MaterialNames)
     if (n == "NULL")
       nullNames++;
-  size_t untex = 0, untexTri = 0, emitTri = 0;
+  size_t untexTri = 0, emitTri = 0;
   for (const auto &c : g_Chunks) {
     emitTri += c.vertices.size() / 3;
-    if (c.untextured) { untex++; untexTri += c.vertices.size() / 3; }
+    if (c.untextured) untexTri += c.vertices.size() / 3;
   }
   size_t secWithMats = 0;
   for (const auto &v : sectionMats)
@@ -1615,7 +1610,24 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
         ShoSection &sec = g_ShoSections[it->second];
         if (sec.isWorldSpace)
           continue; // already in level space
-        sec.instances.push_back(go.transform);
+        // Property 1 is not always a transform for the geometry. On volume
+        // classes such as CPhysicsObject it is the extent of the collision box:
+        // in IntroRoad one carries scale (1.0, 3.54, 26.1) and another
+        // (8.87, 5.54, 5.66). Feeding that to the model stretches it far past
+        // the camera, which is why those props looked like they had vanished.
+        // Keep the placement, drop a scale that is clearly a volume size.
+        glm::mat4 m = go.transform;
+        const float sx = glm::length(glm::vec3(m[0]));
+        const float sy = glm::length(glm::vec3(m[1]));
+        const float sz = glm::length(glm::vec3(m[2]));
+        const float lo = std::min({sx, sy, sz}), hi = std::max({sx, sy, sz});
+        if (hi > 1.25f || lo < 0.8f) {
+          // Non-uniform or oversized: normalise the basis, keep position.
+          if (sx > 1e-6f) m[0] /= sx;
+          if (sy > 1e-6f) m[1] /= sy;
+          if (sz > 1e-6f) m[2] /= sz;
+        }
+        sec.instances.push_back(m);
       }
     }
   }

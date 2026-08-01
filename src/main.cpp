@@ -311,6 +311,7 @@ uniform sampler2D t;
 uniform bool  useVertexColors;
 uniform bool  untextured;
 uniform bool  additive;
+uniform bool  unlitGeometry;
 uniform vec4  matColor;
 uniform float brightness;
 uniform int   renderMode;
@@ -367,7 +368,7 @@ void main(){
         // Additive effect sheets carry their own brightness. Multiplying them by
         // the baked vertex lighting drives them to black in a dark room, which
         // is why they only showed up with vertex colours switched off.
-        vec4 col = (useVertexColors && !additive) ? tex * VC : tex;
+        vec4 col = (useVertexColors && !additive && !unlitGeometry) ? tex * VC : tex;
         col.rgb *= brightness;
         FragColor = col;
     }
@@ -591,6 +592,7 @@ void main(){
             const GLint uModel  = glGetUniformLocation(p, "model");
         const GLint uUntex  = glGetUniformLocation(p, "untextured");
         const GLint uAdd    = glGetUniformLocation(p, "additive");
+        const GLint uUnlit  = glGetUniformLocation(p, "unlitGeometry");
         const GLint uMatCol = glGetUniformLocation(p, "matColor");
             const glm::mat4 identity(1.0f);
             for (const auto& chunk : g_Chunks) {
@@ -619,6 +621,7 @@ void main(){
                 // the fir trees and the logic boxes around the truck.
                 if (chunk.untextured) continue;
                 glUniform1i(uAdd, chunk.additive ? 1 : 0);
+                glUniform1i(uUnlit, chunk.unlitGeometry ? 1 : 0);
                 if (chunk.additive) {
                     glBlendFunc(GL_ONE, GL_ONE);
                     glDepthMask(GL_FALSE);

@@ -52,6 +52,7 @@ struct MeshChunk {
     // the engine sets per draw. The naming convention is the only marker the
     // data carries.
     bool      additive   = false;
+    bool      unlitGeometry = false; // vertex colours are all zero: no baked light
     bool      untextured = false;
     bool      alphaPass  = false;  // GreyAlpha_* mask, not a colour map
     glm::vec4 matColor   = glm::vec4(1.0f);
