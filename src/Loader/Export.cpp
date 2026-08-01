@@ -137,8 +137,13 @@ bool ExportGLB(const std::string& path, const GlbExportOptions& opt, std::string
 
         std::vector<glm::mat4> xforms;
         if (!sec || sec->isWorldSpace) xforms.push_back(glm::mat4(1.0f));
-        else if (!sec->instances.empty() && opt.bakeInstances) xforms = sec->instances;
-        else if (!sec->instances.empty()) xforms.push_back(sec->instances[0]);
+        else if (!sec->instances.empty() && opt.bakeInstances) {
+            xforms.clear();
+            for (const auto& inst : sec->instances) xforms.push_back(inst.transform);
+        }
+        else if (!sec->instances.empty()) {
+            xforms.push_back(sec->instances[0].transform);
+        }
         else continue;   // model nothing placed — skip rather than dump at origin
 
         const std::string key = chunk.texName.empty() ? "NULL" : chunk.texName;

@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <fstream>
 
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
@@ -20,6 +21,37 @@
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Rendering/CPURasterizer.h"
 #include "ClimaxEngine/UI/UI.h"
+
+// ---------------------------------------------------------------------------
+// Prefs: persist the last opened .arc path so the next launch auto-mounts it.
+// File: <basePath>/SHOViewer.prefs  (one line = arc path)
+// ---------------------------------------------------------------------------
+static std::string g_PrefsPath;
+
+static void InitPrefsPath() {
+    // SDL_GetBasePath() returns the directory containing the executable.
+    char* base = SDL_GetBasePath();
+    if (base) {
+        g_PrefsPath = std::string(base) + "SHOViewer.prefs";
+        SDL_free(base);
+    } else {
+        g_PrefsPath = "SHOViewer.prefs";
+    }
+}
+
+void SaveArcPref(const std::string& arcPath) {
+    if (g_PrefsPath.empty() || arcPath.empty()) return;
+    std::ofstream f(g_PrefsPath, std::ios::trunc);
+    if (f) f << arcPath << "\n";
+}
+
+static std::string LoadArcPref() {
+    if (g_PrefsPath.empty()) return {};
+    std::ifstream f(g_PrefsPath);
+    std::string line;
+    if (f && std::getline(f, line) && !line.empty()) return line;
+    return {};
+}
 
 // Build a view matrix from orbit parameters and return camera world position
 static glm::mat4 BuildView(glm::vec3& outEye) {
@@ -201,6 +233,9 @@ int main(int argc, char* argv[]) {
     }
     glGetError();   // swallow the spurious INVALID_ENUM glewExperimental produces
 
+    // Initialise prefs now that SDL_GetBasePath() is available
+    InitPrefsPath();
+
     // Load only once a GL context exists — LoadLevel() uploads buffers and
     // textures, and it used to run before SDL was even initialised.
     //
@@ -212,6 +247,7 @@ int main(int argc, char* argv[]) {
             first.size() > 4 && sho_stricmp(first.c_str() + first.size() - 4, ".arc") == 0;
 
         if (looksLikeArc && g_Arc.Open(first)) {
+            SaveArcPref(first);                         // ← remember for next launch
             std::cerr << "[arc] mounted " << first << " ("
                       << g_Arc.Entries().size() << " files)\n";
             if (argc >= 3 && std::string(argv[2]) != "--export") {
@@ -225,6 +261,18 @@ int main(int argc, char* argv[]) {
             std::vector<std::string> txds;
             for (int i = 2; i < argc; i++) txds.push_back(argv[i]);
             LoadLevel(first, txds);
+        }
+    } else {
+        // No CLI argument: try to auto-mount the last opened archive
+        const std::string saved = LoadArcPref();
+        if (!saved.empty()) {
+            if (g_Arc.Open(saved)) {
+                std::cerr << "[arc] auto-mounted last arc: " << saved
+                          << " (" << g_Arc.Entries().size() << " files)\n";
+                state.showArc = true;   // open the archive browser automatically
+            } else {
+                std::cerr << "[arc] prefs arc no longer accessible: " << saved << "\n";
+            }
         }
     }
 
@@ -281,6 +329,9 @@ int main(int argc, char* argv[]) {
 layout(location=0) in vec3 P;
 layout(location=1) in vec2 T;
 layout(location=2) in vec4 C;
+layout(location=3) in vec4 W;
+layout(location=4) in vec4 B;
+
 out vec2  TC;
 out vec4  VC;
 out vec3  fragWorldPos;
@@ -290,9 +341,24 @@ uniform bool  flipU;
 uniform bool  flipV;
 uniform vec2  uvOffset;
 uniform vec2  uvScale;
+uniform bool  useSkinning;
+uniform mat4  boneTransforms[128]; // Max 128 bones
+
 void main(){
-    gl_Position  = m * vec4(P, 1.0);
-    fragWorldPos = vec3(model * vec4(P, 1.0));
+    vec4 localPos = vec4(P, 1.0);
+    if(useSkinning) {
+        float wSum = W.x + W.y + W.z + W.w;
+        if(wSum > 0.001) {
+            mat4 skinMat = boneTransforms[int(B.x)] * W.x +
+                           boneTransforms[int(B.y)] * W.y +
+                           boneTransforms[int(B.z)] * W.z +
+                           boneTransforms[int(B.w)] * W.w;
+            localPos = skinMat * localPos;
+        }
+    }
+
+    gl_Position  = m * localPos;
+    fragWorldPos = vec3(model * localPos);
     vec2 coord = T;
     if(flipU) coord.x = 1.0 - coord.x;
     if(flipV) coord.y = 1.0 - coord.y;
@@ -590,6 +656,30 @@ void main(){
 
             const GLint uM     = glGetUniformLocation(p, "m");
             const GLint uModel  = glGetUniformLocation(p, "model");
+
+            // Advance animation time for all objects playing a clip
+            static size_t s_lastLoadChunkCount = 0;
+            static bool s_debugPrinted = false;
+            if (g_Chunks.size() != s_lastLoadChunkCount) {
+                s_lastLoadChunkCount = g_Chunks.size();
+                s_debugPrinted = false;
+            }
+            if (!s_debugPrinted && !g_Chunks.empty()) {
+                std::cerr << "[render] first frame: chunks=" << g_Chunks.size()
+                          << " sections=" << g_ShoSections.size()
+                          << " gameObjects=" << g_GameObjects.size() << "\n";
+                std::cerr.flush();
+            }
+            float dt = ImGui::GetIO().DeltaTime;
+            for (auto& go : g_GameObjects) {
+                if (go.currentClipIndex >= 0 && go.currentClipIndex < (int)go.clipSectionIndices.size()) {
+                    go.animTime += dt;
+                } // No auto-start: user picks clip from UI
+            }
+            if (!s_debugPrinted && !g_Chunks.empty()) {
+                std::cerr << "[render] after anim loop OK\n";
+                std::cerr.flush();
+            }
         const GLint uUntex  = glGetUniformLocation(p, "untextured");
         const GLint uAdd    = glGetUniformLocation(p, "additive");
         const GLint uUnlit  = glGetUniformLocation(p, "unlitGeometry");
@@ -644,12 +734,81 @@ void main(){
                     if (sec && !sec->isWorldSpace && !state.showUnplacedModels) continue;
                     glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(mvp));
                     glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(identity));
+                    glUniform1i(glGetUniformLocation(p, "useSkinning"), 0);
                     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
                 } else {
-                    for (const auto& inst : sec->instances) {
-                        glm::mat4 m = mvp * inst;
+                    for (size_t instIdx = 0; instIdx < sec->instances.size(); instIdx++) {
+                        const auto& inst = sec->instances[instIdx];
+                        glm::mat4 m = mvp * inst.transform;
                         glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(m));
-                        glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(inst));
+                        glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(inst.transform));
+                        
+                        bool hasSkin = false;
+                        if (inst.gameObjectId >= 0 && inst.gameObjectId < (int)g_GameObjects.size() && !sec->skeleton.bones.empty()) {
+                            GameObject& go = g_GameObjects[inst.gameObjectId];
+                            if (go.currentClipIndex >= 0 && go.currentClipIndex < (int)go.clipSectionIndices.size()) {
+                                int clipSecIdx = go.clipSectionIndices[go.currentClipIndex];
+                                if (clipSecIdx >= 0 && clipSecIdx < (int)g_ShoSections.size()) {
+                                    const AnimClip& clip = g_ShoSections[clipSecIdx].animClip;
+                                    if (clip.duration > 0.0f) {
+                                        // Evaluate tracks at go.animTime
+                                        float t = fmod(go.animTime, clip.duration);
+                                        const size_t numBones = std::min(sec->skeleton.bones.size(), (size_t)128);
+                                        std::vector<glm::mat4> boneMats(numBones, glm::mat4(1.0f));
+                                        
+                                        for (size_t b = 0; b < numBones; ++b) {
+                                            glm::mat4 local = sec->skeleton.bones[b].restLocal;
+                                            if (b < clip.tracks.size() && !clip.tracks[b].times.empty()) {
+                                                const auto& times = clip.tracks[b].times;
+                                                const auto& poss  = clip.tracks[b].pos;
+                                                const auto& rots  = clip.tracks[b].rot;
+                                                
+                                                int idx0 = 0, idx1 = 0;
+                                                float factor = 0.0f;
+                                                
+                                                if (t <= times.front()) {
+                                                    idx0 = idx1 = 0;
+                                                } else if (t >= times.back()) {
+                                                    idx0 = idx1 = (int)times.size() - 1;
+                                                } else {
+                                                    auto it = std::lower_bound(times.begin(), times.end(), t);
+                                                    idx1 = (int)std::distance(times.begin(), it);
+                                                    idx0 = idx1 - 1;
+                                                    float span = times[idx1] - times[idx0];
+                                                    factor = (span > 1e-6f) ? (t - times[idx0]) / span : 0.0f;
+                                                }
+                                                
+                                                glm::vec3 pos = glm::mix(poss[idx0], poss[idx1], factor);
+                                                glm::quat rot = glm::slerp(rots[idx0], rots[idx1], factor);
+                                                local = glm::translate(glm::mat4(1.0f), pos) * glm::mat4_cast(rot);
+                                            }
+                                            
+                                            int parent = sec->skeleton.bones[b].parent;
+                                            // Guard: parent must be a valid, already-computed bone index
+                                            if (parent >= 0 && parent < (int)b) {
+                                                boneMats[b] = boneMats[parent] * local;
+                                            } else {
+                                                boneMats[b] = local;
+                                            }
+                                        }
+                                        
+                                        // Compute skinning matrices and upload to GPU
+                                        std::vector<glm::mat4> shaderTransforms(numBones);
+                                        for (size_t b = 0; b < numBones; ++b)
+                                            shaderTransforms[b] = boneMats[b] * sec->skeleton.bones[b].invBind;
+                                        
+                                        if (!shaderTransforms.empty()) {
+                                            glUniformMatrix4fv(glGetUniformLocation(p, "boneTransforms"),
+                                                (GLsizei)shaderTransforms.size(), GL_FALSE,
+                                                glm::value_ptr(shaderTransforms[0]));
+                                            hasSkin = true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        glUniform1i(glGetUniformLocation(p, "useSkinning"), hasSkin ? 1 : 0);
                         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
                     }
                 }
@@ -658,6 +817,11 @@ void main(){
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDepthMask(GL_TRUE);
             glBindVertexArray(0);
+            if (!s_debugPrinted) {
+                std::cerr << "[render] chunk loop finished OK\n";
+                std::cerr.flush();
+                s_debugPrinted = true;
+            }
         }
 
         // --- Collision render pass (solid fill + wireframe) ---

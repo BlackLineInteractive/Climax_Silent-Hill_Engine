@@ -6,6 +6,10 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <string>
+
+// Defined in main.cpp — persists the last-opened arc path to disk.
+extern void SaveArcPref(const std::string& arcPath);
 
 static char arcFilter[128] = "";
 
@@ -173,6 +177,7 @@ void FileBrowserState::Render() {
         }
         if (!pendingMountArc.empty()) {
             if (g_Arc.Open(pendingMountArc)) {
+                SaveArcPref(pendingMountArc);   // remember for next launch
                 showBrowser = false;
                 state.showArc = true;
                 arcFilter[0] = '\0';
@@ -325,8 +330,9 @@ void RenderArcWindow() {
     static bool onlyContainers = true;
     ImGui::Checkbox("Levels only", &onlyContainers);
     if (ImGui::IsItemHovered())
-        ImGui::SetTooltip("Show only entries without a file extension —\n"
-                          "those are the geometry containers.");
+        ImGui::SetTooltip("Show only entries without a known file extension —\n"
+                          "hides .arc, .txd, .xml, etc. Game containers\n"
+                          "sometimes use a period as a qualifier (CPlayer.Travis).");
     ImGui::SetNextItemWidth(-1);
     ImGui::InputTextWithHint("##arcfilter", "filter by name...", arcFilter, sizeof(arcFilter));
 
@@ -337,7 +343,21 @@ void RenderArcWindow() {
     size_t shown = 0;
     for (size_t i = 0; i < entries.size(); i++) {
         const std::string& n = entries[i].name;
-        const bool isContainer = n.find('.') == std::string::npos;
+        // Determine whether this is a real file (known extension) or a game
+        // container. Real extensions in the archive are all lowercase (.arc,
+        // .txd, .xml, .vml, .nav, .mm, etc.).  Game object names like
+        // "CPlayerBehaviour.Travis" use a capital-letter qualifier after the
+        // dot — treat those the same as no-extension containers.
+        auto dotPos = n.rfind('.');
+        bool isKnownExt = false;
+        if (dotPos != std::string::npos) {
+            std::string ext = n.substr(dotPos + 1);
+            // A known extension is all lowercase and short
+            bool allLower = !ext.empty() && std::all_of(ext.begin(), ext.end(),
+                [](unsigned char c){ return c == tolower(c); });
+            isKnownExt = allLower && ext.size() <= 5;
+        }
+        const bool isContainer = !isKnownExt;
         if (onlyContainers && !isContainer) continue;
         if (arcFilter[0]) {
             std::string lo = n, needle = arcFilter;
@@ -351,7 +371,7 @@ void RenderArcWindow() {
 
         const bool current = (g_CurrentMeshContainer == n);
         ImGui::PushID((int)i);
-        if (ImGui::Selectable(n.c_str(), current) && isContainer)
+        if (ImGui::Selectable(n.c_str(), current))
             pendingLoad = (int)i;
         if (ImGui::IsItemHovered()) {
             const size_t nTxd = g_Arc.TxdsFor(n).size();
@@ -451,7 +471,7 @@ void RenderStructureWindow() {
                     "  Game objects: %zu  (%zu placed)", g_GameObjects.size(), placed);
                 ImGui::Indent();
                 for (size_t i = 0; i < g_GameObjects.size(); i++) {
-                    const auto& go = g_GameObjects[i];
+                    auto& go = g_GameObjects[i];
                     if (go.atOrigin)
                         ImGui::TextDisabled("[%2zu] %-26s  (logical)", i, go.className.c_str());
                     else
@@ -460,6 +480,30 @@ void RenderStructureWindow() {
                             go.position.x, go.position.y, go.position.z);
                     if (ImGui::IsItemHovered() && !go.instName.empty())
                         ImGui::SetTooltip("%s\n@ 0x%05X", go.instName.c_str(), go.offset);
+                        
+                    if (!go.clipSectionIndices.empty()) {
+                        ImGui::Indent();
+                        ImGui::PushID((int)i);
+                        ImGui::TextDisabled("Anim:");
+                        ImGui::SameLine();
+                        ImGui::SetNextItemWidth(150.0f);
+                        if (ImGui::BeginCombo("##clip", go.currentClipIndex >= 0 ? g_ShoSections[go.clipSectionIndices[go.currentClipIndex]].name.c_str() : "None")) {
+                            if (ImGui::Selectable("None", go.currentClipIndex == -1)) go.currentClipIndex = -1;
+                            for (size_t j = 0; j < go.clipSectionIndices.size(); j++) {
+                                if (ImGui::Selectable(g_ShoSections[go.clipSectionIndices[j]].name.c_str(), go.currentClipIndex == (int)j))
+                                    go.currentClipIndex = (int)j;
+                            }
+                            ImGui::EndCombo();
+                        }
+                        if (go.currentClipIndex >= 0) {
+                            ImGui::SameLine();
+                            float dur = g_ShoSections[go.clipSectionIndices[go.currentClipIndex]].animClip.duration;
+                            ImGui::SetNextItemWidth(100.0f);
+                            ImGui::SliderFloat("##time", &go.animTime, 0.0f, dur, "%.2fs");
+                        }
+                        ImGui::PopID();
+                        ImGui::Unindent();
+                    }
                 }
                 ImGui::Unindent();
             }

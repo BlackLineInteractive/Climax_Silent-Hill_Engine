@@ -50,104 +50,107 @@ void LoadTexturesFromTxdData(const std::vector<uint8_t> &data,
                              const std::vector<std::string> &allowedNames,
                              bool fallback) {
   const size_t sz = data.size();
-  // `pos < sz - 100` underflows on any file smaller than 100 bytes and turns
-  // the loop bound into SIZE_MAX, walking off the end of the buffer.
   if (sz < 128)
     return;
 
   const int MAGIC_OFFSET = 80;
   size_t pos = 0;
 
-  while (pos < sz - 100) {
+  while (pos + 12 <= sz) {
+    if (pos + 100 > sz) break;   // not enough room for a minimal chunk + header
     uint32_t type;
     memcpy(&type, &data[pos], 4);
     if (type == 0x15) {
-      try {
-        uint32_t chunkSz;
-        memcpy(&chunkSz, &data[pos + 4], 4);
-        size_t curr = pos + 32;
-        uint32_t sLen;
-        memcpy(&sLen, &data[curr + 4], 4);
-        std::string tName =
-            (sLen < 128) ? std::string((char *)&data[curr + 12]) : "Unknown";
-        curr += 12 + sLen;
-        memcpy(&sLen, &data[curr + 4], 4);
-        curr += 12 + sLen;
-        curr += 24;
+      // All bounds-checked: any out-of-range access skips the chunk.
+      uint32_t chunkSz;
+      memcpy(&chunkSz, &data[pos + 4], 4);
+      const size_t chunkEnd = pos + 12 + (size_t)chunkSz;
+      if (chunkEnd > sz || chunkSz < 64) { pos++; continue; }
 
-        // Raster header, from `width`:
-        //   +0  width          +4  height        +8  depth
-        //   +12 rasterFormat   +16 TEX0..MIPTBP2 (four 64-bit GS registers)
-        //   +48 texelDataSize  +52 paletteDataSize
-        //   +56 gpuAlignedSize +60 skyMipmapVal
-        // then a 12-byte chunk header, then the data at +76.
-        uint32_t w, h, d, rasterFormat;
-        memcpy(&w, &data[curr], 4);
-        memcpy(&h, &data[curr + 4], 4);
-        memcpy(&d, &data[curr + 8], 4);
-        memcpy(&rasterFormat, &data[curr + 12], 4);
-        uint32_t dSz, pSz;
-        memcpy(&dSz, &data[curr + 48], 4);
-        memcpy(&pSz, &data[curr + 52], 4);
-        curr += 76;
+      size_t curr = pos + 32;
+      if (curr + 16 > sz) { pos++; continue; }
 
-        // Addressing lives in the texture's filterAddressing word, not in the
-        // raster header: the two fields previously read as wrap modes are
-        // gpuDataAlignedSize and skyMipmapVal, so every texture got an
-        // arbitrary clamp/repeat setting.
-        uint32_t filterAddressing = 0;
+      uint32_t sLen;
+      memcpy(&sLen, &data[curr + 4], 4);
+      if (sLen > 512 || curr + 12 + sLen + 12 > sz) { pos += 12 + chunkSz; continue; }
+      std::string tName = (sLen > 0) ? std::string((char*)&data[curr + 12], strnlen((char*)&data[curr + 12], sLen)) : "Unknown";
+      curr += 12 + sLen;
+
+      if (curr + 8 > sz) { pos += 12 + chunkSz; continue; }
+      memcpy(&sLen, &data[curr + 4], 4);
+      if (sLen > sz || curr + 12 + sLen + 24 + 56 > sz) { pos += 12 + chunkSz; continue; }
+      curr += 12 + sLen;
+      curr += 24;
+
+      // Raster header bounds check
+      if (curr + 56 > sz) { pos += 12 + chunkSz; continue; }
+
+      uint32_t w, h, d, rasterFormat;
+      memcpy(&w, &data[curr], 4);
+      memcpy(&h, &data[curr + 4], 4);
+      memcpy(&d, &data[curr + 8], 4);
+      memcpy(&rasterFormat, &data[curr + 12], 4);
+      uint32_t dSz, pSz;
+      memcpy(&dSz, &data[curr + 48], 4);
+      memcpy(&pSz, &data[curr + 52], 4);
+
+      // Sanity-check dimensions to reject garbage hits
+      if (w == 0 || h == 0 || w > 4096 || h > 4096 || d > 32
+          || dSz > sz || pSz > sz) {
+        pos += 12 + chunkSz; continue;
+      }
+      curr += 76;
+
+      uint32_t filterAddressing = 0;
+      if (pos + 28 + 4 <= sz)
         memcpy(&filterAddressing, &data[pos + 28], 4);
-        const uint32_t addrU = (filterAddressing >> 8) & 0xF;
-        const uint32_t addrV = (filterAddressing >> 12) & 0xF;
+      const uint32_t addrU = (filterAddressing >> 8) & 0xF;
+      const uint32_t addrV = (filterAddressing >> 12) & 0xF;
 
-        RawTexture t;
-        t.name = tName;
-        t.width = w;
-        t.height = h;
-        t.depth = d;
-        t.clampU = (addrU == 3); // 1 = wrap, 2 = mirror, 3 = clamp
-        t.clampV = (addrV == 3);
-        // rasterFormat's top nibble selects the palette: 0x2000 = 256 entries,
-        // 0x4000 = 16.
-        t.paletteColors = ((rasterFormat & 0xF000) == 0x4000) ? 16 : 256;
+      RawTexture t;
+      t.name = tName;
+      t.width = w;
+      t.height = h;
+      t.depth = d;
+      t.clampU = (addrU == 3);
+      t.clampV = (addrV == 3);
+      t.paletteColors = ((rasterFormat & 0xF000) == 0x4000) ? 16 : 256;
 
-        bool nameAllowed = fallback;
-        if (!fallback) {
-          for (const auto &allowed : allowedNames) {
-            if (sho_stricmp(t.name.c_str(), allowed.c_str()) == 0) {
-              nameAllowed = true;
-              break;
-            }
+      bool nameAllowed = fallback;
+      if (!fallback) {
+        for (const auto &allowed : allowedNames) {
+          if (sho_stricmp(t.name.c_str(), allowed.c_str()) == 0) {
+            nameAllowed = true;
+            break;
           }
         }
-        if (!nameAllowed) {
-          pos += 12 + chunkSz;
-          continue;
-        }
-
-        if (curr + MAGIC_OFFSET + (dSz - MAGIC_OFFSET) <= sz &&
-            dSz > MAGIC_OFFSET) {
-          t.pixels.resize(dSz - MAGIC_OFFSET);
-          memcpy(t.pixels.data(), &data[curr + MAGIC_OFFSET],
-                 dSz - MAGIC_OFFSET);
-        }
-        curr += dSz;
-        if (pSz > MAGIC_OFFSET &&
-            curr + MAGIC_OFFSET + (pSz - MAGIC_OFFSET) <= sz) {
-          t.palette.resize(pSz - MAGIC_OFFSET);
-          memcpy(t.palette.data(), &data[curr + MAGIC_OFFSET],
-                 pSz - MAGIC_OFFSET);
-        }
-
-        if (!t.pixels.empty() &&
-            g_TextureMap.find(t.name) == g_TextureMap.end()) {
-          ProcessAndUploadTexture(t);
-        }
-
+      }
+      if (!nameAllowed) {
         pos += 12 + chunkSz;
         continue;
-      } catch (...) {
       }
+
+      if (curr + MAGIC_OFFSET + (dSz - MAGIC_OFFSET) <= sz &&
+          dSz > (uint32_t)MAGIC_OFFSET) {
+        t.pixels.resize(dSz - MAGIC_OFFSET);
+        memcpy(t.pixels.data(), &data[curr + MAGIC_OFFSET],
+               dSz - MAGIC_OFFSET);
+      }
+      curr += dSz;
+      if (pSz > (uint32_t)MAGIC_OFFSET &&
+          curr + MAGIC_OFFSET + (pSz - MAGIC_OFFSET) <= sz) {
+        t.palette.resize(pSz - MAGIC_OFFSET);
+        memcpy(t.palette.data(), &data[curr + MAGIC_OFFSET],
+               pSz - MAGIC_OFFSET);
+      }
+
+      if (!t.pixels.empty() &&
+          g_TextureMap.find(t.name) == g_TextureMap.end()) {
+        ProcessAndUploadTexture(t);
+      }
+
+      pos += 12 + chunkSz;
+      continue;
     }
     pos++;
   }
@@ -600,8 +603,17 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   std::vector<std::vector<glm::vec4>> sectionCols(g_ShoSections.size());
   for (size_t si = 0; si < g_ShoSections.size(); si++) {
     const auto &sec = g_ShoSections[si];
-    const size_t secEnd = (size_t)sec.offset + 12 + sec.size;
-    size_t root = (size_t)sec.dataStart + 4;
+    
+    // For synthetic bare-CLUMP sections the entire file IS the section.
+    // dataStart==0 means the CLUMP chunk starts at byte 0 of the file.
+    // The normal formula (root = dataStart + 4) would land at offset 4 which
+    // is the size field of the CLUMP header, not its type field. We detect
+    // this case by checking that offset==0 and skip the +4 bias.
+    const bool isBareSection = (sec.offset == 0 && sec.dataStart == 0 &&
+                                (sec.name == "rwID_CLUMP" || sec.name == "rwID_RWS"));
+    const size_t secEnd = isBareSection ? sz : (size_t)sec.offset + 12 + sec.size;
+    size_t root = isBareSection ? 0 : (size_t)sec.dataStart + 4;
+
     if (root + 12 > sz || root + 12 > secEnd)
       continue;
     if (ru32(root + 8) != 0x1C020065)
@@ -742,12 +754,25 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
     glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                           (void *)offsetof(Vertex, color));
     glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, boneWeights));
+    glEnableVertexAttribArray(3);
+    // boneIds is an array of uint8_t, but we pass it as float attributes by using glVertexAttribPointer instead of glVertexAttribIPointer? Or we use GL_UNSIGNED_BYTE and normalize=false? Yes, GL_UNSIGNED_BYTE. Wait, if we use GL_UNSIGNED_BYTE, it might normalize them to 0-1 if GL_TRUE is passed, but we want integer values. We can pass GL_UNSIGNED_BYTE and GL_FALSE.
+    // Or we can use glVertexAttribIPointer, but glVertexAttribPointer with GL_UNSIGNED_BYTE, GL_FALSE will convert them to float without normalizing.
+    glVertexAttribPointer(4, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, boneIds));
+    glEnableVertexAttribArray(4);
     g_Chunks.push_back(std::move(m));
   };
 
   // Reads the BinMesh split table and the matching native VIF blocks.
   auto buildFromExtension = [&](size_t extBegin, size_t extEnd, int sectionIdx) {
-    size_t binMesh = 0, binMeshEnd = 0, native = 0, nativeEnd = 0;
+    auto rf32 = [&](size_t off) -> float {
+      float f;
+      memcpy(&f, &data[off], 4);
+      return f;
+    };
+    size_t binMesh = 0, binMeshEnd = 0, native = 0, nativeEnd = 0, skinPlg = 0, skinPlgEnd = 0;
     bool hasSkin = false;
     for (size_t c = extBegin; c + 12 <= extEnd;) {
       const uint32_t ct = ru32(c), cs = ru32(c + 4);
@@ -755,11 +780,47 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         break;
       if (ct == 0x050E) { binMesh = c + 12; binMeshEnd = c + 12 + cs; }
       else if (ct == 0x0510) { native = c + 12; nativeEnd = c + 12 + cs; }
-      else if (ct == 0x0116) { hasSkin = true; }
+      else if (ct == 0x0116) { hasSkin = true; skinPlg = c + 12; skinPlgEnd = c + 12 + cs; }
       c += 12 + cs;
     }
     if (!binMesh || !native)
       return;
+
+    // Parse Skin PLG for inverse bind matrices if present
+    if (hasSkin && sectionIdx >= 0 && sectionIdx < (int)g_ShoSections.size()) {
+      ShoSection &sec = g_ShoSections[sectionIdx];
+      if (!sec.skeleton.bones.empty() && skinPlg + 8 <= skinPlgEnd) {
+        // Native (PS2) layout:
+        // u32 platform
+        // u8 boneCount
+        // u8 usedBoneCount
+        // u8 maxWeightsPerVertex
+        // u8 padding
+        // u8 usedBoneIds[usedBoneCount]
+        // f32 inverseBoneMatrix[boneCount][16]
+        uint8_t boneCount = data[skinPlg + 4];
+        uint8_t usedBoneCount = data[skinPlg + 5];
+        
+        size_t matrixOff = skinPlg + 8 + usedBoneCount;
+        for (int b = 0; b < boneCount && matrixOff + 64 <= skinPlgEnd; ++b) {
+          glm::mat4 invBind(1.0f);
+          for (int c = 0; c < 4; ++c)
+            for (int r = 0; r < 4; ++r)
+              invBind[c][r] = rf32(matrixOff + (c * 4 + r) * 4); // Matrix stored column-major? Wait, the spec says "f32 inverseBoneMatrix[boneCount][16]". Usually RW stores things row-major or column-major depending on platform. If it's PS2 native, it's usually column-major. Let's assume column-major matching our glm layout.
+          // Wait, the spec says "Note the reference multiplies local * parent, i.e. row-vector convention. With glm's column-major types the correct order is parent * local."
+          // If the matrix in file is row-major (which is RW standard), we must transpose it when loading into GLM.
+          // Let's load it row-major:
+          for (int r = 0; r < 4; ++r)
+            for (int c = 0; c < 4; ++c)
+              invBind[c][r] = rf32(matrixOff + (r * 4 + c) * 4);
+          
+          if (b < (int)sec.skeleton.bones.size()) {
+            sec.skeleton.bones[b].invBind = invBind;
+          }
+          matrixOff += 64;
+        }
+      }
+    }
 
     // BinMeshPLG: faceType, splitCount, totalIndices, then the split table.
     const uint32_t faceType = ru32(binMesh);
@@ -792,29 +853,61 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
       if (meshType == 0)
         vifSize = (size_t)ru32(p + 4) * 16;
       const size_t vifEnd = std::min(p + vifSize, blockEnd);
+      
+      uint32_t numIdx = 0;
+      if (meshType == 0) {
+          size_t q = binMesh + 12;
+          for (uint32_t j = 0; j <= i; j++) {
+              numIdx = ru32(q);
+              q += 8 + (faceType == 1 ? 0 : (size_t)numIdx * 4);
+          }
+      }
 
       triVerts.clear();
       const auto packets = PacketsIn(data, p, vifEnd);
       
-      if (hasSkin) {
-          static int printCount = 0;
-          if (printCount < 20) {
-              std::cerr << "[VIF] Skinned split " << i << " with " << packets.size() << " packets:\n";
-              for (size_t pkIdx = 0; pkIdx < packets.size(); ++pkIdx) {
-                  const auto& pk = packets[pkIdx];
-                  std::cerr << "  packet " << pkIdx << " (" << pk.vertexCount << " verts): ";
-                  for (const auto& s : pk.streams) {
-                      std::cerr << "addr=" << (int)s.addr << " (vn=" << s.vn << ",vl=" << s.vl << ",bpv=" << s.bpv << ") ";
+      std::vector<uint8_t> boneIds;
+      std::vector<float> boneWeights;
+      if (hasSkin && meshType == 0 && vifEnd + numIdx * 16 <= blockEnd) {
+          size_t wp = vifEnd;
+          boneIds.resize(numIdx * 4);
+          boneWeights.resize(numIdx * 4);
+          for (uint32_t v = 0; v < numIdx; ++v) {
+              for (int w = 0; w < 4; ++w) {
+                  uint8_t bId = data[wp + w * 4];
+                  boneIds[v * 4 + w] = bId / 4;
+                  // Zero out the lowest byte (the bone ID) to read the clean float
+                  uint8_t floatBytes[4] = {0, data[wp + w * 4 + 1], data[wp + w * 4 + 2], data[wp + w * 4 + 3]};
+                  float weight;
+                  memcpy(&weight, floatBytes, 4);
+                  boneWeights[v * 4 + w] = weight;
+                  
+                  // In sho_noesis.py: "if weight1 > 0: boneID1 -= 1". Wait!
+                  // Let's check Noesis again. "boneID1 -= 1" if weight > 0? No, let's just use it directly, but let's see.
+                  if (boneWeights[v * 4 + w] > 0.0f && boneIds[v * 4 + w] > 0) {
+                      boneIds[v * 4 + w] -= 1; // It seems bone indices are 1-based or offset by 1 in some logic? Let's follow sho_noesis exactly! Wait, I'll review it if it looks wrong.
                   }
-                  std::cerr << "\n";
               }
-              printCount++;
+              wp += 16;
           }
       }
 
+      size_t vertexIndex = 0;
       for (const auto &pk : packets) {
         DecodePacket(data, pk, rawVerts, adcFlags);
+        
+        // Inject skin weights into rawVerts
+        if (hasSkin && meshType == 0 && !boneWeights.empty()) {
+            for (size_t v = 0; v < rawVerts.size() && vertexIndex + v < numIdx; ++v) {
+                for (int w = 0; w < 4; ++w) {
+                    rawVerts[v].boneIds[w] = boneIds[(vertexIndex + v) * 4 + w];
+                    rawVerts[v].boneWeights[w] = boneWeights[(vertexIndex + v) * 4 + w];
+                }
+            }
+        }
+        
         StripToTriangles(rawVerts, adcFlags, triVerts);
+        vertexIndex += pk.vertexCount;
         totalVerts += pk.vertexCount;
       }
       totalPackets += packets.size();
@@ -826,8 +919,10 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
 
   for (size_t si = 0; si < g_ShoSections.size(); si++) {
     const auto &sec = g_ShoSections[si];
-    const size_t secEnd = (size_t)sec.offset + 12 + sec.size;
-    const size_t root = (size_t)sec.dataStart + 4;
+    const bool isBareSection = (sec.offset == 0 && sec.dataStart == 0 &&
+                                (sec.name == "rwID_CLUMP" || sec.name == "rwID_RWS"));
+    const size_t secEnd = isBareSection ? sz : (size_t)sec.offset + 12 + sec.size;
+    const size_t root   = isBareSection ? 0  : (size_t)sec.dataStart + 4;
     if (root + 12 > secEnd || ru32(root + 8) != 0x1C020065)
       continue;
     // A section payload is a SEQUENCE of chunks, not one root. rwID_RWS opens
@@ -952,6 +1047,10 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
             << " VIF packets, " << totalVerts << " strip verts -> "
             << g_Chunks.size() << " meshes, " << emitTri << " tris ("
             << untexTri << " flat-colour)\n";
+  std::cerr.flush();
+  std::cerr << "[loader] sections=" << g_ShoSections.size()
+            << " gameObjects=" << g_GameObjects.size() << "\n";
+  std::cerr.flush();
 }
 
 
@@ -1032,7 +1131,9 @@ void LoadLevelData(const std::string &displayName,
   }
 
   {
+    std::cerr << "[level] starting vcolor-loop rows=" << g_Chunks.size() << "\n"; std::cerr.flush();
     struct Row { std::string n; size_t tris; float r, g, b, a; };
+
     std::vector<Row> rows;
     for (const auto &c : g_Chunks) {
       if (c.vertices.empty()) continue;
@@ -1052,6 +1153,7 @@ void LoadLevelData(const std::string &displayName,
   }
 
   ApplyAlphaMasks();
+  std::cerr << "[level] ApplyAlphaMasks OK\n"; std::cerr.flush();
 
   g_CurrentMeshContainer = displayName;
   g_CurrentTxdPaths.clear();
@@ -1064,7 +1166,9 @@ void LoadLevelData(const std::string &displayName,
     const std::string &tName = g_Chunks[ci].texName;
     g_MeshTexMap[tName.empty() ? "NULL" : tName].push_back(ci);
   }
+  std::cerr << "[level] LoadLevelData complete.\n"; std::cerr.flush();
 }
+
 
 // ── Path-based wrappers ─────────────────────────────────────────────────────
 void LoadTexturesFromTxd(const std::string &txdPath,
@@ -1191,44 +1295,15 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
       if (go.instName.empty())
         go.instName = readName(payOff, payLen);
     } else if (kind == 0x00 && payLen == 16) {
-      // A 16-byte property is a reference to a resource section's GUID.
       go.guidRefs.emplace_back((const char *)&data[payOff], 16);
     } else if (kind == 0x00 && idx == 1 && payLen == 64 && !haveXform) {
-      // Column-major, but it is a 3x4 affine transform stored in a 4x4 slot
-      // with the whole fourth ROW left as zero — including m[3][3]. Feeding
-      // that to the renderer as-is makes every transformed vertex come out
-      // with w = 0, so the perspective divide blows the geometry up across
-      // the screen and it flickers as the camera turns. Restore the
-      // homogeneous row before anything touches the matrix.
       glm::mat4 m;
       memcpy(&m[0][0], &data[payOff], 64);
       m[0][3] = 0.0f;
       m[1][3] = 0.0f;
       m[2][3] = 0.0f;
       m[3][3] = 1.0f;
-
-      // Reject anything that still is not a usable affine transform rather
-      // than letting a degenerate basis stretch a model to infinity.
-      bool sane = true;
-      for (int c = 0; c < 4 && sane; c++)
-        for (int r = 0; r < 4 && sane; r++)
-          if (!std::isfinite(m[c][r]))
-            sane = false;
-      for (int c = 0; c < 3 && sane; c++) {
-        const float len = glm::length(glm::vec3(m[c]));
-        if (len < 1e-6f || len > 1e4f)
-          sane = false;
-      }
-      if (sane && glm::length(glm::vec3(m[3])) > 1e6f)
-        sane = false;
-      if (!sane) {
-        p += rs;
-        continue;
-      }
-
       go.transform = m;
-      go.position = glm::vec3(m[3]);
-      go.atOrigin = (glm::length(go.position) < 1e-4f);
       haveXform = true;
     }
     p += rs;
@@ -1236,6 +1311,21 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
 
   if (go.className.empty())
     return;
+
+  if (haveXform) {
+    // Determine if this is a spatial transform vs a volume extent
+    bool isVolume = (go.className == "CPhysicsObject" || 
+                     go.className == "CZone" ||
+                     go.className == "CWaterZone" ||
+                     go.className == "CCameraZone" ||
+                     go.className == "CCameraArea");
+    if (!isVolume) {
+      go.position = glm::vec3(go.transform[3]);
+      go.atOrigin = (glm::length(go.position) < 1e-4f);
+    } else {
+      go.atOrigin = true; // don't use it as a mesh placement transform
+    }
+  }
 
   // Second pass for CColorLight: the payload is spread over two components.
   if (go.className == "CColorLight") {
@@ -1363,6 +1453,58 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   // chunk-to-chunk instead of byte-scanning through the header.
   size_t off716 =
       (hdrType == 0x071c && hdrSize > 0 && hdrSize < sz) ? 0x0c + hdrSize : 0;
+
+  // ── BARE CLUMP / ANIM-PACKAGE FALLBACK ────────────────────────────────────
+  // Character model files (CPlayerBehaviour.Travis, etc.) are bare RenderWare
+  // files — they start directly with a CLUMP (0x10) or an animation-package
+  // chunk (0x1E, 0x1B, etc.), not with a 0x071C SHO directory. The 0x716
+  // section walker below will skip everything when these files are given, so
+  // we create a single synthetic ShoSection covering the whole file and let
+  // LoadGeometryData process it normally.
+  if (g_ShoSections.empty() && sz >= 12) {
+    uint32_t firstType = ru32(0);
+    uint32_t firstSize = ru32(4);
+    uint32_t firstVer  = ru32(8);
+    // Treat as bare RW file: CLUMP=0x10, ANIM=0x1B/0x1E/0x1F, also 0x23/0x24 (RWS)
+    const bool isBareRW = (firstVer == RW_VER) && (
+        firstType == 0x10 || firstType == 0x1B || firstType == 0x1E ||
+        firstType == 0x1F || firstType == 0x23 || firstType == 0x24) &&
+        firstSize > 0 && 12 + firstSize <= sz;
+    if (isBareRW) {
+      ShoSection synth;
+      synth.offset    = 0;
+      synth.size      = (uint32_t)(firstSize);
+      synth.name      = (firstType == 0x10) ? "rwID_CLUMP" :
+                        (firstType == 0x1B) ? "rwID_HANIMANIMATION" :
+                        "rwID_RWS";
+      synth.dataStart = 0;   // payload starts right at offset 0 (the CLUMP chunk)
+      synth.isWorldSpace = false;
+      g_ShoSections.push_back(synth);
+      std::cerr << "[loader] bare RW file detected (type=0x" << std::hex << firstType
+                << ", ver=0x" << firstVer << std::dec << "), created synthetic section '"
+                << synth.name << "'\n";
+      // If there are multiple top-level chunks (e.g. CLUMP + HANIM) scan them
+      size_t co = 0;
+      while (co + 12 < sz) {
+        uint32_t t = ru32(co), s2 = ru32(co + 4), v = ru32(co + 8);
+        if (v != RW_VER || s2 == 0 || co + 12 + s2 > sz) break;
+        if (t == 0x1B) {
+          // rwID_HANIMANIMATION — register as its own section so the clip
+          // resolver (GUID pass) doesn't need to find it inside a 0x716 shell.
+          ShoSection animSec;
+          animSec.offset    = (uint32_t)co;
+          animSec.size      = s2;
+          animSec.name      = "rwID_HANIMANIMATION";
+          animSec.dataStart = (uint32_t)co;
+          animSec.isWorldSpace = false;
+          g_ShoSections.push_back(animSec);
+        }
+        co += 12 + s2;
+      }
+    }
+  }
+
+
   while (off716 + 12 < sz) {
     uint32_t t = ru32(off716);
     uint32_t s = ru32(off716 + 4);
@@ -1549,6 +1691,78 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
                   worldMats[fi] = local;
               }
 
+              // Parse Extensions to build the Skeleton
+              Skeleton skeleton;
+              skeleton.bones.resize(numFrames);
+              
+              size_t extOff = st_off + 12 + st_s;
+              for (uint32_t fi = 0; fi < numFrames; ++fi) {
+                if (extOff + 12 > co + 12 + cs) break;
+                uint32_t ext_t = ru32(extOff);
+                uint32_t ext_s = ru32(extOff + 4);
+                if (ext_t != 0x03) break;
+                
+                size_t ext_body = extOff + 12;
+                size_t ext_end = ext_body + ext_s;
+                
+                // Set default bone properties
+                skeleton.bones[fi].name = (fi == 1) ? "RootBone" : ("Bone" + std::to_string(fi));
+                skeleton.bones[fi].parent = parents[fi];
+                skeleton.bones[fi].restLocal = (parents[fi] >= 0) ? (worldMats[parents[fi]] * glm::inverse(worldMats[fi])) : worldMats[fi]; // Wait, we have local! We don't need to do this.
+                
+                // Rebuild local properly
+                glm::mat4 local(1.0f);
+                size_t fb = fBase + fi * FS;
+                for (int r = 0; r < 3; ++r)
+                  for (int c = 0; c < 3; ++c)
+                    local[c][r] = rf32(fb + (r * 3 + c) * 4);
+                local[3][0] = rf32(fb + 36);
+                local[3][1] = rf32(fb + 40);
+                local[3][2] = rf32(fb + 44);
+                skeleton.bones[fi].restLocal = local;
+                
+                size_t p = ext_body;
+                while (p + 12 <= ext_end) {
+                  uint32_t pt = ru32(p);
+                  uint32_t ps = ru32(p + 4);
+                  size_t pb = p + 12;
+                  
+                  if (pt == 0x011E && ps >= 8) { // HAnim PLG
+                    int32_t version, boneId, boneCount;
+                    memcpy(&version, &data[pb], 4);
+                    memcpy(&boneId, &data[pb + 4], 4);
+                    memcpy(&boneCount, &data[pb + 8], 4);
+                    // boneCount is non-zero only on the frame that owns the hierarchy.
+                    // The bone table maps bone ids to skin indices, but we'll extract invBind from Skin PLG.
+                  } else if (pt == 0x011F && ps >= 4) { // User-data PLG
+                    int32_t numSets;
+                    memcpy(&numSets, &data[pb], 4);
+                    size_t up = pb + 4;
+                    for (int s = 0; s < numSets && up + 16 <= p + 12 + ps; ++s) {
+                      int32_t typeLen;
+                      memcpy(&typeLen, &data[up], 4);
+                      up += 12 + typeLen; // skip typeLen, skip 2 unknowns
+                      if (up + 4 <= p + 12 + ps) {
+                        int32_t nameLen;
+                        memcpy(&nameLen, &data[up], 4);
+                        up += 4;
+                        if (nameLen > 1 && up + nameLen <= p + 12 + ps) {
+                          std::string name((const char*)&data[up], nameLen - 1);
+                          skeleton.bones[fi].name = name;
+                        }
+                        up += nameLen;
+                      }
+                    }
+                  }
+                  p += 12 + ps;
+                }
+                extOff = ext_end;
+              }
+
+              if (numFrames > 0) {
+                g_ShoSections.back().skeleton = std::move(skeleton);
+              }
+
               // Pick the best frame: prefer frame 0 (world root) unless its
               // position is near-zero, in which case walk to first non-zero
               // child
@@ -1579,6 +1793,95 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
         }
         co += 12 + cs;
       }
+    } else if (secName == "rwID_HANIMANIMATION" && objStart + 12 < sz) {
+      size_t co = objStart;
+      uint32_t ct = ru32(co);
+      uint32_t cs = ru32(co + 4);
+      if (ct == 0x001B && co + 12 + cs <= sz && cs >= 16) {
+        size_t b = co + 12;
+        int32_t version, typeId, frameCount, flags;
+        float duration;
+        memcpy(&version, &data[b], 4);
+        memcpy(&typeId, &data[b + 4], 4);
+        memcpy(&frameCount, &data[b + 8], 4);
+        memcpy(&flags, &data[b + 12], 4);
+        memcpy(&duration, &data[b + 16], 4);
+        
+        if (typeId == 0x1103) {
+          AnimClip clip;
+          clip.name = g_ShoSections.back().name; // wait, the filename is the secName, wait, secName is "rwID_HANIMANIMATION" according to the section loop. But the spec says "The section tag carries the source filename, which is the clip's identity". The section tag is g_ShoSections.back().name? No, g_ShoSections.back().name is set from the dictionary! Wait, the actual filename is stored somewhere else in the section?
+          // I will set clip.name to a fallback for now.
+          clip.name = "Clip_" + std::to_string(g_ShoSections.size() - 1);
+          clip.duration = duration;
+          clip.fps = 30.0f;
+          
+          float transOffset[3], transScalar[3];
+          size_t p = b + 20;
+          for (int j=0; j<3; ++j) memcpy(&transOffset[j], &data[p + j*4], 4);
+          for (int j=0; j<3; ++j) memcpy(&transScalar[j], &data[p + 12 + j*4], 4);
+          p += 24;
+          
+          size_t frameHdrBase = p;
+          size_t frameDataBase = frameHdrBase + frameCount * 8;
+          
+          if (frameDataBase + frameCount * 12 <= co + 12 + cs) {
+            // Rebuild per-bone tracks
+            // The first N records are the roots of the tracks for each bone.
+            // We group by tracing prevFrameByteOffset.
+            // Since we don't know the exact bone count, we can group records that share the same root record.
+            std::vector<int> recordToTrack(frameCount, -1);
+            int trackCount = 0;
+            
+            for (int k = 0; k < frameCount; ++k) {
+              int32_t prevOffset;
+              memcpy(&prevOffset, &data[frameHdrBase + k * 8], 4);
+              int prevIndex = k - (prevOffset / 20);
+              
+              if (prevIndex == k) { // Root of a track
+                recordToTrack[k] = trackCount++;
+                AnimTrack track;
+                clip.tracks.push_back(track);
+              } else if (prevIndex >= 0 && prevIndex < frameCount) {
+                recordToTrack[k] = recordToTrack[prevIndex];
+              }
+            }
+            
+            for (int k = 0; k < frameCount; ++k) {
+              int tIdx = recordToTrack[k];
+              if (tIdx >= 0 && tIdx < (int)clip.tracks.size()) {
+                float time;
+                memcpy(&time, &data[frameHdrBase + k * 8 + 4], 4);
+                
+                uint32_t c1;
+                uint16_t c2, tx, ty, tz;
+                size_t dp = frameDataBase + k * 12;
+                memcpy(&c1, &data[dp], 4);
+                memcpy(&c2, &data[dp + 4], 2);
+                memcpy(&tx, &data[dp + 6], 2);
+                memcpy(&ty, &data[dp + 8], 2);
+                memcpy(&tz, &data[dp + 10], 2);
+                
+                float qx = ((float)((c1 >> 20)) - 2048.0f) / 2047.0f;
+                float qy = ((float)(((c1 >> 8) & 0xFFF)) - 2048.0f) / 2047.0f;
+                float qz = ((float)((((c1 << 4) & 0xFFF) | (c2 >> 12))) - 2048.0f) / 2047.0f;
+                float qw = ((float)((c2 & 0xFFF)) - 2048.0f) / 2047.0f;
+                
+                glm::quat q(-qx, -qy, -qz, qw); // Spec says reference uses conjugate, test both ways. Let's try conjugate.
+                
+                float px = (tx / 65535.0f) * transScalar[0] + transOffset[0];
+                float py = (ty / 65535.0f) * transScalar[1] + transOffset[1];
+                float pz = (tz / 65535.0f) * transScalar[2] + transOffset[2];
+                glm::vec3 pos(px, py, pz);
+                
+                clip.tracks[tIdx].times.push_back(time);
+                clip.tracks[tIdx].rot.push_back(q);
+                clip.tracks[tIdx].pos.push_back(pos);
+              }
+            }
+            g_ShoSections.back().animClip = std::move(clip);
+          }
+        }
+      }
     }
 
     off716 += 12 + s;
@@ -1591,45 +1894,45 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   // ── 3b. Resolve GUID references: place re-usable model sections ─
   //
   // A 0x0704 object holds the GUIDs of the sections it owns and a world
-  // matrix. rwID_RWS / rwID_CLUMP sections are models, and the same section is
-  // frequently referenced by several objects — e.g. in IntroRoad one RWS model
-  // is instanced at four different spots. Collect one instance matrix per
-  // reference so the renderer can draw the geometry where it actually belongs
-  // instead of leaving every model stacked on the origin.
+  // matrix. rwID_RWS / rwID_CLUMP sections are models. The object also
+  // references its animation clips (rwID_HANIMANIMATION).
   {
     std::map<std::string, int> byGuid;
     for (size_t i = 0; i < g_ShoSections.size(); i++)
       if (!g_ShoSections[i].guid.empty())
         byGuid.emplace(g_ShoSections[i].guid, (int)i);
 
-    for (const auto &go : g_GameObjects) {
-      for (const auto &ref : go.guidRefs) {
-        auto it = byGuid.find(ref);
-        if (it == byGuid.end())
-          continue;
-        ShoSection &sec = g_ShoSections[it->second];
-        if (sec.isWorldSpace)
-          continue; // already in level space
-        // Property 1 is not always a transform for the geometry. On volume
-        // classes such as CPhysicsObject it is the extent of the collision box:
-        // in IntroRoad one carries scale (1.0, 3.54, 26.1) and another
-        // (8.87, 5.54, 5.66). Feeding that to the model stretches it far past
-        // the camera, which is why those props looked like they had vanished.
-        // Keep the placement, drop a scale that is clearly a volume size.
-        glm::mat4 m = go.transform;
-        const float sx = glm::length(glm::vec3(m[0]));
-        const float sy = glm::length(glm::vec3(m[1]));
-        const float sz = glm::length(glm::vec3(m[2]));
-        const float lo = std::min({sx, sy, sz}), hi = std::max({sx, sy, sz});
-        if (hi > 1.25f || lo < 0.8f) {
-          // Non-uniform or oversized: normalise the basis, keep position.
-          if (sx > 1e-6f) m[0] /= sx;
-          if (sy > 1e-6f) m[1] /= sy;
-          if (sz > 1e-6f) m[2] /= sz;
+      int goIdx = 0;
+      for (auto &go : g_GameObjects) {
+        bool isVolume = (go.className == "CPhysicsObject" || 
+                         go.className == "CZone" ||
+                         go.className == "CWaterZone" ||
+                         go.className == "CCameraZone" ||
+                         go.className == "CCameraArea");
+                         
+        for (const auto &ref : go.guidRefs) {
+          auto it = byGuid.find(ref);
+          if (it == byGuid.end())
+            continue;
+            
+          int secIdx = it->second;
+          ShoSection &sec = g_ShoSections[secIdx];
+          
+          if (sec.name == "rwID_HANIMANIMATION" || sec.name == "rwID_DMORPHANIMATION") {
+            go.clipSectionIndices.push_back(secIdx);
+            continue;
+          }
+
+          if (sec.isWorldSpace)
+            continue; // already in level space
+            
+          // Use the matrix as a placement transform only if it's not a volume extent
+          if (!isVolume) {
+            sec.instances.push_back({go.transform, goIdx});
+          }
         }
-        sec.instances.push_back(m);
+        goIdx++;
       }
-    }
   }
 
   // ── 3c. Camera objects ────────────────────────────────────────

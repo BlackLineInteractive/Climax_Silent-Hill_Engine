@@ -295,7 +295,7 @@ void CPURasterizer::RenderScene(const std::vector<MeshChunk>& chunks,
             drawTriangles(identity);
         } else {
             for (const auto& inst : sec->instances) {
-                drawTriangles(inst);
+                drawTriangles(inst.transform);
             }
         }
     }
