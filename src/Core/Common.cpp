@@ -19,6 +19,8 @@ CollisionMesh              g_Collision;
 std::vector<ClumpObject>   g_Clumps;
 std::vector<GameObject>    g_GameObjects;
 std::vector<LevelCamera>   g_Cameras;
+std::vector<AudioClip>     g_Sounds;
+std::vector<AudioSourceRef> g_AudioLibrary;
 
 std::string              g_CurrentMeshContainer;
 std::vector<std::string> g_CurrentTxdPaths;

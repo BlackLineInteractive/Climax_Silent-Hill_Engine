@@ -177,6 +177,7 @@ void FileBrowserState::Render() {
         }
         if (!pendingMountArc.empty()) {
             if (g_Arc.Open(pendingMountArc)) {
+                ScanAudioLibrary();
                 SaveArcPref(pendingMountArc);   // remember for next launch
                 showBrowser = false;
                 state.showArc = true;
@@ -220,7 +221,7 @@ void RenderManualWindow() {
     ImGui::SetNextWindowSize(ImVec2(620, 620), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Manual", &state.showManual)) { ImGui::End(); return; }
 
-    ImGui::TextWrapped("Climax Silent Hill Engine Toolkit — 3D Level Viewer, Asset Decoder & Archive Extractor "
+    ImGui::TextWrapped("Climax Silent Hill Engine Toolkit 0.2 — 3D Level Viewer, Asset Decoder & Archive Extractor "
                        "for Silent Hill Origins and Silent Hill: Shattered Memories.");
 
     Head("Loading a level");
@@ -279,6 +280,26 @@ void RenderManualWindow() {
     ImGui::BulletText("Checker - a grid on the UVs, shows stretched textures");
     ImGui::BulletText("Unlit - texture with no shading at all");
 
+    Head("Sound");
+    ImGui::TextWrapped(
+        "The Audio panel opens by itself the first time there is something to "
+        "play. After that use Panels > Audio to show or hide it. It has three "
+        "lists:");
+    ImGui::Spacing();
+    ImGui::BulletText("Level - the sounds stored inside the level container "
+                      "itself: footsteps, doors, room tone. Every level carries "
+                      "its own bank. Click one to hear it.");
+    ImGui::BulletText("Music - the tracks from the MUSIC folder on the disc.");
+    ImGui::BulletText("Cutscenes - the speech and music from IGC.ARC.");
+    ImGui::Spacing();
+    ImGui::TextWrapped(
+        "Music and cutscenes are found on their own, as long as MUSIC and IGC.ARC "
+        "sit in the same folder as SH.ARC. You can also drag a sound file onto the "
+        "window: .rws, .ads, .vag and the IGC streams all work.");
+    ImGui::Spacing();
+    ImGui::BulletText("Loop - repeat the sound instead of stopping at the end.");
+    ImGui::BulletText("Save WAV - write the sound next to the program.");
+
     Head("Exporting to glTF");
     ImGui::TextWrapped(
         "\"Export glTF\" writes a .glb next to the program. The level is split by "
@@ -297,6 +318,13 @@ void RenderManualWindow() {
     ImGui::BulletText("Animations are read but not played yet.");
     ImGui::BulletText("The game's own fog is not reproduced.");
     ImGui::BulletText("A few levels have textures that look stretched or misplaced.");
+    ImGui::BulletText("Cutscene video is not decoded - only the sound.");
+
+    Head("License");
+    ImGui::TextWrapped(
+        "GNU General Public License v3. You may use, change and share this "
+        "program, as long as anything you share stays under the same license "
+        "and keeps the source available. See the LICENSE file.");
 
     ImGui::Spacing();
     ImGui::End();
@@ -332,7 +360,8 @@ void RenderArcWindow() {
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("Show only entries without a known file extension —\n"
                           "hides .arc, .txd, .xml, etc. Game containers\n"
-                          "sometimes use a period as a qualifier (CPlayer.Travis).");
+                          "sometimes use a period as a qualifier (CPlayer.Travis).\n"
+                          "Turn this off to reach the audio in IGC.ARC.");
     ImGui::SetNextItemWidth(-1);
     ImGui::InputTextWithHint("##arcfilter", "filter by name...", arcFilter, sizeof(arcFilter));
 
@@ -340,7 +369,19 @@ void RenderArcWindow() {
     ImGui::BeginChild("##arclist");
 
     int pendingLoad = -1;
+    int pendingPlay = -1;
     size_t shown = 0;
+
+    // Entries the audio decoder owns. IGC.ARC is nothing but these, and feeding
+    // one to the container parser produces an empty scene and no sound.
+    auto isAudioEntry = [](const std::string& n) {
+        const size_t dot = n.rfind('.');
+        if (dot == std::string::npos) return false;
+        std::string e = n.substr(dot + 1);
+        for (auto& c : e) c = (char)tolower((unsigned char)c);
+        return e == "igcstream" || e == "ads" || e == "vag" || e == "rws" ||
+               e == "abc";
+    };
     for (size_t i = 0; i < entries.size(); i++) {
         const std::string& n = entries[i].name;
         // Determine whether this is a real file (known extension) or a game
@@ -369,17 +410,22 @@ void RenderArcWindow() {
         }
         shown++;
 
+        const bool audio = isAudioEntry(n);
         const bool current = (g_CurrentMeshContainer == n);
         ImGui::PushID((int)i);
-        if (ImGui::Selectable(n.c_str(), current))
-            pendingLoad = (int)i;
+        if (ImGui::Selectable(n.c_str(), current)) {
+            if (audio) pendingPlay = (int)i;
+            else       pendingLoad = (int)i;
+        }
         if (ImGui::IsItemHovered()) {
             const size_t nTxd = g_Arc.TxdsFor(n).size();
-            ImGui::SetTooltip("%u bytes uncompressed\n%zu matching .txd",
-                              entries[i].uncompressedSize, nTxd);
+            ImGui::SetTooltip("%u bytes%s\n%zu matching .txd", entries[i].Size(),
+                              entries[i].Stored() ? " (stored uncompressed)"
+                                                  : " uncompressed",
+                              nTxd);
         }
         ImGui::SameLine();
-        ImGui::TextDisabled("%.0f KB", entries[i].uncompressedSize / 1024.0f);
+        ImGui::TextDisabled("%.0f KB", entries[i].Size() / 1024.0f);
         ImGui::PopID();
     }
     ImGui::EndChild();
@@ -387,6 +433,15 @@ void RenderArcWindow() {
 
     // Deferred: loading rebuilds the global scene, so do it after the list is done.
     if (pendingLoad >= 0) LoadLevelFromArc(pendingLoad);
+    if (pendingPlay >= 0) {
+        std::vector<uint8_t> blob;
+        AudioClip clip;
+        if (g_Arc.Read((size_t)pendingPlay, blob) && !blob.empty() &&
+            Audio::LoadBuffer(blob.data(), blob.size(), clip)) {
+            clip.name = entries[(size_t)pendingPlay].name;
+            PlayAudioClip(clip);
+        }
+    }
     (void)shown;
 }
 
@@ -759,29 +814,154 @@ void RenderTxdWindow() {
 
 
 void RenderAudioPlayer() {
-    if (!state.showAudioPlayer) {
-        if (state.isAudioPlaying) ToggleAudioPlayback();
-        return;
-    }
-    
-    ImGui::SetNextWindowSize(ImVec2(400, 140), ImGuiCond_FirstUseEver);
-    if (ImGui::Begin("Audio Player", &state.showAudioPlayer)) {
-        ImGui::Text("File: %s", state.audioFileName.c_str());
+    // Opened from the Panels checkbox, and by itself as soon as a level with a
+    // sound bank loads or an archive with music beside it is mounted. It stays
+    // openable when empty on purpose: an empty list has to be able to say why.
+    if (!state.showAudioPlayer) return;
+
+    auto timecode = [](float sec) {
+        const int t = (int)sec;
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%d:%02d", t / 60, t % 60);
+        return std::string(buf);
+    };
+
+    ImGui::SetNextWindowSize(ImVec2(420, 460), ImGuiCond_FirstUseEver);
+    if (ImGui::Begin("Audio", &state.showAudioPlayer)) {
+        const AudioClip& cur = CurrentAudioClip();
+
+        // ── Now playing ────────────────────────────────────────────────
+        if (cur.Valid()) {
+            ImGui::TextUnformatted(cur.name.empty() ? "(unnamed)" : cur.name.c_str());
+            ImGui::TextDisabled("%s  %d Hz  %s  %s", cur.codec.c_str(),
+                                cur.sampleRate,
+                                cur.channels == 2 ? "stereo" : "mono",
+                                timecode(cur.Seconds()).c_str());
+            if (!cur.source.empty()) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("| %s", cur.source.c_str());
+            }
+        } else {
+            ImGui::TextDisabled("Nothing loaded — pick a sound below.");
+        }
+
         ImGui::Separator();
-        
-        if (ImGui::Button(state.isAudioPlaying ? "Pause" : "Play ")) {
+
+        // ── Transport ──────────────────────────────────────────────────
+        ImGui::BeginDisabled(!cur.Valid());
+        if (ImGui::Button(state.isAudioPlaying ? "Pause" : "Play", ImVec2(64, 0)))
             ToggleAudioPlayback();
-        }
-        
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - 10);
-        float prog = state.audioProgress;
-        if (ImGui::SliderFloat("##progress", &prog, 0.0f, 1.0f, "")) {
-            SetAudioProgress(prog);
+        if (ImGui::Button("Stop", ImVec2(52, 0))) StopAudio();
+        ImGui::SameLine();
+        ImGui::Checkbox("Loop", &state.audioLoop);
+        ImGui::SameLine();
+        if (ImGui::Button("Save WAV")) {
+            std::string name = cur.name.empty() ? std::string("sound") : cur.name;
+            for (auto& c : name)
+                if (c == '/' || c == '\\' || c == ':') c = '_';
+            if (Audio::WriteWav(name + ".wav", cur))
+                std::cout << "[audio] wrote " << name << ".wav\n";
         }
-        
-        ImGui::SetNextItemWidth(150.0f);
+
+        const float elapsed = cur.Valid() ? cur.Seconds() * state.audioProgress : 0.0f;
+        ImGui::Text("%s / %s", timecode(elapsed).c_str(),
+                    timecode(cur.Seconds()).c_str());
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        float prog = state.audioProgress;
+        if (ImGui::SliderFloat("##progress", &prog, 0.0f, 1.0f, ""))
+            SetAudioProgress(prog);
+        ImGui::EndDisabled();
+
+        ImGui::SetNextItemWidth(160.0f);
         ImGui::SliderFloat("Volume", &state.audioVolume, 0.0f, 1.5f, "%.2f");
+
+        ImGui::Separator();
+        ImGui::SetNextItemWidth(-1);
+        ImGui::InputTextWithHint("##audiofilter", "filter by name",
+                                 state.audioFilter, sizeof(state.audioFilter));
+        const bool filtering = state.audioFilter[0] != '\0';
+        auto matches = [&](const std::string& n) {
+            if (!filtering) return true;
+            // Case-insensitive substring; the bank names are lower case but
+            // the filter box is whatever the user typed.
+            std::string hay = n, needle = state.audioFilter;
+            for (auto& c : hay) c = (char)tolower((unsigned char)c);
+            for (auto& c : needle) c = (char)tolower((unsigned char)c);
+            return hay.find(needle) != std::string::npos;
+        };
+
+        if (ImGui::BeginTabBar("##audiotabs")) {
+            // Level sound bank — decoded with the container, so it is already
+            // in memory and every entry can show its length.
+            if (ImGui::BeginTabItem("Level")) {
+                ImGui::BeginChild("##lvl", ImVec2(0, 0));
+                if (g_Sounds.empty()) {
+                    ImGui::TextWrapped(
+                        "No sounds. A level keeps its own bank in an "
+                        "rwaID_WAVEDICT section inside the container; load a "
+                        "level from the Archive panel to fill this list.");
+                } else {
+                    for (size_t i = 0; i < g_Sounds.size(); ++i) {
+                        const AudioClip& c = g_Sounds[i];
+                        if (!matches(c.name)) continue;
+                        ImGui::PushID((int)i);
+                        const bool sel = state.audioSelected == (int)i;
+                        if (ImGui::Selectable(c.name.c_str(), sel,
+                                              ImGuiSelectableFlags_AllowDoubleClick)) {
+                            state.audioSelected = (int)i;
+                            PlayAudioClip(c);
+                        }
+                        ImGui::SameLine(ImGui::GetContentRegionAvail().x - 96.0f);
+                        ImGui::TextDisabled("%d Hz  %s", c.sampleRate,
+                                            timecode(c.Seconds()).c_str());
+                        ImGui::PopID();
+                    }
+                }
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+
+            // Music and cutscenes live outside the archive and are decoded on
+            // demand, so these lists carry names only. Both tabs stay visible
+            // even when empty -- otherwise a failed scan looks the same as a
+            // game folder that simply has no music.
+            for (const char* group : {"Music", "Cutscenes"}) {
+                size_t count = 0;
+                for (const auto& r : g_AudioLibrary)
+                    if (r.group == group) count++;
+                if (!ImGui::BeginTabItem(group)) continue;
+                ImGui::BeginChild(group, ImVec2(0, 0));
+                if (!count) {
+                    const bool isMusic = std::string(group) == "Music";
+                    ImGui::TextWrapped(
+                        "Nothing found. %s has to sit in the same folder as the "
+                        "archive you mounted.",
+                        isMusic ? "A MUSIC folder" : "IGC.ARC");
+                    if (g_Arc.IsOpen()) {
+                        ImGui::Spacing();
+                        ImGui::TextDisabled("Looked next to:");
+                        ImGui::TextWrapped("%s", g_Arc.Path().c_str());
+                    } else {
+                        ImGui::Spacing();
+                        ImGui::TextDisabled("No archive is mounted yet.");
+                    }
+                }
+                for (size_t i = 0; i < g_AudioLibrary.size(); ++i) {
+                    const AudioSourceRef& r = g_AudioLibrary[i];
+                    if (r.group != group || !matches(r.name)) continue;
+                    ImGui::PushID(1000 + (int)i);
+                    if (ImGui::Selectable(r.name.c_str(), cur.name == r.name))
+                        PlayLibraryEntry((int)i);
+                    ImGui::PopID();
+                }
+                ImGui::EndChild();
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
     }
     ImGui::End();
 }
+

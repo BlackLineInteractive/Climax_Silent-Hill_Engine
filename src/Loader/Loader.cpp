@@ -1473,6 +1473,7 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   g_ShoSections.clear();
   g_Clumps.clear();
   g_GameObjects.clear();
+  g_Sounds.clear();
   g_Collision.Free();
 
   const size_t sz = data.size();
@@ -1675,7 +1676,25 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
     sec.isWorldSpace = (secName == "rwID_WORLD");
     g_ShoSections.push_back(sec);
 
-    // ── 2a. CBSP collision ─────────────────────────────────────
+    // ── 2a. The level's own sound bank ─────────────────────────
+    // sec.dataStart points at [u32 payloadSize][chunk], so the 0x0809 wave
+    // dictionary starts four bytes further in.
+    if (secName == "rwaID_WAVEDICT" && sec.dataStart + 4 + 12 <= sz) {
+      const size_t avail = sz - (sec.dataStart + 4);
+      const size_t len = sec.payloadSize && sec.payloadSize <= avail
+                             ? sec.payloadSize
+                             : avail;
+      const size_t before = g_Sounds.size();
+      Audio::ParseWaveDictionary(&data[sec.dataStart + 4], len, g_Sounds);
+      std::cout << "[audio] " << (g_Sounds.size() - before) << " samples from "
+                << secName << "\n";
+      if (g_Sounds.size() > before && !state.audioAutoOpened) {
+        state.audioAutoOpened = true;
+        state.showAudioPlayer = true;
+      }
+    }
+
+    // ── 2b. CBSP collision ─────────────────────────────────────
     if (secName == "rwID_CBSP" && objStart + 12 < sz) {
       // Scan for the 0x1100 child rather than assuming it starts exactly at
       // objStart: in the retail containers it sits 8 bytes further in, and

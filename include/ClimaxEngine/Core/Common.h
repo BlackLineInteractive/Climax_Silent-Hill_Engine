@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "ClimaxEngine/Core/AudioParser.h"
+
 namespace fs = std::filesystem;
 
 // strcasecmp is POSIX; MSVC spells it _stricmp.
@@ -278,12 +280,15 @@ struct ViewerState {
   float skyColorBot[3] = {0.11f, 0.11f, 0.14f}; // ground colour
   bool skyGradient = false;                     // draw gradient vs solid
 
-  // Audio Player
-  bool showAudioPlayer = false;
-  std::string audioFileName = "";
+  // Audio player
+  bool showAudioPlayer = false;   // panel opens itself the first time audio appears
+  bool audioAutoOpened = false;   // ...but only once, so closing it sticks
   bool isAudioPlaying = false;
+  bool audioLoop = false;
   float audioVolume = 1.0f;
-  float audioProgress = 0.0f;
+  float audioProgress = 0.0f;     // 0..1 through the current clip
+  int  audioSelected = -1;        // index into g_Sounds, -1 = the dropped file
+  char audioFilter[64] = "";
 };
 
 // ------------------- ГЛОБАЛЬНІ ДАНІ (Оголошення) -------------------
@@ -307,6 +312,21 @@ extern CollisionMesh g_Collision;             // CBSP floor collision
 extern std::vector<ClumpObject> g_Clumps;     // animated/placed objects
 extern std::vector<GameObject> g_GameObjects; // 0x0704 placed instances
 extern std::vector<LevelCamera> g_Cameras;    // camera objects in the level
+
+// Every sound the current container carries, decoded from its rwaID_WAVEDICT
+// section when the level is loaded.
+extern std::vector<AudioClip> g_Sounds;
+
+// A track the panel can play but has not decoded yet. The 75 music streams
+// alone would be about a gigabyte of PCM, so the library only remembers where
+// each one lives and decodes it when it is picked.
+struct AudioSourceRef {
+    std::string name;
+    std::string group;   // "Music" or "Cutscenes"
+    std::string path;    // file on disk; empty when the entry is in an archive
+    int arcIndex = -1;   // entry index inside IGC.ARC
+};
+extern std::vector<AudioSourceRef> g_AudioLibrary;
 
 extern std::string g_CurrentMeshContainer;
 extern std::vector<std::string> g_CurrentTxdPaths;

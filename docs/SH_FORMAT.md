@@ -821,7 +821,153 @@ The implementation plan is in [ANIMATION_SPEC.md](ANIMATION_SPEC.md).
 
 ---
 
-## 9. Coordinate system
+## 9. Audio
+
+Four containers ship on the disc, and every one of them resolves to one of two
+codecs: Sony 4-bit ADPCM, or plain 16-bit PCM.
+
+| Source | Contents | Format |
+|--------|----------|--------|
+| `rwaID_WAVEDICT` section | the level's own sound bank | mono ADPCM, 6–32 kHz |
+| `MUSIC/*.RWS` | 75 music streams | mono ADPCM, 44094 Hz (32000 for two) |
+| `IGC.ARC/*.IGCStream` | 35 cutscenes | stereo PCM16, 48 kHz |
+| loose `.ads` / `.vag` | the same two, unpacked | either |
+
+### 9.1 Sony 4-bit ADPCM
+
+A 16-byte block decodes to 28 samples. Byte 0 carries the shift in its low
+nibble and the predictor index in its high nibble; byte 1 is a loop flag; the
+remaining 14 bytes are two 4-bit samples each, low nibble first.
+
+```
+s = (nibble << (12 - shift)) + ((f0[filter]*s1 + f1[filter]*s2 + 32) >> 6)
+
+filter    0      1      2      3      4
+f0        0     60    115     98    122
+f1        0      0    -52    -55    -60
+```
+
+The predictor state carries across blocks within one channel and is never reset.
+Where a stream has two channels, each keeps its own `s1`/`s2`.
+
+Validation: every one of the 335 966 blocks in `MUSIC/A/APRTMENT.RWS` has a
+shift of at most 12 and a filter index of at most 4, and the same holds for all
+2980 samples in the level banks. The decoder in this repository agrees
+sample-for-sample with an independent implementation over 560 000 samples.
+
+### 9.2 `rwaID_WAVEDICT` — the level sound bank
+
+A regular `0x0716` section whose payload is a RenderWare Audio chunk tree. As
+elsewhere, `sec.dataStart` points at `[u32 payloadSize][chunk]`, so the tree
+begins four bytes further in.
+
+```
+0x0809  wave dictionary
+  0x080A  84 bytes; the bank's name at +0x34 ("AudioMotelGenRoom", ...)
+  0x080C  data
+    u32  waveCount
+    0x0802   one per sample
+      0x0803   header
+        +0x00  u32   15, constant across the archive
+        +0x04  u32   sample rate
+        +0x0C  u32   data length, always equal to the 0x0804 size
+        +0x20  GUID  the codec
+        +0x70  char  name, NUL-terminated, padded to 16 bytes
+      0x0804   the ADPCM data
+```
+
+Chunk headers are the ordinary RenderWare 12 bytes, `[type][size][version]`,
+with `size` excluding the header.
+
+The codec GUID is a single value across the whole archive —
+`9897ead9 bcbb7b44 96b26547 59102e16` — the same GUID the `.RWS` parameter block
+spells out in text as `"VAG (Sony ADPCM)"`.
+
+No channel field appears in the header, and none is needed: the two candidate
+words are constant (`+0x00` is 15 and `+0x14` is 0 in all 2980 samples), and
+every bank is mono.
+
+Cross-checked over the whole retail archive: all 255 dictionaries walk to
+exactly their declared end and yield 2980 samples, `waveCount` matches the
+number of `0x0804` blocks in every case, and every declared length matches its
+data chunk. Names are descriptive and stable — `door_jammed`, `footstep_carpet1`,
+`motel_roomtonewind`, `road_backambl` / `road_backambr`.
+
+### 9.3 `MUSIC/*.RWS` — RenderWare Audio streams
+
+```
+0x080D  file chunk, covering the whole file
+  0x080E  header, 2012 bytes on every retail track
+    +0x78  u32  padded data length   == fileSize - 2048 for all 75 tracks
+    +0x80  u32  real data length     16-byte aligned, no trailing padding
+    +0xC0  u32  channels             1 throughout
+    +0xC4  u32  audio frame size     8192
+    +0xCC  u32  sample rate          44094; 32000 for MENU and SCN01
+audio data at a fixed offset of 2048
+```
+
+Most tracks also carry a plain-text parameter block describing themselves —
+`datatypename` = `"VAG (Sony ADPCM)"`, then `numchannels`, `samplerate`,
+`signed`, `audioframesize`, `samplesperframe`. It is absent from some tracks
+(`MENU.RWS` has none), so the binary fields above are the ones to read; where
+both exist they agree.
+
+The stream is one contiguous mono run, not an interleave. The mean
+sample-to-sample step at the 2048-byte boundaries is 55.5 against an overall
+mean of 58.6 — there is no splice there, which there would be if the channels
+alternated.
+
+### 9.4 `IGC.ARC/*.IGCStream` — cutscenes
+
+The archive entries declare `uncompressedSize = 0`, meaning the payload is
+stored raw rather than deflated (§2).
+
+The stream itself is a flat sequence of records:
+
+```
+[u16 tag][u16 payloadSize][payload]
+
+  0xFF10          file header; the source path at +0x10 of its payload,
+                  e.g. "Movie_10/movie10.ads"
+  0x0000..0x00FF  32-byte camera and bone keyframes, one tag per animated node
+  0xA000          1024 bytes of the audio stream
+```
+
+The audio is therefore **not contiguous**: it is cut into 1024-byte pieces and
+multiplexed with the animation. Concatenating every `0xA000` payload in order
+reassembles an ordinary ADS block.
+
+Reading the region after the `SShd` signature directly looks almost right — the
+pieces are 1024 bytes, exactly one stereo frame — but it splices four bytes of
+record header into every 1028, which drops the lag-1 autocorrelation of the
+result from 0.997 to 0.14. On all 35 streams the records walk to exactly EOF and
+the reassembled body matches the length `SSbd` declares, to the byte.
+
+### 9.5 Sony ADS
+
+```
+'SShd'  u32 headerSize          always 0x18
+  +0x00  u32  codec             1 = 16-bit PCM, 0x10 = Sony ADPCM
+  +0x04  u32  sampleRate
+  +0x08  u32  channels
+  +0x0C  u32  interleave        bytes of one channel per block
+  +0x10  u32  loopStart
+  +0x14  u32  loopEnd
+'SSbd'  u32 bodySize, then bodySize bytes
+```
+
+Channels are block-interleaved, not sample-interleaved: `interleave` bytes of
+the left channel, then as many of the right. Every cutscene is
+`codec 1, 48000 Hz, 2 channels, interleave 512`.
+
+Confirmed on the reassembled streams: per-channel lag-1 autocorrelation is
+0.997, and left against right correlates between 0.72 and 0.96 depending on the
+passage — the profile of a real stereo mix. Both figures collapse under any
+other split.
+
+---
+
+## 10. Coordinate system
 
 The engine uses a right-handed, Y-up coordinate system. Level geometry and object
 transforms share it directly; no conversion is applied when rendering, and none
@@ -829,11 +975,12 @@ is applied when exporting to glTF, which uses the same convention.
 
 ---
 
-## 10. Sources
+## 11. Sources
 
 All figures in this document were produced by parsing the retail PAL PlayStation 2
 release. The VIF opcode table and `UNPACK` sizing rules in §4.3 follow the VIF1
-interpreter in the PS2Recomp runtime.
+interpreter in the PS2Recomp runtime, and the ADPCM block decode in §9.1 follows
+its `ps2_audio_vag.cpp`.
 
 Implementations in this repository:
 
@@ -843,3 +990,4 @@ Implementations in this repository:
 | [`src/Loader.cpp`](src/Loader.cpp) | §3, §4, §5, §6.1 |
 | [`src/PS2Texture.cpp`](src/PS2Texture.cpp) | §6.2 |
 | [`src/Export.cpp`](src/Export.cpp) | §8 |
+| [`src/Core/AudioParser.cpp`](src/Core/AudioParser.cpp) | §9 |

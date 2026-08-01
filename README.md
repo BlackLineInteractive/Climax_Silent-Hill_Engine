@@ -1,12 +1,12 @@
-# Climax Silent Hill Engine
+# Climax Silent Hill Engine Toolkit 0.2
 
 [![build](https://github.com/BlackLineInteractive/SilentHillOrigins-LevelViewer/actions/workflows/build.yml/badge.svg)](https://github.com/BlackLineInteractive/SilentHillOrigins-LevelViewer/actions/workflows/build.yml)
 
 **Climax Silent Hill Engine Toolkit** — a real-time 3D level viewer, asset decoder, and archive extraction toolkit for game levels and locations built on Climax Engine: **Silent Hill Origins** (PS2 / PSP), **Silent Hill: Shattered Memories** (Wii / PS2 / PSP), and **Ghost Rider** (PS2 / PSP).
 
-Opens proprietary Climax Engine container files (no file extension — named like `MO_1_Room102`), decodes native PS2 and Wii GPU textures, and renders full level geometry, baked lighting, collision meshes, and placed game objects interactively. Includes full archive unpackers for `SH.ARC`, `data.arc`, and `igc.arc`.
+Opens proprietary Climax Engine container files (no file extension — named like `MO_1_Room102`), decodes native PS2 and Wii GPU textures, and renders full level geometry, baked lighting, collision meshes, and placed game objects interactively. Decodes the game audio as well: the per-level sound banks, the music streams and the cutscene dialogue. Includes full archive unpackers for `SH.ARC`, `data.arc`, and `igc.arc`.
 
-> License: [CC BY 4.0](LICENSE) — free to use and modify, **attribution required**.
+> License: [GPL-3.0](LICENSE) — free to use, study, change and share; derived work stays under the same license.
 
 ---
 
@@ -33,6 +33,9 @@ Opens proprietary Climax Engine container files (no file extension — named lik
   instanced wherever the game objects that reference them say, instead of piling up at 0,0,0
 - **Level cameras** — jump to any of the fixed cameras the game cuts between
 - **glTF 2.0 export** — one mesh per texture name, with embedded textures and level lights
+- **Audio player** — the level's own sound bank (footsteps, doors, room tone), the 75 music
+  streams from `MUSIC/`, and the 35 cutscene tracks from `IGC.ARC`, with seeking, looping
+  and WAV export
 - Parse and render SHO container files with embedded geometry, materials, and PS2 textures
 - Decode native PS2 PSMT4 / PSMT8 / PSMCT32 texture formats via software unswizzle
 - Seven render modes: Textured, Vertex Color, Flat Shaded, Normals, Depth, Checkerboard, Unlit
@@ -51,7 +54,9 @@ Opens proprietary Climax Engine container files (no file extension — named lik
 ### `SH.ARC` / `IGC.ARC` — the game archive
 
 An `"A2.0"` archive: a 20-byte header, a 16-byte record per file, and a name table
-that occupies the tail of the file. Every payload is a raw zlib stream.
+that occupies the tail of the file. Payloads are raw zlib streams, except where
+`uncompressedSize` is zero — those are stored uncompressed, which is how all 35
+cutscene entries of `IGC.ARC` are written.
 
 ```
 Header (20 bytes)
@@ -114,6 +119,17 @@ Sections that may appear inside a `0x0716`:
 | CBSP       | Collision BSP mesh             |
 | TEXDICTION | Texture dictionary (TXD)       |
 | BINMESH    | Pre-indexed triangle lists     |
+| WAVEDICT   | The level's sound bank         |
+
+### Audio
+
+Four containers, two codecs. `rwaID_WAVEDICT` sections hold the level's own sound
+bank — 2980 named samples across the 255 retail containers, all mono Sony 4-bit
+ADPCM at 6–32 kHz. `MUSIC/*.RWS` are RenderWare Audio streams, also mono ADPCM,
+with the rate and channel count in the 0x080E header and the data at a fixed
+offset of 2048. `IGC.ARC/*.IGCStream` multiplexes 1024-byte pieces of a 48 kHz
+16-bit stereo ADS into a record stream, tagged `0xA000`; concatenating them
+reassembles the ADS exactly. Decoder: [src/Core/AudioParser.cpp](src/Core/AudioParser.cpp).
 
 See **[docs/ANIMATION_SPEC.md](docs/ANIMATION_SPEC.md)** for the animation
 plan: skeleton, skinning, compressed keyframes and the playback UI.
@@ -237,6 +253,8 @@ Press **F2** in the application for the full manual.
 | Hide / show the UI      | **F1**                                   |
 | Manual                  | **F2**                                   |
 | Hide / show the gizmo   | **G**                                    |
+| Play a sound            | Click it in the **Audio** panel          |
+| Show / hide the Audio panel | **Panels → Audio**                   |
 
 The gizmo, the orbit sphere and the camera never fight over the mouse: a hovered
 gizmo does not block wheel-zoom or right-drag orbit, only one of them can claim a
@@ -267,6 +285,7 @@ src/
   UI.cpp/h        — structure tree, texture browser, file browser
   PS2Texture.cpp/h— PS2 VRAM format decoder
   Arc.cpp/h       — SH.ARC ("A2.0") archive reader
+  AudioParser.cpp/h— WAVEDICT / RWS / ADS / IGC audio decoders
   Export.cpp/h    — glTF 2.0 / GLB writer (groups geometry by texture)
   Common.h/cpp    — shared state, types, globals
 vendor/            (Makefile build only — CMake fetches these into build/_deps)
@@ -278,5 +297,8 @@ vendor/            (Makefile build only — CMake fetches these into build/_deps
 
 ## License
 
-[CC BY 4.0](LICENSE) — Copyright (c) 2026 Blackline Interactive.
-You are free to use, share, and adapt this code for any purpose **as long as you credit the author**.
+[GNU General Public License v3.0](LICENSE) — Copyright (c) 2025-2026 Blackline Interactive.
+
+You may use, study, change and share this program. If you distribute it, or
+anything derived from it, that work must carry the same license and its source
+must be available.

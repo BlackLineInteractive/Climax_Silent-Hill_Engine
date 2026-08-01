@@ -34,6 +34,13 @@ struct ArcEntry {
     uint32_t    offset           = 0;
     uint32_t    compressedSize   = 0;
     uint32_t    uncompressedSize = 0;
+
+    // uncompressedSize is 0 for raw-stored entries, which is every entry of
+    // IGC.ARC. Their real length is the "compressed" one, so anything showing
+    // a size to the user has to ask for it this way or the whole archive reads
+    // as 0 KB.
+    bool     Stored() const { return uncompressedSize == 0; }
+    uint32_t Size()   const { return Stored() ? compressedSize : uncompressedSize; }
 };
 
 class ArcArchive {

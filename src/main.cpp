@@ -23,56 +23,197 @@
 #include "ClimaxEngine/UI/UI.h"
 #include "ClimaxEngine/Core/AudioParser.h"
 
-// Audio Stream Global State
-static AudioStream g_AudioStream;
+// ---------------------------------------------------------------------------
+// Audio playback
+//
+// One SDL device at a time, reopened whenever the next clip has a different
+// rate or channel count -- the level banks alone span 6 kHz mono to 32 kHz,
+// and the cutscene streams are 48 kHz stereo.
+// ---------------------------------------------------------------------------
+static AudioClip         g_NowPlaying;
 static SDL_AudioDeviceID g_AudioDevice = 0;
-static size_t g_AudioSamplePos = 0;
+static size_t            g_AudioPos    = 0;
+static int               g_DeviceRate  = 0;
+static int               g_DeviceChans = 0;
 
-static void AudioCallback(void* userdata, Uint8* stream, int len) {
-    if (!state.isAudioPlaying || !g_AudioStream.valid) {
-        std::memset(stream, 0, len);
-        return;
-    }
+ArcArchive g_IgcArc;   // cutscene archive, when one is found beside SH.ARC
 
+const AudioClip& CurrentAudioClip() { return g_NowPlaying; }
+
+static void AudioCallback(void*, Uint8* stream, int len) {
     int16_t* out = (int16_t*)stream;
-    int samplesNeeded = len / sizeof(int16_t);
-    int samplesAvailable = (int)(g_AudioStream.pcmData.size() - g_AudioSamplePos);
-    
-    if (samplesAvailable <= 0) {
-        std::memset(stream, 0, len);
-        state.isAudioPlaying = false;
+    const int need = len / (int)sizeof(int16_t);
+    const size_t total = g_NowPlaying.pcm.size();
+
+    if (!state.isAudioPlaying || total == 0) {
+        std::memset(stream, 0, (size_t)len);
         return;
     }
 
-    int copyCount = std::min(samplesNeeded, samplesAvailable);
-    
-    // Apply volume
-    for (int i = 0; i < copyCount; i++) {
-        float s = (float)g_AudioStream.pcmData[g_AudioSamplePos + i] * state.audioVolume;
-        s = std::max(-32768.0f, std::min(32767.0f, s));
-        out[i] = (int16_t)s;
+    const float vol = state.audioVolume;
+    for (int i = 0; i < need; ++i) {
+        if (g_AudioPos >= total) {
+            if (state.audioLoop) {
+                g_AudioPos = 0;
+            } else {
+                std::memset(out + i, 0, (size_t)(need - i) * sizeof(int16_t));
+                state.isAudioPlaying = false;
+                break;
+            }
+        }
+        const int32_t s = (int32_t)((float)g_NowPlaying.pcm[g_AudioPos++] * vol);
+        out[i] = (int16_t)(s < -32768 ? -32768 : (s > 32767 ? 32767 : s));
     }
-    
-    if (copyCount < samplesNeeded) {
-        std::memset(out + copyCount, 0, (samplesNeeded - copyCount) * sizeof(int16_t));
-        state.isAudioPlaying = false;
+    state.audioProgress = (float)g_AudioPos / (float)total;
+}
+
+// Reopens the device only when the format actually changed; SDL resamples for
+// us, but it cannot switch rate on a live device.
+static bool OpenAudioDeviceFor(const AudioClip& clip) {
+    if (g_AudioDevice && g_DeviceRate == clip.sampleRate &&
+        g_DeviceChans == clip.channels)
+        return true;
+
+    if (g_AudioDevice) {
+        SDL_CloseAudioDevice(g_AudioDevice);
+        g_AudioDevice = 0;
     }
-    
-    g_AudioSamplePos += copyCount;
-    state.audioProgress = (float)g_AudioSamplePos / g_AudioStream.pcmData.size();
+
+    SDL_AudioSpec want;
+    SDL_zero(want);
+    want.freq     = clip.sampleRate;
+    want.format   = AUDIO_S16SYS;
+    want.channels = (Uint8)clip.channels;
+    want.samples  = 2048;
+    want.callback = AudioCallback;
+
+    g_AudioDevice = SDL_OpenAudioDevice(nullptr, 0, &want, nullptr, 0);
+    if (!g_AudioDevice) {
+        std::cerr << "[audio] SDL_OpenAudioDevice failed: " << SDL_GetError()
+                  << "\n";
+        return false;
+    }
+    g_DeviceRate  = clip.sampleRate;
+    g_DeviceChans = clip.channels;
+    return true;
+}
+
+void PlayAudioClip(const AudioClip& clip) {
+    if (!clip.Valid()) return;
+
+    if (g_AudioDevice) {
+        SDL_PauseAudioDevice(g_AudioDevice, 1);
+        SDL_LockAudioDevice(g_AudioDevice);
+    }
+    state.isAudioPlaying = false;
+    g_NowPlaying = clip;
+    g_AudioPos = 0;
+    state.audioProgress = 0.0f;
+    if (g_AudioDevice) SDL_UnlockAudioDevice(g_AudioDevice);
+
+    if (!OpenAudioDeviceFor(g_NowPlaying)) return;
+    state.isAudioPlaying = true;
+    state.showAudioPlayer = true;
+    SDL_PauseAudioDevice(g_AudioDevice, 0);
+}
+
+void PlayLibraryEntry(int index) {
+    if (index < 0 || index >= (int)g_AudioLibrary.size()) return;
+    const AudioSourceRef& ref = g_AudioLibrary[(size_t)index];
+
+    AudioClip clip;
+    if (ref.arcIndex >= 0 && g_IgcArc.IsOpen()) {
+        std::vector<uint8_t> blob;
+        if (!g_IgcArc.Read((size_t)ref.arcIndex, blob) || blob.empty()) return;
+        clip.name = ref.name;
+        if (!Audio::LoadBuffer(blob.data(), blob.size(), clip)) return;
+        clip.name = ref.name;
+    } else if (!Audio::LoadFile(ref.path, clip)) {
+        return;
+    }
+    clip.name = ref.name;
+    PlayAudioClip(clip);
 }
 
 void ToggleAudioPlayback() {
-    if (g_AudioDevice == 0) return;
+    if (!g_AudioDevice || !g_NowPlaying.Valid()) return;
+    // Restart rather than resume once the clip has run to its end.
+    if (!state.isAudioPlaying && g_AudioPos >= g_NowPlaying.pcm.size())
+        g_AudioPos = 0;
     state.isAudioPlaying = !state.isAudioPlaying;
     SDL_PauseAudioDevice(g_AudioDevice, state.isAudioPlaying ? 0 : 1);
 }
 
+void StopAudio() {
+    if (g_AudioDevice) SDL_PauseAudioDevice(g_AudioDevice, 1);
+    state.isAudioPlaying = false;
+    g_AudioPos = 0;
+    state.audioProgress = 0.0f;
+}
+
 void SetAudioProgress(float progress) {
-    if (g_AudioStream.pcmData.empty()) return;
-    g_AudioSamplePos = (size_t)(progress * g_AudioStream.pcmData.size());
-    // align to frame
-    g_AudioSamplePos -= g_AudioSamplePos % g_AudioStream.channels;
+    if (!g_NowPlaying.Valid()) return;
+    progress = progress < 0.0f ? 0.0f : (progress > 1.0f ? 1.0f : progress);
+    size_t pos = (size_t)(progress * (float)g_NowPlaying.pcm.size());
+    pos -= pos % (size_t)g_NowPlaying.channels;   // never split a frame
+    if (g_AudioDevice) SDL_LockAudioDevice(g_AudioDevice);
+    g_AudioPos = pos;
+    state.audioProgress = progress;
+    if (g_AudioDevice) SDL_UnlockAudioDevice(g_AudioDevice);
+}
+
+// The music and cutscenes are not inside SH.ARC: MUSIC/ and IGC.ARC sit beside
+// it on the disc. Mounting the archive is enough to find them.
+void ScanAudioLibrary() {
+    g_AudioLibrary.clear();
+    if (!g_Arc.IsOpen()) return;
+
+    std::error_code ec;
+    const fs::path root = fs::path(g_Arc.Path()).parent_path();
+
+    for (const char* dirName : {"MUSIC", "Music", "music"}) {
+        const fs::path dir = root / dirName;
+        if (!fs::is_directory(dir, ec)) continue;
+        for (auto it = fs::recursive_directory_iterator(dir, ec);
+             it != fs::recursive_directory_iterator(); it.increment(ec)) {
+            if (ec) break;
+            if (!it->is_regular_file(ec)) continue;
+            std::string ext = it->path().extension().string();
+            for (auto& c : ext) c = (char)tolower((unsigned char)c);
+            if (ext != ".rws" && ext != ".vag" && ext != ".ads") continue;
+            AudioSourceRef ref;
+            ref.name  = it->path().stem().string();
+            ref.group = "Music";
+            ref.path  = it->path().string();
+            g_AudioLibrary.push_back(std::move(ref));
+        }
+        break;
+    }
+
+    for (const char* arcName : {"IGC.ARC", "igc.arc", "Igc.arc"}) {
+        const fs::path p = root / arcName;
+        if (!fs::is_regular_file(p, ec)) continue;
+        if (!g_IgcArc.Open(p.string())) break;
+        const auto& entries = g_IgcArc.Entries();
+        for (size_t i = 0; i < entries.size(); ++i) {
+            AudioSourceRef ref;
+            ref.name = entries[i].name;
+            const size_t dot = ref.name.find_last_of('.');
+            if (dot != std::string::npos) ref.name.resize(dot);
+            ref.group    = "Cutscenes";
+            ref.arcIndex = (int)i;
+            g_AudioLibrary.push_back(std::move(ref));
+        }
+        break;
+    }
+
+    std::cout << "[audio] library: " << g_AudioLibrary.size() << " tracks beside "
+              << fs::path(g_Arc.Path()).filename().string() << " (looked in "
+              << root.string() << ")\n";
+    if (!g_AudioLibrary.empty() && !state.audioAutoOpened) {
+        state.audioAutoOpened = true;
+        state.showAudioPlayer = true;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -262,7 +403,7 @@ int main(int argc, char* argv[]) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    SDL_Window* win = SDL_CreateWindow("Climax Silent Hill Engine Toolkit",
+    SDL_Window* win = SDL_CreateWindow("Climax Silent Hill Engine Toolkit 0.2",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!win) {
@@ -300,6 +441,7 @@ int main(int argc, char* argv[]) {
             first.size() > 4 && sho_stricmp(first.c_str() + first.size() - 4, ".arc") == 0;
 
         if (looksLikeArc && g_Arc.Open(first)) {
+            ScanAudioLibrary();
             SaveArcPref(first);                         // ← remember for next launch
             std::cerr << "[arc] mounted " << first << " ("
                       << g_Arc.Entries().size() << " files)\n";
@@ -320,6 +462,7 @@ int main(int argc, char* argv[]) {
         const std::string saved = LoadArcPref();
         if (!saved.empty()) {
             if (g_Arc.Open(saved)) {
+                ScanAudioLibrary();
                 std::cerr << "[arc] auto-mounted last arc: " << saved
                           << " (" << g_Arc.Entries().size() << " files)\n";
                 state.showArc = true;   // open the archive browser automatically
@@ -610,44 +753,29 @@ void main(){
             if (e.type == SDL_DROPFILE) {
                 std::string path = e.drop.file;
                 SDL_free(e.drop.file);
-                
-                // If it ends with .IGC, .IGCStream, .abc or .ads, load audio
-                if (path.size() >= 4) {
-                    std::string ext = path.substr(path.find_last_of("."));
-                    std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-                    if (ext == ".igc" || ext == ".igcstream" || ext == ".abc" || ext == ".ads") {
-                        if (g_AudioDevice > 0) {
-                            SDL_CloseAudioDevice(g_AudioDevice);
-                            g_AudioDevice = 0;
-                        }
-                        
-                        g_AudioStream = AudioParser::Load(path);
-                        if (g_AudioStream.valid) {
-                            state.showAudioPlayer = true;
-                            state.audioFileName = path.substr(path.find_last_of("/\\") + 1);
-                            state.isAudioPlaying = false;
-                            state.audioProgress = 0.0f;
-                            g_AudioSamplePos = 0;
-                            
-                            SDL_AudioSpec want, have;
-                            SDL_zero(want);
-                            want.freq = g_AudioStream.sampleRate;
-                            want.format = AUDIO_S16SYS;
-                            want.channels = g_AudioStream.channels;
-                            want.samples = 4096;
-                            want.callback = AudioCallback;
-                            
-                            g_AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-                            if (g_AudioDevice > 0) {
-                                SDL_PauseAudioDevice(g_AudioDevice, 0);
-                                state.isAudioPlaying = true;
-                            } else {
-                                std::cerr << "Failed to open audio: " << SDL_GetError() << std::endl;
-                                g_AudioStream.valid = false;
-                            }
-                        } else {
-                            std::cerr << "Failed to load audio: " << path << std::endl;
-                        }
+
+                // Anything the audio parser recognises is played; the sniff is
+                // on the contents, so the extension only decides whether it is
+                // worth reading the file at all.
+                std::string ext;
+                const size_t dot = path.find_last_of('.');
+                if (dot != std::string::npos) {
+                    ext = path.substr(dot);
+                    for (auto& c : ext) c = (char)tolower((unsigned char)c);
+                }
+                static const char* kAudioExt[] = {
+                    ".igc", ".igcstream", ".abc", ".ads", ".rws", ".vag", ".wav",
+                };
+                bool isAudio = false;
+                for (const char* e2 : kAudioExt)
+                    if (ext == e2) { isAudio = true; break; }
+
+                if (isAudio) {
+                    AudioClip clip;
+                    if (Audio::LoadFile(path, clip)) {
+                        PlayAudioClip(clip);
+                    } else {
+                        std::cerr << "[audio] cannot decode " << path << "\n";
                     }
                 }
             }
@@ -1349,6 +1477,7 @@ void main(){
         ImGui::Checkbox("Textures",  &state.showTextures);
         ImGui::Checkbox("Archive",   &state.showArc); ImGui::SameLine(128);
         ImGui::Checkbox("Manual",    &state.showManual);
+        ImGui::Checkbox("Audio",     &state.showAudioPlayer);
 
         // ---- Export -------------------------------------------------
         if (haveModel) {
