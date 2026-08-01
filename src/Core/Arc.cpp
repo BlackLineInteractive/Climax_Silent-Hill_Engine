@@ -117,6 +117,15 @@ bool ArcArchive::Read(size_t index, std::vector<uint8_t>& out) const {
     if (e.compressedSize && !m_file.read((char*)comp.data(), (std::streamsize)comp.size()))
         return false;
 
+    // An entry with uncompressedSize == 0 is stored raw, not deflated. Every
+    // payload in SH.ARC is zlib (all 1487 begin 78 DA), but all 35 entries of
+    // IGC.ARC are uncompressed cutscene streams that start 10 FF and declare a
+    // zero uncompressed size. Inflating those returned Z_DATA_ERROR.
+    if (e.uncompressedSize == 0) {
+      out.swap(comp);
+      return !out.empty();
+    }
+
     out.resize(e.uncompressedSize);
     uLongf destLen = (uLongf)e.uncompressedSize;
     const int rc = uncompress(out.data(), &destLen, comp.data(), (uLong)comp.size());

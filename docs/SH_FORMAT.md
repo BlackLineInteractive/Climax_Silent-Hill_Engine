@@ -109,10 +109,14 @@ are not file extensions and should not be treated as such.
 
 ### 2.6 Payload encoding
 
-Every payload is a raw zlib stream in the sense of RFC 1950, beginning with the
-two-byte header `78 DA` (deflate, 32 KiB window, maximum compression). No entry
-is stored uncompressed. Inflating an entry must yield exactly
-`uncompressedSize` bytes; any other result indicates a damaged archive.
+A payload is normally a raw zlib stream in the sense of RFC 1950, beginning with
+the two-byte header `78 DA` (deflate, 32 KiB window, maximum compression), and
+inflating it must yield exactly `uncompressedSize` bytes.
+
+**An entry whose `uncompressedSize` is zero is stored raw.** All 1487 entries of
+`SH.ARC` are compressed, but all 35 entries of `IGC.ARC` are not: they are
+cutscene streams beginning `10 FF` with a zero uncompressed size. A reader that
+inflates unconditionally fails them with `Z_DATA_ERROR`.
 
 ### 2.7 Verification
 
