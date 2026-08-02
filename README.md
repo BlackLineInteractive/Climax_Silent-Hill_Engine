@@ -149,6 +149,9 @@ reassembles the ADS exactly. Decoder: [src/Core/AudioParser.cpp](src/Core/AudioP
 See **[docs/ANIMATION_SPEC.md](docs/ANIMATION_SPEC.md)** for the animation
 plan: skeleton, skinning, compressed keyframes and the playback UI.
 
+See **[docs/TODO.md](docs/TODO.md)** for the current work queue: what is broken,
+what is unimplemented, and what is already known about each.
+
 See **[docs/SHSM_ARC_FORMAT.md](docs/SHSM_ARC_FORMAT.md)** for the Wii *Shattered
 Memories* archives and containers: the `0x0000FA10` archive, the big-endian
 section and game-object records, and the GameCube/Wii texture formats.
