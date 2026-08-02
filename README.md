@@ -149,6 +149,10 @@ reassembles the ADS exactly. Decoder: [src/Core/AudioParser.cpp](src/Core/AudioP
 See **[docs/ANIMATION_SPEC.md](docs/ANIMATION_SPEC.md)** for the animation
 plan: skeleton, skinning, compressed keyframes and the playback UI.
 
+See **[docs/EXECUTABLES.md](docs/EXECUTABLES.md)** for what the game binaries
+themselves give up: section layout, the engine's full tag list, and the
+recovered class registry.
+
 See **[docs/TODO.md](docs/TODO.md)** for the current work queue: what is broken,
 what is unimplemented, and what is already known about each.
 

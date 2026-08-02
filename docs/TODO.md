@@ -153,8 +153,19 @@ diagnosed.
 
 ## Both games
 
-Static analysis of the executables — `SLES_551.47` (PS2, MIPS R5900) and
-`main.dol` (Wii, PowerPC). Both are readable with the disassembler already
-available here. This is the only route to the things that are provably *not* in
-the asset data: the PS2 blend mode, the Wii TEV setup, the archive key
-derivation, and the runtime scale applied to FX sheets.
+Executable analysis has started — see [EXECUTABLES.md](EXECUTABLES.md).
+
+Done: both binaries are mapped, the PS2 one keeps all its section names and
+58 KB of VU1 microcode, and its **complete class registry is recovered** — 126
+classes with factory address and object size, in
+[`sho_class_registry.json`](sho_class_registry.json).
+
+Next, in order of value:
+
+1. Read a few PS2 factories to learn how properties are bound. That settles the
+   per-class property semantics for both games, and with it the Wii `0x0704`
+   parsing and the volume classes whose property 1 is an extent, not a matrix.
+2. The PS2 blend mode, set through the GS `ALPHA` register, which would replace
+   the hand-maintained additive list.
+3. The same registry walk on `main.dol`; the technique is identical but the
+   scan needs indexing to cover its 4 MB text segment.

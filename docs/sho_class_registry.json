@@ -1,0 +1,636 @@
+{
+ "source": "SLES_551.47",
+ "registrar": 2089624,
+ "classes": {
+  "AccoladeData": {
+   "registry": "0x006BFE90",
+   "factory": "0x0017E298",
+   "size": 84
+  },
+  "AnatomyPuzzleTrigger": {
+   "registry": "0x006BFC98",
+   "factory": "0x00172C00",
+   "size": 168
+  },
+  "AreaTrigger2DPoly": {
+   "registry": "0x006BFC30",
+   "factory": "0x0016FF60",
+   "size": 304
+  },
+  "AreaTriggerBattleManager": {
+   "registry": "0x006BFC68",
+   "factory": "0x00171068",
+   "size": 368
+  },
+  "AreaTriggerBox": {
+   "registry": "0x006BFC78",
+   "factory": "0x00171938",
+   "size": 288
+  },
+  "AudioGlobalMixer": {
+   "registry": "0x006F8608",
+   "factory": "0x00199CE0",
+   "size": 124
+  },
+  "AudioGroup": {
+   "registry": "0x006F8638",
+   "factory": "0x0019A650",
+   "size": 104
+  },
+  "AudioReverb": {
+   "registry": "0x006F8648",
+   "factory": "0x0019ADA0",
+   "size": 180
+  },
+  "AudioSound3D": {
+   "registry": "0x006F8658",
+   "factory": "0x0019BBA0",
+   "size": 160
+  },
+  "AudioStream": {
+   "registry": "0x006F8668",
+   "factory": "0x0019C3D0",
+   "size": 124
+  },
+  "BackdropPropTrigger": {
+   "registry": "0x006BFCA8",
+   "factory": "0x00173240",
+   "size": 208
+  },
+  "ButtonBoxTrigger": {
+   "registry": "0x006BFB18",
+   "factory": "0x001691D8",
+   "size": 272
+  },
+  "ButtonTrigger": {
+   "registry": "0x006BFB20",
+   "factory": "0x001698A0",
+   "size": 256
+  },
+  "CAnimatedStaticObject": {
+   "registry": "0x006B4D20",
+   "factory": "0x0013F810",
+   "size": 784
+  },
+  "CAudioLocatorBehaviour": {
+   "registry": "0x006B47F8",
+   "factory": "0x0010B368",
+   "size": 92
+  },
+  "CAudioLocatorBehaviour2D": {
+   "registry": "0x006B4808",
+   "factory": "0x0010B968",
+   "size": 100
+  },
+  "CAudioTransitions": {
+   "registry": "0x006B4880",
+   "factory": "0x0010F9F8",
+   "size": 100
+  },
+  "CAudioUI": {
+   "registry": "0x006B49A0",
+   "factory": "0x001115E0",
+   "size": 200
+  },
+  "CBasicAnimatedObject": {
+   "registry": "0x006B4710",
+   "factory": "0x001041D0",
+   "size": 280
+  },
+  "CBloomCfg": {
+   "registry": "0x006BFA98",
+   "factory": "0x001613F0",
+   "size": 184
+  },
+  "CCalibanBehaviour": {
+   "registry": "0x006B4AD8",
+   "factory": "0x0011F298",
+   "size": 11712
+  },
+  "CCollisionCapsule": {
+   "registry": "0x006BF348",
+   "factory": "0x00146F08",
+   "size": 100
+  },
+  "CColorLight": {
+   "registry": "0x006B4D48",
+   "factory": "0x001405E8",
+   "size": 108
+  },
+  "CConstraintCamera": {
+   "registry": "0x006B4A30",
+   "factory": "0x001190E0",
+   "size": 704
+  },
+  "CControllerCamera": {
+   "registry": "0x006B4A40",
+   "factory": "0x00119DA8",
+   "size": 192
+  },
+  "CCounter": {
+   "registry": "0x006BFB30",
+   "factory": "0x00169CD8",
+   "size": 108
+  },
+  "CDeathSpawnEffectManager": {
+   "registry": "0x006BF5A0",
+   "factory": "0x0015D440",
+   "size": 568
+  },
+  "CDistortionTrigger": {
+   "registry": "0x006BFB50",
+   "factory": "0x0016A5C8",
+   "size": 88
+  },
+  "CDynamicFire": {
+   "registry": "0x006BF590",
+   "factory": "0x0015A3F0",
+   "size": 928
+  },
+  "CDynamicHealthItem": {
+   "registry": "0x006CC258",
+   "factory": "0x0018BD98",
+   "size": 304
+  },
+  "CEndingMovieRelay": {
+   "registry": "0x006BFB60",
+   "factory": "0x0016AC90",
+   "size": 124
+  },
+  "CEnemyBehaviour": {
+   "registry": "0x006B4B78",
+   "factory": "0x0012B630",
+   "size": 11664
+  },
+  "CEnemySpecificPlayerAnim": {
+   "registry": "0x006B4728",
+   "factory": "0x00106CC8",
+   "size": 88
+  },
+  "CFMABorder": {
+   "registry": "0x006BF4E0",
+   "factory": "0x001529C0",
+   "size": 336
+  },
+  "CFMAController": {
+   "registry": "0x006BFE60",
+   "factory": "0x0017D498",
+   "size": 80
+  },
+  "CFMAPlayerAnim": {
+   "registry": "0x006BFE70",
+   "factory": "0x0017D8E8",
+   "size": 92
+  },
+  "CFMAPlayerMover": {
+   "registry": "0x006BFE80",
+   "factory": "0x0017DC90",
+   "size": 76
+  },
+  "CFRainDropManager": {
+   "registry": "0x006BF5D8",
+   "factory": "0x0015E038",
+   "size": 2048
+  },
+  "CFadeTrigger": {
+   "registry": "0x006BFB70",
+   "factory": "0x0016B2C0",
+   "size": 108
+  },
+  "CFastLightSource": {
+   "registry": "0x006B4D58",
+   "factory": "0x00141748",
+   "size": 224
+  },
+  "CFlaurosBehaviour": {
+   "registry": "0x006B4B88",
+   "factory": "0x0012BF08",
+   "size": 11664
+  },
+  "CFmaCamera": {
+   "registry": "0x006B4A58",
+   "factory": "0x0011B890",
+   "size": 288
+  },
+  "CFmaCameraNode": {
+   "registry": "0x006B4A60",
+   "factory": "0x0011B848",
+   "size": 152
+  },
+  "CFogConfig": {
+   "registry": "0x006BFA88",
+   "factory": "0x00160770",
+   "size": 184
+  },
+  "CFollowCamera": {
+   "registry": "0x006B4A70",
+   "factory": "0x0011C058",
+   "size": 156
+  },
+  "CForceItemTrigger": {
+   "registry": "0x006CC268",
+   "factory": "0x0018C0A8",
+   "size": 88
+  },
+  "CFullScreenRain": {
+   "registry": "0x006BFAD0",
+   "factory": "0x00162B18",
+   "size": 7596
+  },
+  "CGenericSpawner": {
+   "registry": "0x006BF398",
+   "factory": "0x00149B98",
+   "size": 96
+  },
+  "CHitEffectManager": {
+   "registry": "0x006BFAB0",
+   "factory": "0x00161F30",
+   "size": 100
+  },
+  "CIGCCamera": {
+   "registry": "0x006C4110",
+   "factory": "0x00183CE0",
+   "size": 184
+  },
+  "CIGCCharacter": {
+   "registry": "0x006C4120",
+   "factory": "0x00184650",
+   "size": 5344
+  },
+  "CIGCTrigger": {
+   "registry": "0x006CC1E8",
+   "factory": "0x00187D50",
+   "size": 152
+  },
+  "CInventoryItemDef": {
+   "registry": "0x006CC278",
+   "factory": "0x0018C8A8",
+   "size": 236
+  },
+  "CMapAnchorPoint": {
+   "registry": "0x006CC238",
+   "factory": "0x001898E0",
+   "size": 84
+  },
+  "CMapItem": {
+   "registry": "0x006CC248",
+   "factory": "0x00189C68",
+   "size": 224
+  },
+  "CMessageRelay": {
+   "registry": "0x006BFBA8",
+   "factory": "0x0016CE80",
+   "size": 220
+  },
+  "CMotionBlurCfg": {
+   "registry": "0x006BFAA0",
+   "factory": "0x00161438",
+   "size": 112
+  },
+  "CMoverNode": {
+   "registry": "0x006BF358",
+   "factory": "0x00147698",
+   "size": 96
+  },
+  "CPSX2StndController": {
+   "registry": "0x006CC308",
+   "factory": "0x001944C8",
+   "size": 372
+  },
+  "CPadRumbleTrigger": {
+   "registry": "0x006BFBC8",
+   "factory": "0x0016D988",
+   "size": 112
+  },
+  "CPathFollower": {
+   "registry": "0x006BF370",
+   "factory": "0x001481A0",
+   "size": 340
+  },
+  "CPeepholeCamera": {
+   "registry": "0x006B4A80",
+   "factory": "0x0011C850",
+   "size": 288
+  },
+  "CPhysicsObject": {
+   "registry": "0x006B4CC8",
+   "factory": "0x0013D490",
+   "size": 416
+  },
+  "CPickupItem": {
+   "registry": "0x006CC2A0",
+   "factory": "0x00191FD8",
+   "size": 288
+  },
+  "CPlaceHolderMsgTrigger": {
+   "registry": "0x006BFBD8",
+   "factory": "0x0016DDD0",
+   "size": 96
+  },
+  "CPlayerBehaviour": {
+   "registry": "0x006B4C50",
+   "factory": "0x00136CC8",
+   "size": 7152
+  },
+  "CPlayerCheckpoint": {
+   "registry": "0x006BF3C8",
+   "factory": "0x0014A2C8",
+   "size": 120
+  },
+  "CPlayerLight": {
+   "registry": "0x006B4D68",
+   "factory": "0x00141CB8",
+   "size": 160
+  },
+  "CPlayerReflector": {
+   "registry": "0x006B4CA0",
+   "factory": "0x0013A148",
+   "size": 468
+  },
+  "CPlayerSpawner": {
+   "registry": "0x006BF448",
+   "factory": "0x0014ACE0",
+   "size": 108
+  },
+  "CPointTrigger": {
+   "registry": "0x006CC228",
+   "factory": "0x00189150",
+   "size": 192
+  },
+  "CRecyclerSpawner": {
+   "registry": "0x006BF458",
+   "factory": "0x0014B4D0",
+   "size": 108
+  },
+  "CRotator": {
+   "registry": "0x006BF380",
+   "factory": "0x00148EA0",
+   "size": 400
+  },
+  "CSadDaddyBehaviour": {
+   "registry": "0x006B4CB0",
+   "factory": "0x0013B040",
+   "size": 11728
+  },
+  "CSceneObject": {
+   "registry": "0x006B4CD8",
+   "factory": "0x0013D7C0",
+   "size": 220
+  },
+  "CScreenShakeTrigger": {
+   "registry": "0x006BFBF0",
+   "factory": "0x0016EC10",
+   "size": 96
+  },
+  "CSequenceObject": {
+   "registry": "0x006B4CE8",
+   "factory": "0x0013DF78",
+   "size": 284
+  },
+  "CSettingsManager": {
+   "registry": "0x006BFF30",
+   "factory": "0x00180410",
+   "size": 72
+  },
+  "CSkyDome": {
+   "registry": "0x006BFE40",
+   "factory": "0x0017D090",
+   "size": 132
+  },
+  "CSlowMoTrigger": {
+   "registry": "0x006BFC00",
+   "factory": "0x0016EF10",
+   "size": 108
+  },
+  "CSmashableObject": {
+   "registry": "0x006B4CF8",
+   "factory": "0x0013E7D0",
+   "size": 480
+  },
+  "CSolidObject": {
+   "registry": "0x006B4D08",
+   "factory": "0x0013F1E8",
+   "size": 944
+  },
+  "CSpotLight": {
+   "registry": "0x006B4D88",
+   "factory": "0x00146708",
+   "size": 496
+  },
+  "CSpotLightSurface": {
+   "registry": "0x006B4D90",
+   "factory": "0x00146758",
+   "size": 88
+  },
+  "CStaticCamera": {
+   "registry": "0x006B4A90",
+   "factory": "0x0011D7C0",
+   "size": 352
+  },
+  "CStaticInit": {
+   "registry": "0x006BFC10",
+   "factory": "0x0016F360",
+   "size": 76
+  },
+  "CStaticObject": {
+   "registry": "0x006B4D18",
+   "factory": "0x0013F720",
+   "size": 216
+  },
+  "CStyledSceneObject": {
+   "registry": "0x006B4D30",
+   "factory": "0x0013FB88",
+   "size": 216
+  },
+  "CSwirlTrigger": {
+   "registry": "0x006BFC20",
+   "factory": "0x0016F7C8",
+   "size": 84
+  },
+  "CThreatConfig": {
+   "registry": "0x006BFB00",
+   "factory": "0x00168198",
+   "size": 344
+  },
+  "CTnfCamera": {
+   "registry": "0x006B4AC8",
+   "factory": "0x0011E9F8",
+   "size": 304
+  },
+  "CVirtualController": {
+   "registry": "0x006CC448",
+   "factory": "0x00194DE0",
+   "size": 312
+  },
+  "CZone": {
+   "registry": "0x006BFD58",
+   "factory": "0x001787C8",
+   "size": 324
+  },
+  "CZoneCollision": {
+   "registry": "0x006BFD60",
+   "factory": "0x00178818",
+   "size": 204
+  },
+  "CalenderTrigger": {
+   "registry": "0x006BFCB8",
+   "factory": "0x001736E0",
+   "size": 100
+  },
+  "CameraPair": {
+   "registry": "0x006B4A20",
+   "factory": "0x00114A68",
+   "size": 256
+  },
+  "CircuitBreakerTrigger": {
+   "registry": "0x006BFCC8",
+   "factory": "0x00173AC8",
+   "size": 108
+  },
+  "DataTrigger": {
+   "registry": "0x006BFB40",
+   "factory": "0x0016A210",
+   "size": 88
+  },
+  "FMVTrigger": {
+   "registry": "0x006BFB80",
+   "factory": "0x0016B930",
+   "size": 144
+  },
+  "FlaurosTrigger": {
+   "registry": "0x006BFCD8",
+   "factory": "0x00173FE8",
+   "size": 236
+  },
+  "GameMessage": {
+   "registry": "0x006BF508",
+   "factory": "0x001536B8",
+   "size": 204
+  },
+  "HospitalLiftTrigger": {
+   "registry": "0x006BFCE8",
+   "factory": "0x001745D8",
+   "size": 116
+  },
+  "IGCBorder": {
+   "registry": "0x006C4100",
+   "factory": "0x00183490",
+   "size": 88
+  },
+  "IronLungTrigger": {
+   "registry": "0x006BFCF8",
+   "factory": "0x00174CB8",
+   "size": 132
+  },
+  "LaundryTrigger": {
+   "registry": "0x006BFD08",
+   "factory": "0x001753B0",
+   "size": 128
+  },
+  "LifeBox": {
+   "registry": "0x006BFC88",
+   "factory": "0x00172458",
+   "size": 208
+  },
+  "MapTrigger": {
+   "registry": "0x006BFB90",
+   "factory": "0x0016BFC8",
+   "size": 84
+  },
+  "MaterialMap": {
+   "registry": "0x006B4868",
+   "factory": "0x0010EF20",
+   "size": 144
+  },
+  "MessageBoxTrigger": {
+   "registry": "0x006BFB98",
+   "factory": "0x0016C710",
+   "size": 272
+  },
+  "MusicTrigger": {
+   "registry": "0x006BFBB8",
+   "factory": "0x0016D450",
+   "size": 80
+  },
+  "OrganBoxTrigger": {
+   "registry": "0x006BFD18",
+   "factory": "0x001757D0",
+   "size": 112
+  },
+  "PillDollTrigger": {
+   "registry": "0x006BFD28",
+   "factory": "0x00175BC8",
+   "size": 112
+  },
+  "PlaneTrigger": {
+   "registry": "0x006BFBE0",
+   "factory": "0x0016E790",
+   "size": 208
+  },
+  "PuzzleTrigger": {
+   "registry": "0x006BFD38",
+   "factory": "0x00175FA8",
+   "size": 92
+  },
+  "SavePoint": {
+   "registry": "0x006F8D48",
+   "factory": "0x001D6888",
+   "size": 144
+  },
+  "ScreenText": {
+   "registry": "0x006F8B28",
+   "factory": "0x001B3218",
+   "size": 144
+  },
+  "TillTrigger": {
+   "registry": "0x006BFD48",
+   "factory": "0x001763C0",
+   "size": 108
+  },
+  "TimerHUD": {
+   "registry": "0x006BF518",
+   "factory": "0x001541A8",
+   "size": 76
+  },
+  "UnlockableData": {
+   "registry": "0x006BFE98",
+   "factory": "0x0017E340",
+   "size": 76
+  },
+  "Waypoint": {
+   "registry": "0x006F86A0",
+   "factory": "0x001A5298",
+   "size": 92
+  },
+  "WeaponHUD": {
+   "registry": "0x006BF560",
+   "factory": "0x00156358",
+   "size": 268
+  },
+  "ZoneTrigger": {
+   "registry": "0x006BFDE0",
+   "factory": "0x0017C5F8",
+   "size": 368
+  },
+  "cBlackOutFSE": {
+   "registry": "0x006BF570",
+   "factory": "0x00156A50",
+   "size": 184
+  },
+  "cFlexFilter": {
+   "registry": "0x006BF608",
+   "factory": "0x0015EDD8",
+   "size": 160
+  },
+  "cPenanceFSE": {
+   "registry": "0x006BFAC0",
+   "factory": "0x001622F0",
+   "size": 148
+  },
+  "cThreatController": {
+   "registry": "0x006BFB10",
+   "factory": "0x00168630",
+   "size": 132
+  }
+ }
+}

@@ -891,6 +891,22 @@ void RenderAudioPlayer() {
         ImGui::SetNextItemWidth(160.0f);
         ImGui::SliderFloat("Volume", &state.audioVolume, 0.0f, 1.5f, "%.2f");
 
+        {
+            int calls = 0, late = 0;
+            double worst = 0.0, buf = 0.0;
+            AudioHealth(calls, late, worst, buf);
+            if (calls > 0) {
+                ImGui::SameLine();
+                if (late > 0)
+                    ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.3f, 1.0f),
+                                       "%d/%d late, worst %.0f ms (buffer %.0f)",
+                                       late, calls, worst, buf);
+                else
+                    ImGui::TextDisabled("%d buffers, worst gap %.0f ms of %.0f",
+                                        calls, worst, buf);
+            }
+        }
+
         ImGui::Separator();
         ImGui::SetNextItemWidth(-1);
         ImGui::InputTextWithHint("##audiofilter", "filter by name",

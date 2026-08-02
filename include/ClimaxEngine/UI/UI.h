@@ -51,6 +51,9 @@ void StopAudio();
 void PlayAudioClip(const AudioClip& clip);
 void PlayLibraryEntry(int index);          // decodes g_AudioLibrary[index] first
 const AudioClip& CurrentAudioClip();
+// Diagnostic: how often the device asked for audio, and how often it asked
+// later than the buffer could cover.
+void AudioHealth(int& calls, int& late, double& worstMs, double& bufferMs);
 // Looks beside the mounted archive for MUSIC/*.RWS and IGC.ARC and fills
 // g_AudioLibrary. Safe to call again after mounting a different archive.
 void ScanAudioLibrary();

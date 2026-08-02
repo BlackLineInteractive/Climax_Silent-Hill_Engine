@@ -32,7 +32,6 @@
 // ---------------------------------------------------------------------------
 static AudioClip         g_NowPlaying;
 static SDL_AudioDeviceID g_AudioDevice = 0;
-static size_t            g_AudioPos    = 0;
 static int               g_DeviceRate  = 0;
 static int               g_DeviceChans = 0;
 
@@ -40,51 +39,97 @@ ArcArchive g_IgcArc;   // cutscene archive, when one is found beside SH.ARC
 
 const AudioClip& CurrentAudioClip() { return g_NowPlaying; }
 
-static void AudioCallback(void*, Uint8* stream, int len) {
-    int16_t* out = (int16_t*)stream;
-    const int need = len / (int)sizeof(int16_t);
-    const size_t total = g_NowPlaying.pcm.size();
+// The device is opened once, at a rate the hardware actually runs, and every
+// clip is rate-converted into it here.
+//
+// Reopening the device per clip and asking SDL for the clip's own rate is what
+// made the music stutter: the tracks are 44094 Hz, which is neither the
+// hardware rate nor a power-of-two ratio away from it, so SDL fell back to a
+// conversion path that could not keep up. The cutscenes (48000) and the level
+// banks (22050, 16000, ...) were fine, which is exactly the pattern that
+// pointed at the odd rate rather than at the decoder.
+static const int kDeviceRate = 48000;
+static const int kDeviceChans = 2;
 
-    if (!state.isAudioPlaying || total == 0) {
+static double g_SrcPos = 0.0;   // playback position, in source frames
+
+// Callback health. A stutter is either starvation -- the device asking for the
+// next buffer later than it can afford -- or bad data. These counters tell the
+// two apart without having to hear it: `g_AudioLate` only grows when the gap
+// between callbacks exceeds the buffer's own duration.
+static Uint64 g_AudioPrevTick = 0;
+static int    g_AudioCalls = 0;
+static int    g_AudioLate = 0;
+static double g_AudioWorstMs = 0.0;
+static double g_AudioBufferMs = 0.0;
+
+static void AudioCallback(void*, Uint8* stream, int len) {
+    {
+        const Uint64 now = SDL_GetPerformanceCounter();
+        if (g_AudioPrevTick) {
+            const double ms = (double)(now - g_AudioPrevTick) * 1000.0 /
+                              (double)SDL_GetPerformanceFrequency();
+            if (ms > g_AudioWorstMs) g_AudioWorstMs = ms;
+            if (ms > g_AudioBufferMs * 1.5) g_AudioLate++;
+        }
+        g_AudioPrevTick = now;
+        g_AudioCalls++;
+    }
+
+    int16_t* out = (int16_t*)stream;
+    const int frames = len / (int)(sizeof(int16_t) * kDeviceChans);
+    const int srcChans = g_NowPlaying.channels;
+    const size_t srcFrames = srcChans ? g_NowPlaying.pcm.size() / srcChans : 0;
+
+    if (!state.isAudioPlaying || srcFrames == 0) {
         std::memset(stream, 0, (size_t)len);
         return;
     }
 
     const float vol = state.audioVolume;
-    for (int i = 0; i < need; ++i) {
-        if (g_AudioPos >= total) {
+    const double step = (double)g_NowPlaying.sampleRate / (double)kDeviceRate;
+    const int16_t* src = g_NowPlaying.pcm.data();
+
+    for (int i = 0; i < frames; ++i) {
+        if (g_SrcPos >= (double)srcFrames) {
             if (state.audioLoop) {
-                g_AudioPos = 0;
+                g_SrcPos -= (double)srcFrames;
             } else {
-                std::memset(out + i, 0, (size_t)(need - i) * sizeof(int16_t));
+                std::memset(out + (size_t)i * kDeviceChans, 0,
+                            (size_t)(frames - i) * kDeviceChans * sizeof(int16_t));
                 state.isAudioPlaying = false;
                 break;
             }
         }
-        const int32_t s = (int32_t)((float)g_NowPlaying.pcm[g_AudioPos++] * vol);
-        out[i] = (int16_t)(s < -32768 ? -32768 : (s > 32767 ? 32767 : s));
+
+        // Linear interpolation between neighbouring source frames; at these
+        // ratios anything fancier is inaudible.
+        const size_t i0 = (size_t)g_SrcPos;
+        const size_t i1 = (i0 + 1 < srcFrames) ? i0 + 1 : i0;
+        const float frac = (float)(g_SrcPos - (double)i0);
+
+        for (int c = 0; c < kDeviceChans; ++c) {
+            const int sc = srcChans == 1 ? 0 : (c < srcChans ? c : srcChans - 1);
+            const float a = (float)src[i0 * srcChans + sc];
+            const float b = (float)src[i1 * srcChans + sc];
+            const int32_t v = (int32_t)((a + (b - a) * frac) * vol);
+            out[(size_t)i * kDeviceChans + c] =
+                (int16_t)(v < -32768 ? -32768 : (v > 32767 ? 32767 : v));
+        }
+        g_SrcPos += step;
     }
-    state.audioProgress = (float)g_AudioPos / (float)total;
+    state.audioProgress = (float)(g_SrcPos / (double)srcFrames);
 }
 
-// Reopens the device only when the format actually changed; SDL resamples for
-// us, but it cannot switch rate on a live device.
-static bool OpenAudioDeviceFor(const AudioClip& clip) {
-    if (g_AudioDevice && g_DeviceRate == clip.sampleRate &&
-        g_DeviceChans == clip.channels)
-        return true;
-
-    if (g_AudioDevice) {
-        SDL_CloseAudioDevice(g_AudioDevice);
-        g_AudioDevice = 0;
-    }
+static bool OpenAudioDevice() {
+    if (g_AudioDevice) return true;
 
     SDL_AudioSpec want;
     SDL_zero(want);
-    want.freq     = clip.sampleRate;
+    want.freq     = kDeviceRate;
     want.format   = AUDIO_S16SYS;
-    want.channels = (Uint8)clip.channels;
-    want.samples  = 2048;
+    want.channels = (Uint8)kDeviceChans;
+    want.samples  = 4096;   // 85 ms at 48 kHz; 1024 was not enough headroom
     want.callback = AudioCallback;
 
     g_AudioDevice = SDL_OpenAudioDevice(nullptr, 0, &want, nullptr, 0);
@@ -93,25 +138,32 @@ static bool OpenAudioDeviceFor(const AudioClip& clip) {
                   << "\n";
         return false;
     }
-    g_DeviceRate  = clip.sampleRate;
-    g_DeviceChans = clip.channels;
+    g_DeviceRate  = kDeviceRate;
+    g_DeviceChans = kDeviceChans;
+    g_AudioBufferMs = 4096.0 * 1000.0 / (double)kDeviceRate;
     return true;
+}
+
+void AudioHealth(int& calls, int& late, double& worstMs, double& bufferMs) {
+    calls = g_AudioCalls; late = g_AudioLate;
+    worstMs = g_AudioWorstMs; bufferMs = g_AudioBufferMs;
 }
 
 void PlayAudioClip(const AudioClip& clip) {
     if (!clip.Valid()) return;
+    if (!OpenAudioDevice()) return;
 
-    if (g_AudioDevice) {
-        SDL_PauseAudioDevice(g_AudioDevice, 1);
-        SDL_LockAudioDevice(g_AudioDevice);
-    }
+    SDL_PauseAudioDevice(g_AudioDevice, 1);
+    SDL_LockAudioDevice(g_AudioDevice);
     state.isAudioPlaying = false;
     g_NowPlaying = clip;
-    g_AudioPos = 0;
+    g_SrcPos = 0.0;
+    g_AudioCalls = g_AudioLate = 0;
+    g_AudioWorstMs = 0.0;
+    g_AudioPrevTick = 0;
     state.audioProgress = 0.0f;
-    if (g_AudioDevice) SDL_UnlockAudioDevice(g_AudioDevice);
+    SDL_UnlockAudioDevice(g_AudioDevice);
 
-    if (!OpenAudioDeviceFor(g_NowPlaying)) return;
     state.isAudioPlaying = true;
     state.showAudioPlayer = true;
     SDL_PauseAudioDevice(g_AudioDevice, 0);
@@ -138,8 +190,8 @@ void PlayLibraryEntry(int index) {
 void ToggleAudioPlayback() {
     if (!g_AudioDevice || !g_NowPlaying.Valid()) return;
     // Restart rather than resume once the clip has run to its end.
-    if (!state.isAudioPlaying && g_AudioPos >= g_NowPlaying.pcm.size())
-        g_AudioPos = 0;
+    const size_t srcFrames = g_NowPlaying.pcm.size() / g_NowPlaying.channels;
+    if (!state.isAudioPlaying && g_SrcPos >= (double)srcFrames) g_SrcPos = 0.0;
     state.isAudioPlaying = !state.isAudioPlaying;
     SDL_PauseAudioDevice(g_AudioDevice, state.isAudioPlaying ? 0 : 1);
 }
@@ -147,17 +199,16 @@ void ToggleAudioPlayback() {
 void StopAudio() {
     if (g_AudioDevice) SDL_PauseAudioDevice(g_AudioDevice, 1);
     state.isAudioPlaying = false;
-    g_AudioPos = 0;
+    g_SrcPos = 0.0;
     state.audioProgress = 0.0f;
 }
 
 void SetAudioProgress(float progress) {
     if (!g_NowPlaying.Valid()) return;
     progress = progress < 0.0f ? 0.0f : (progress > 1.0f ? 1.0f : progress);
-    size_t pos = (size_t)(progress * (float)g_NowPlaying.pcm.size());
-    pos -= pos % (size_t)g_NowPlaying.channels;   // never split a frame
+    const double srcFrames = (double)(g_NowPlaying.pcm.size() / g_NowPlaying.channels);
     if (g_AudioDevice) SDL_LockAudioDevice(g_AudioDevice);
-    g_AudioPos = pos;
+    g_SrcPos = progress * srcFrames;
     state.audioProgress = progress;
     if (g_AudioDevice) SDL_UnlockAudioDevice(g_AudioDevice);
 }
