@@ -80,7 +80,7 @@ jobs:
         if: runner.os != 'Linux'
         shell: bash
         run: |
-          test -f build/ClimaxGameEngineToolkit || test -f build/Release/ClimaxGameEngineToolkit.exe
+          test -d build/ClimaxGameEngineToolkit.app || test -f build/Release/ClimaxGameEngineToolkit.exe || test -f build/ClimaxGameEngineToolkit
 
       # ── Package Archive ─────────────────────────────────────────────────────
       - name: Package release archive

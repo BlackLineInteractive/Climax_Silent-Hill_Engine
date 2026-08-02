@@ -203,6 +203,7 @@ if(APPLE)
         set(BU_CHMOD_BUNDLE_ITEMS ON)
         get_filename_component(APP_ABS \"\${CMAKE_INSTALL_PREFIX}/ClimaxGameEngineToolkit.app\" ABSOLUTE)
         fixup_bundle(\"\${APP_ABS}\" \"\" \"\")
+        execute_process(COMMAND codesign --force --deep --sign - \"\${APP_ABS}\")
     ")
 endif()
 
