@@ -1,6 +1,6 @@
 {
   "name": "climax-silent-hill-engine-toolkit",
-  "version-string": "1.0.0",
+  "version-string": "0.2.7",
   "description": "Climax Silent Hill Engine Toolkit — 3D Level Viewer & Archive Extractor",
   "dependencies": [
     "sdl2",

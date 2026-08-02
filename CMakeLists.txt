@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(SHOViewer VERSION 0.2 LANGUAGES CXX)
+project(Climax Game Engine Toolkit VERSION 0.2.7 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
