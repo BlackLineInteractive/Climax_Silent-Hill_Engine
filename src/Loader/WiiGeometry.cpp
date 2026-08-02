@@ -91,24 +91,47 @@ void WiiGeom::ReadMaterialList(const uint8_t* d, size_t size, size_t off,
             inner += 12 + ms.size;
         }
 
+        // Reads the first String inside a Texture chunk.
+        auto textureName = [&](const Chunk& tex) {
+            std::string name;
+            size_t t = tex.payload;
+            while (t + 12 <= tex.payload + tex.size) {
+                Chunk s2;
+                if (!ReadChunk(d, size, t, s2)) break;
+                if (s2.type == 0x0002) {
+                    const char* q = (const char*)d + s2.payload;
+                    name.assign(q, strnlen(q, s2.size));
+                    break;
+                }
+                t += 12 + s2.size;
+            }
+            return name;
+        };
+
         // Walk the material's remaining children for the Texture chunk; its
-        // first String child is the texture name.
+        // first String child is the texture name. The 0x0129 extension holds
+        // the alternate (frozen) texture; its header is 12 + count bytes, which
+        // holds on 1747 of 1771 materials.
         while (inner + 12 <= mat.payload + mat.size) {
             Chunk c;
             if (!ReadChunk(d, size, inner, c)) break;
-            if (c.type == 0x0006) {
-                size_t t = c.payload;
-                while (t + 12 <= c.payload + c.size) {
-                    Chunk s2;
-                    if (!ReadChunk(d, size, t, s2)) break;
-                    if (s2.type == 0x0002) {
-                        const char* p = (const char*)d + s2.payload;
-                        m.texName.assign(p, strnlen(p, s2.size));
-                        break;
+            if (c.type == 0x0003) {
+                size_t e = c.payload;
+                while (e + 12 <= c.payload + c.size) {
+                    Chunk x;
+                    if (!ReadChunk(d, size, e, x)) break;
+                    if (x.type == 0x0129 && x.size > 16) {
+                        const uint8_t count = d[x.payload + 5];
+                        size_t q = x.payload + 12 + count;
+                        Chunk tex;
+                        if (ReadChunk(d, size, q, tex) && tex.type == 0x0006 &&
+                            tex.version == 0x1C020065)
+                            m.altTexName = textureName(tex);
                     }
-                    t += 12 + s2.size;
+                    e += 12 + x.size;
                 }
             }
+            if (c.type == 0x0006 && m.texName.empty()) m.texName = textureName(c);
             inner += 12 + c.size;
         }
         out.push_back(std::move(m));
@@ -210,6 +233,7 @@ bool WiiGeom::ReadNative(const uint8_t* d, size_t size, size_t off,
                               ? (int)meshMaterial[m] + matListWindowBase : -1;
         if (matId >= 0 && matId < (int)materials.size()) {
             chunk.texName = materials[matId].texName;
+            chunk.altTexName = materials[matId].altTexName;
             chunk.matColor = materials[matId].color;
             chunk.untextured = !materials[matId].textured ||
                                materials[matId].texName.empty();
@@ -447,6 +471,7 @@ bool WiiGeom::ReadPlainGeometry(const uint8_t* d, size_t size, size_t structOff,
             chunk.materialIndex = (int)mi;
             if (mi < materials.size()) {
                 chunk.texName = materials[mi].texName;
+                chunk.altTexName = materials[mi].altTexName;
                 chunk.matColor = materials[mi].color;
                 chunk.untextured = !materials[mi].textured ||
                                    materials[mi].texName.empty();

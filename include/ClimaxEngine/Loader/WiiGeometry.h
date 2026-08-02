@@ -18,6 +18,13 @@
 
 struct WiiMaterial {
     std::string texName;
+    // The 0x0129 material extension names a second texture. It is not a shader
+    // layer: in 1727 of 1747 world materials it repeats the base texture, and
+    // in the other 20 it is the same surface in its frozen state
+    // (EN_SC_BK_ceiling -> EN_SC_BK_ceiling_Frozen, ..._Wall_A -> ..._Wall_B).
+    // That is the game's Otherworld swap, and it is the only extra texture the
+    // asset binds.
+    std::string altTexName;
     glm::vec4   color = glm::vec4(1.0f);
     bool        textured = false;
 };

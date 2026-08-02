@@ -85,6 +85,13 @@ struct MeshChunk {
   bool unlitGeometry = false; // vertex colours are all zero: no baked light
   bool untextured = false;
   bool alphaPass = false; // GreyAlpha_* mask, not a colour map
+  // Shattered Memories only. `altTexName` is the frozen-state texture the
+  // 0x0129 material extension names; `iceEffect` marks the surfaces the game
+  // shades as ice. The second one is a judgement call on the texture name --
+  // the GX TEV setup that produces the real look is set by game code and is
+  // not in the container, exactly like the PS2 blend mode.
+  std::string altTexName;
+  bool iceEffect = false;
   glm::vec4 matColor = glm::vec4(1.0f);
   int sectionIndex =
       -1; // index into g_ShoSections, -1 = not inside any section
@@ -289,6 +296,11 @@ struct ViewerState {
   float audioProgress = 0.0f;     // 0..1 through the current clip
   int  audioSelected = -1;        // index into g_Sounds, -1 = the dropped file
   char audioFilter[64] = "";
+
+  // Wii: draw the frozen variant of any material that has one, and shade the
+  // ice surfaces. Off by default -- both are approximations of engine state.
+  bool frozenVariant = false;
+  bool iceShading = true;
 };
 
 // ------------------- ГЛОБАЛЬНІ ДАНІ (Оголошення) -------------------

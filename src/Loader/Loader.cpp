@@ -1345,6 +1345,19 @@ static void ParseShsmContainer(const std::vector<uint8_t> &d) {
     off += 12 + size;
   }
 
+  // Ice and water are shaded by the GX TEV stages, which the container does
+  // not store -- the material only names a colour map and, sometimes, its
+  // frozen twin. The naming convention is the only marker in the data, so the
+  // surfaces are picked by name, the same hand-maintained approach the PS2
+  // effect sheets need.
+  static const char *kIceWords[] = {"ice", "frozen", "refract", "water"};
+  for (auto &c : g_Chunks) {
+    std::string low = c.texName;
+    for (auto &ch : low) ch = (char)tolower((unsigned char)ch);
+    for (const char *w : kIceWords)
+      if (low.find(w) != std::string::npos) { c.iceEffect = true; break; }
+  }
+
   size_t tris = 0;
   for (const auto &c : g_Chunks) tris += c.vertices.size() / 3;
   std::cout << "[shsm] " << g_ShoSections.size() << " sections, " << objects

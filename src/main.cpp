@@ -580,6 +580,7 @@ uniform int   renderMode;
 // 0=Textured 1=VertexColor 2=FlatShaded 3=Normals 4=Depth 5=Checker 6=Unlit
 uniform vec3  eyePos;
 uniform float depthMax;
+uniform bool  iceEffect;
 
 void main(){
     vec3 dx = dFdx(fragWorldPos);
@@ -623,6 +624,27 @@ void main(){
         col.rgb *= brightness;
         if(col.a < 0.05) discard;
         FragColor = col;
+    } else if(iceEffect){
+        // Ice and water.
+        //
+        // The real look comes from the Wii's TEV stages, which the container
+        // does not carry, so this is an approximation and not a decode: a
+        // Fresnel rim plus a sharp specular highlight over the colour map,
+        // with the surface normal taken from the screen-space derivatives the
+        // flat-shading path already uses.
+        vec4 tex = texture(t, TC);
+        if(tex.a < 0.02) discard;
+        vec3 V = normalize(eyePos - fragWorldPos);
+        vec3 L = normalize(vec3(0.45, 1.0, 0.35));
+        vec3 Nf = faceforward(N, -V, N);
+        float fres = pow(1.0 - clamp(dot(Nf, V), 0.0, 1.0), 3.0);
+        float spec = pow(max(dot(reflect(-L, Nf), V), 0.0), 48.0);
+        vec4 col = (useVertexColors && !unlitGeometry) ? tex * VC : tex;
+        col.rgb  = mix(col.rgb, vec3(0.62, 0.78, 0.92), 0.35 * fres);
+        col.rgb += vec3(0.55, 0.68, 0.80) * spec * 0.9;
+        col.rgb += vec3(0.10, 0.16, 0.22) * fres;
+        col.rgb *= brightness;
+        FragColor = vec4(col.rgb, col.a);
     } else {
         // Textured (default, renderMode == 0)
         vec4 tex = texture(t, TC);
@@ -912,6 +934,7 @@ void main(){
         const GLint uAdd    = glGetUniformLocation(p, "additive");
         const GLint uUnlit  = glGetUniformLocation(p, "unlitGeometry");
         const GLint uMatCol = glGetUniformLocation(p, "matColor");
+        const GLint uIce    = glGetUniformLocation(p, "iceEffect");
             const glm::mat4 identity(1.0f);
             // Two passes: opaque first with depth writes on, blended second
             // with them off. A blended surface that writes depth hides whatever
@@ -937,8 +960,12 @@ void main(){
                         (itG0 != g_TexGradient.end() && itG0->second);
                     if ((pass == 0) == blended) continue;
                 }
-                // Use the directly stored texName (set at load time per-geometry-object)
-                const std::string& tName = chunk.texName;
+                // Use the directly stored texName (set at load time per-geometry-object).
+                // Wii materials may name a frozen twin in their 0x0129
+                // extension; showing it is a straight swap.
+                const std::string& tName =
+                    (state.frozenVariant && !chunk.altTexName.empty())
+                        ? chunk.altTexName : chunk.texName;
                 GLuint tid = 0;
                 if (g_TextureMap.count(tName)) tid = g_TextureMap[tName];
                 if (!tid) {
@@ -985,6 +1012,7 @@ void main(){
                     }
                 glUniform1i(uAdd, addNow ? 1 : 0);
                 glUniform1i(uUnlit, chunk.unlitGeometry ? 1 : 0);
+                glUniform1i(uIce, (chunk.iceEffect && state.iceShading) ? 1 : 0);
                 if (addNow) {
                     glBlendFunc(GL_ONE, GL_ONE);
                     glDepthMask(GL_FALSE);
@@ -1478,6 +1506,34 @@ void main(){
         ImGui::Checkbox("Archive",   &state.showArc); ImGui::SameLine(128);
         ImGui::Checkbox("Manual",    &state.showManual);
         ImGui::Checkbox("Audio",     &state.showAudioPlayer);
+
+        // Wii-only options; hidden when the loaded container has neither.
+        {
+            bool anyIce = false, anyAlt = false;
+            for (const auto& c : g_Chunks) {
+                anyIce |= c.iceEffect;
+                anyAlt |= !c.altTexName.empty() && c.altTexName != c.texName;
+            }
+            if (anyIce || anyAlt) {
+                ImGui::Spacing();
+                ImGui::TextDisabled("Wii");
+                if (anyIce) {
+                    ImGui::Checkbox("Ice shading", &state.iceShading);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Fresnel and specular over the colour map.\n"
+                                          "An approximation: the real look comes from\n"
+                                          "the GX TEV stages, which the container does\n"
+                                          "not store.");
+                }
+                if (anyAlt) {
+                    ImGui::Checkbox("Frozen variant", &state.frozenVariant);
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Draw the alternate texture the material\n"
+                                          "names in its 0x0129 extension - the same\n"
+                                          "surface in its Otherworld state.");
+                }
+            }
+        }
 
         // ---- Export -------------------------------------------------
         if (haveModel) {

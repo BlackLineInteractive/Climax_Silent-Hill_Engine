@@ -21,8 +21,16 @@ Opens proprietary Climax Engine container files (no file extension — named lik
 ![Audio Test Room](media/audio-test-room.png)
 ![Ghost Rider](media/GR.png)
 
-![shsm wii](shsm-wii.png)
-![shsm wii s2](shsm-wii-s2.png)
+![SHSM Wii](media/shsm-wii.png)
+![SHSM Wii 2](media/shsm-wii-s2.png)
+![SHSM Wii 3](media/shsm-wii-3.png)
+![SHSM Wii 4](media/shsm-wii-4.png)
+![SHSM Wii 5](media/shsm-wii-5.png)
+![SHSM Wii 6](media/shsm-wii-6.png)
+![SHSM Wii 7](media/shsm-wii-7.png)
+![SHSM Wii 8](media/shsm-wii-8.png)
+![SHSM Wii 9](media/shsm-wii-9.png)
+![SHSM Wii 10](media/shsm-wii-10.png)
 
 ---
 
