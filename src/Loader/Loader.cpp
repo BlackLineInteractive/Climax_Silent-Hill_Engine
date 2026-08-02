@@ -2,6 +2,7 @@
 #include "ClimaxEngine/Core/Arc.h"
 #include "ClimaxEngine/Core/Common.h"
 #include "ClimaxEngine/Rendering/PS2Texture.h"
+#include "ClimaxEngine/Rendering/WiiTexture.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -1161,6 +1162,131 @@ static void ApplyAlphaMasks() {
   (void)g_TexInfo;
 }
 
+// ---------------------------------------------------------------------------
+// Shattered Memories containers
+//
+// Same chunk types as Origins, but with no 0x071C type directory and with the
+// section header fields in big-endian. Geometry is GameCube native data and is
+// not decoded yet; the texture dictionaries are, so a container loads as its
+// full texture set plus a section listing.
+//
+// docs/SHSM_ARC_FORMAT.md section 4 has the layout and the figures behind it.
+// ---------------------------------------------------------------------------
+static bool IsShsmContainer(const std::vector<uint8_t> &d) {
+  if (d.size() < 64) return false;
+  auto le = [&](size_t o) {
+    return (uint32_t)d[o] | ((uint32_t)d[o + 1] << 8) |
+           ((uint32_t)d[o + 2] << 16) | ((uint32_t)d[o + 3] << 24);
+  };
+  auto be = [&](size_t o) {
+    return ((uint32_t)d[o] << 24) | ((uint32_t)d[o + 1] << 16) |
+           ((uint32_t)d[o + 2] << 8) | (uint32_t)d[o + 3];
+  };
+  // Origins opens with the 0x071C type directory; Shattered Memories opens
+  // straight with a section. The version word is not a discriminator -- 1698 of
+  // the 1857 containers in data.arc carry the same RW 3.7.0.2 build 0x0065 that
+  // Origins uses, and only 159 carry Climax's own 0x1802FFFF. What separates
+  // them is the byte order: reading the section header big-endian yields a
+  // plausible tag in all 1857, and nonsense lengths on an Origins container.
+  if (le(0) != 0x0716) return false;
+  const uint32_t tagLen = be(16);
+  if (tagLen > 1024 || 20 + tagLen + 20 >= d.size()) return false;
+  const uint32_t nameLen = be(20 + tagLen + 16);
+  if (nameLen >= 256 || 20 + tagLen + 20 + nameLen > d.size()) return false;
+  return d[20 + tagLen + 20] == 'r' && d[20 + tagLen + 21] == 'w';
+}
+
+static void ParseShsmContainer(const std::vector<uint8_t> &d) {
+  g_ContainerChunks.clear();
+  g_ShoTypes.clear();
+  g_ShoSections.clear();
+  g_Clumps.clear();
+  g_GameObjects.clear();
+  g_Sounds.clear();
+  g_Collision.Free();
+
+  auto le = [&](size_t o) -> uint32_t {
+    if (o + 4 > d.size()) return 0;
+    return (uint32_t)d[o] | ((uint32_t)d[o + 1] << 8) |
+           ((uint32_t)d[o + 2] << 16) | ((uint32_t)d[o + 3] << 24);
+  };
+  auto be = [&](size_t o) -> uint32_t {
+    if (o + 4 > d.size()) return 0;
+    return ((uint32_t)d[o] << 24) | ((uint32_t)d[o + 1] << 16) |
+           ((uint32_t)d[o + 2] << 8) | (uint32_t)d[o + 3];
+  };
+
+  size_t off = 0;
+  int objects = 0, textures = 0;
+  size_t skipped = 0;
+  while (off + 12 <= d.size()) {
+    const uint32_t type = le(off);
+    const uint32_t size = le(off + 4);
+    if (size == 0 || off + 12 + size > d.size()) break;
+
+    if (type == 0x0704) {
+      objects++;
+      off += 12 + size;
+      continue;
+    }
+    if (type != 0x0716) {
+      off += 12 + size;
+      continue;
+    }
+
+    const size_t inner = off + 12;
+    const uint32_t headerSize = be(inner);
+    const uint32_t tagLen = be(inner + 4);
+    if (tagLen > 1024) { off += 12 + size; continue; }
+
+    const size_t guidOff = inner + 8 + tagLen;
+    const uint32_t nameLen = be(guidOff + 16);
+    ShoSection sec;
+    sec.offset = (uint32_t)off;
+    sec.size = size;
+    if (nameLen < 256 && guidOff + 20 + nameLen <= d.size()) {
+      const char *p = (const char *)&d[guidOff + 20];
+      sec.name.assign(p, strnlen(p, nameLen));
+    }
+    if (guidOff + 16 <= d.size())
+      sec.guid.assign((const char *)&d[guidOff], 16);
+
+    const size_t dataOff = inner + 4 + headerSize;
+    if (headerSize > 0 && dataOff + 8 <= d.size()) {
+      sec.dataStart = (uint32_t)dataOff;
+      sec.payloadSize = be(dataOff);
+    }
+    g_ShoSections.push_back(sec);
+
+    if (sec.name == "rwID_TEXDICTIONARY" && sec.dataStart + 4 + 12 <= d.size()) {
+      const size_t avail = d.size() - (sec.dataStart + 4);
+      const size_t len = sec.payloadSize && sec.payloadSize <= avail
+                             ? sec.payloadSize : avail;
+      std::vector<WiiTexture> tex;
+      const size_t declared = Wii::CountTextures(&d[sec.dataStart + 4], len);
+      Wii::ReadDictionary(&d[sec.dataStart + 4], len, tex);
+      skipped += declared > tex.size() ? declared - tex.size() : 0;
+      for (auto &t : tex) {
+        if (t.rgba.size() != (size_t)t.width * t.height * 4) continue;
+        RawTexture raw;
+        raw.name = t.name;
+        raw.width = t.width;
+        raw.height = t.height;
+        raw.depth = 32;
+        UploadDecodedTexture(raw, t.rgba);
+        textures++;
+      }
+    }
+    off += 12 + size;
+  }
+
+  std::cout << "[shsm] " << g_ShoSections.size() << " sections, " << objects
+            << " game objects, " << textures << " textures decoded";
+  if (skipped)
+    std::cout << " (" << skipped << " paletted, not supported yet)";
+  std::cout << "\n";
+}
+
 void LoadLevelData(const std::string &displayName,
                    const std::vector<uint8_t> &container,
                    const std::vector<NamedBlob> &txds) {
@@ -1175,6 +1301,20 @@ void LoadLevelData(const std::string &displayName,
   g_TextureMap.clear();
   g_TexInfo.clear();
   g_RawTextures.clear();
+
+  // Shattered Memories containers are the same chunk types with big-endian
+  // fields and no type directory; their geometry is GameCube native data that
+  // this loader cannot read yet, so they stop after sections and textures.
+  if (IsShsmContainer(container)) {
+    g_Chunks.clear();
+    g_MaterialNames.clear();
+    g_MeshTexMap.clear();
+    g_Cameras.clear();
+    ParseShsmContainer(container);
+    g_CurrentMeshContainer = displayName;
+    g_CurrentTxdPaths.clear();
+    return;
+  }
 
   // Structure first: LoadGeometryData needs the section ranges to know which
   // section each mesh belongs to, and therefore how it should be placed.

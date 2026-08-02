@@ -33,6 +33,9 @@ Opens proprietary Climax Engine container files (no file extension — named lik
   instanced wherever the game objects that reference them say, instead of piling up at 0,0,0
 - **Level cameras** — jump to any of the fixed cameras the game cuts between
 - **glTF 2.0 export** — one mesh per texture name, with embedded textures and level lights
+- **Shattered Memories (Wii)** — mounts `data.arc` / `igc.arc`, recurses into their
+  nested archives, labels entries from their contents (the archive stores no names),
+  and decodes the GameCube/Wii textures: CMPR, RGBA8, RGB5A3, I4/I8/IA4/IA8, RGB565
 - **Audio player** — the level's own sound bank (footsteps, doors, room tone), the 75 music
   streams from `MUSIC/`, and the 35 cutscene tracks from `IGC.ARC`, with seeking, looping
   and WAV export
@@ -290,6 +293,7 @@ src/
   PS2Texture.cpp/h— PS2 VRAM format decoder
   Arc.cpp/h       — SH.ARC ("A2.0") archive reader
   AudioParser.cpp/h— WAVEDICT / RWS / ADS / IGC audio decoders
+  WiiTexture.cpp/h— GameCube/Wii GX texture decoder
   Export.cpp/h    — glTF 2.0 / GLB writer (groups geometry by texture)
   Common.h/cpp    — shared state, types, globals
 vendor/            (Makefile build only — CMake fetches these into build/_deps)

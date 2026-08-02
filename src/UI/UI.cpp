@@ -280,6 +280,17 @@ void RenderManualWindow() {
     ImGui::BulletText("Checker - a grid on the UVs, shows stretched textures");
     ImGui::BulletText("Unlit - texture with no shading at all");
 
+    Head("Shattered Memories (Wii)");
+    ImGui::TextWrapped(
+        "Open data.arc or igc.arc the same way you open SH.ARC. These archives "
+        "keep no file names, so entries are labelled from what is inside them - "
+        "a texture name, an asset path, or an audio file name.");
+    ImGui::Spacing();
+    ImGui::TextWrapped(
+        "Click a container to load its textures; the Textures panel then works "
+        "as usual. The 3D view stays empty: the Wii geometry format is not read "
+        "yet.");
+
     Head("Sound");
     ImGui::TextWrapped(
         "The Audio panel opens by itself the first time there is something to "

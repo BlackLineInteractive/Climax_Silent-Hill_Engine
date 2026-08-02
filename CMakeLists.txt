@@ -110,6 +110,7 @@ set(APP_SOURCES
     src/Core/Arc.cpp
     src/Core/AudioParser.cpp
     src/Rendering/PS2Texture.cpp
+    src/Rendering/WiiTexture.cpp
     src/Rendering/RenderBackend.cpp
     src/Rendering/GLSLBackend.cpp
     src/Rendering/CPURasterizer.cpp

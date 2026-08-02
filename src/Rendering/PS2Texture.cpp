@@ -35,6 +35,24 @@ std::vector<uint8_t> UnswizzlePalette(const std::vector<uint8_t>& pal) {
 
 static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w, int h);
 
+// Wii rasters come out of the GX decoder as plain RGBA with real 0..255 alpha,
+// so they must skip the PS2 doubling that ProcessAndUploadTexture applies.
+void UploadDecodedTexture(RawTexture& raw, const std::vector<uint8_t>& rgba) {
+    if (raw.width <= 0 || raw.height <= 0) return;
+    if (rgba.size() < (size_t)raw.width * raw.height * 4) return;
+
+    size_t partial = 0, clear = 0;
+    const size_t total = (size_t)raw.width * raw.height;
+    for (size_t i = 0; i + 3 < rgba.size(); i += 4) {
+        const uint8_t a = rgba[i + 3];
+        if (a > 8 && a < 248) partial++;
+        else if (a <= 8) clear++;
+    }
+    raw.hasAlphaGradient = total && (partial * 100 / total) >= 15;
+    raw.hasTransparentTexels = total && (clear * 100 / total) >= 2;
+    UploadRGBA(raw, rgba, raw.width, raw.height);
+}
+
 void ProcessAndUploadTexture(RawTexture& raw) {
     int w = raw.width, h = raw.height;
     if (w <= 0 || h <= 0) return;

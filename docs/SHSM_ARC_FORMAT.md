@@ -8,8 +8,7 @@ texture format their dictionaries use.
 
 Everything below was derived by parsing the retail Wii disc image. Where a claim
 rests on a measurement, the figure is given. Where something is unresolved, it is
-marked as such rather than guessed — §10 lists what remains open, and §11 lists
-the claims in the earlier `FORMAT_ARC.md` that this document corrects.
+marked as such rather than guessed; §10 lists what remains open.
 
 ---
 
@@ -143,8 +142,33 @@ to the Nintendo RVL SDK (the same binary contains `arc.c`, `ARCInitHandle: bad
 archive format` and `HomeMenu%s.arc`, which are the SDK's own unrelated U8
 archive code). Nothing FNV- or Murmur-shaped appears anywhere.
 
-**Practical consequence.** Extraction works fine by index; names do not survive.
-The recoverable naming is per-content, described in §3 and §8.
+And there is **no name table in the executable either**. `main.dol` does carry
+archive data, but only more of the same: at 0x419378 it embeds a verbatim copy of
+the `data.arc` header and all 1995 entry records, and immediately after it the
+same for `igc.arc`, each introduced by the literal `EMBEDED` and the archive's
+file name. This is a cached directory so the game need not read the table from
+the disc. All 1995 keys are therefore "present in the executable", but only as
+that copy — a random control of 1995 values matches 0 times, and no key appears
+as a `lis`/`ori` immediate pair anywhere in the code (0 of 1995), so the game
+does not name resources by compiled-in constants either.
+
+A third archive is embedded at 0x3F9378: a complete 6-entry archive of boot
+resources — three binary tables, two texture containers and one XML config. Five
+of its six keys are byte-identical to keys in `data.arc`, which establishes that
+**the key is a global resource identifier, stable across archives**, not a
+per-archive index or a hash of a per-archive path.
+
+That last archive also yields the cleanest oracle available: its sixth entry
+decompresses to `<CONFIG ProductID="RVL-R5WE" …>`, so the resource the executable
+calls `$config.txt` has key `0x1586A83D`. Tested against FNV-1, FNV-1a, CRC-32 and
+its complement, Adler-32, a plain byte sum, and every `h = h·M + c` for
+M ∈ {31, 33, 37, 131, 1313, 65599, 16777619, 2654435761, 0x9E3779B1, 5381, 101,
+257, 0x1003F} × six initial values, over eight spellings of the name in four
+cases: no match.
+
+**Practical consequence.** Extraction works fine by index, and a key identifies a
+resource unambiguously and permanently. Names do not survive anywhere on the
+disc; the recoverable naming is per-content, described in §3 and §8.
 
 ### 2.5 Nested archives
 
@@ -240,6 +264,14 @@ anywhere. The file starts directly with the first `0x0716` section.
 
 **The section and object payloads are big-endian.** The chunk headers are not.
 
+**The version word does not identify the flavour.** Of the 1857 containers in
+`data.arc`, 1698 stamp their first chunk with the same RW 3.7.0.2 build 0x0065
+that Origins uses and only 159 carry Climax's `0x1802FFFF`. The reliable test is
+the byte order itself: read the section header big-endian and check that the tag
+comes out as an `rw*` string. That succeeds on 1857 of 1857 Shattered Memories
+containers and fails on an Origins one, whose little-endian lengths read as
+implausible numbers when taken the other way round.
+
 Everything else carries over. Over 250 containers the top level holds 2171
 `0x0716` sections and 1902 `0x0704` game objects, and nothing else. A container
 carries between 2 and 417 sections, 17.3 on average.
@@ -271,24 +303,27 @@ to catch an endianness mistake).
 
 ### 4.3 Section tags
 
-Counted over 250 containers:
+Counted over all 1857 containers in `data.arc`, which parse to 21 761 sections
+and 19 999 game objects without a single walk failure:
 
 | Count | Tag | Also in Origins |
 |-------|-----|-----------------|
-| 1004 | `rwID_HANIMANIMATION` | as a type, not as a section |
-| 584 | `rwID_TEXDICTIONARY` | yes |
-| 179 | `rwID_CLUMP` | yes |
-| 106 | `rwID_RWS` | yes |
-| 74 | `rwID_WORLD` | yes |
-| 57 | `rwID_DMORPHANIMATION` | new |
-| 39 | `rwID_AUDIODATA` | replaces `rwaID_WAVEDICT` |
-| 37 | `rwID_CBSP` | yes |
-| 26 | `rwID_AINAVMESH` | yes |
-| 24 | `rwID_SPLINE` | new |
-| 19 | `rwID_FUSESTATE` | new |
-| 9 | `rwpID_BODYDEF` | new |
+| 4827 | `rwID_TEXDICTIONARY` | yes |
+| 4146 | `rwID_HANIMANIMATION` | as a type, not as a section |
+| 1587 | `rwID_CLUMP` | yes |
+| 1184 | `rwID_RWS` | yes |
+| 646 | `rwID_WORLD` | yes |
+| 337 | `rwID_DMORPHANMSTREAM` | new |
+| 323 | `rwID_CBSP` | yes |
+| 310 | `rwID_AUDIODATA` | replaces `rwaID_WAVEDICT` |
+| 156 | `rwID_AINAVMESH` | yes |
+| 147 | `rwID_SPLINE` | new |
+| 64 | `rwID_DMORPHANIMATION` | new |
+| 20 | `rwID_FUSESTATE` | new |
 | 9 | `rwID_ZONEINFO` | new |
-| 4 | `rwID_DMORPHANMSTREAM` | new |
+| 9 | `rwpID_BODYDEF` | new |
+| 2 | `rwID_KFONT` | new |
+| 1 | `rwID_MTEFFECTDICT` | new |
 
 `rwID_HANIMANIMATION` being the most common section by a wide margin is the
 headline: Shattered Memories ships its skeletal animation as first-class sections
@@ -409,11 +444,33 @@ RGB5A3 and I4 texture without exception. The 20 that differ are all `C8`, which
 carries a separate palette the size field does not account for; that case is
 unresolved (§10).
 
+The decoder in this repository reads all 4827 dictionaries of `data.arc` and
+produces 20 030 images with no failures, and its output has been checked by eye:
+a CMPR character atlas, an RGB5A3 hair sheet with soft alpha and an RGBA8
+eyelash sheet all come out correct in colour, orientation and transparency,
+which is what rules out a wrong tile order or a swapped channel.
+
 Worked example: `CH_AdultCheryl_Jacket`, CMPR, 512×512, 4 mip levels.
 `131072 + 32768 + 8192 + 2048 = 174080`, which is exactly the `dataSize` field,
 and `108 + 174080 = 174188`, exactly the struct size.
 
-### 5.3 What the corpus looks like
+### 5.3 Tile layouts
+
+Each format stores whole tiles in reading order:
+
+* **CMPR** — an 8x8 tile is four 8-byte DXT1 sub-blocks covering (0,0), (4,0),
+  (0,4) and (4,4). Endpoint colours are big-endian, and the 2-bit indices run
+  from the *most* significant pair of each byte, the reverse of DXT1 elsewhere.
+  When `c0 <= c1` the fourth index is fully transparent.
+* **RGBA8** — a 4x4 tile is 64 bytes: 32 bytes of interleaved alpha/red first,
+  then 32 of green/blue.
+* **RGB5A3** — the top bit picks the encoding: set means 5 bits per channel and
+  full opacity, clear means 3 bits of alpha and 4 bits per channel.
+* **RGB565, IA8** — 4x4 tiles, 16 bits per texel, big-endian.
+* **I8, IA4** — 8x4 tiles, one byte per texel.
+* **I4** — 8x8 tiles, high nibble first.
+
+### 5.4 What the corpus looks like
 
 Format distribution over those 1217 textures: CMPR 1036, RGBA8 83, RGB5A3 70,
 C8 20, I4 8. Mip counts are 4 for 1188 of them and 1 for the remaining 29.
@@ -499,8 +556,11 @@ sizes follow the Nintendo GX specification.
 ## 10. Open questions
 
 * **The 32-bit key.** §2.4 records what it is not, across a wide and explicit
-  search. The remaining leads are to disassemble the PowerPC archive-open path in
-  `main.dol`, or to find a build-time manifest outside the disc.
+  search, including a known name/key pair. The evidence now points at an
+  identifier minted by the asset pipeline rather than derived from a name, in
+  which case no preimage exists on the disc at all. The remaining leads are to
+  disassemble the PowerPC resource-request path in `main.dol` and see what a
+  caller actually passes, or to find a build-time manifest outside the disc.
 * **`C8` texture data size.** The 20 paletted textures do not match the mip-chain
   formula; their palette is presumably counted differently, or stored separately.
 * **The `igc.arc` stream header.** The leading word equals the header length for
@@ -514,27 +574,3 @@ sizes follow the Nintendo GX specification.
   `rwaID_WAVEDICT` sound bank on the strength of its name and its 39 occurrences.
   Its payload has not been decoded.
 
----
-
-## 11. Corrections to the earlier `FORMAT_ARC.md`
-
-The note previously kept beside the extracted disc contains several claims that
-do not survive measurement:
-
-* *"nameHash — a 32-bit hash of the file name"*. Not established. §2.4 shows it
-  matches no common hash of any name recoverable from the data, and that two
-  entries share an internal name while having different keys.
-* *"igc.arc: 10 nested sub-archives, 19 uncompressed SHO chunks, 260 binary
-  streams"*. All 289 entries are stored uncompressed; the split is 10 nested
-  archives and 279 named audio streams.
-* *"offsets aligned to 0x800 / 0x1000"*. The real distribution spans 2 KB to
-  32 KB (§2.2).
-* *"100% compatibility of the 3D containers with Silent Hill Origins"*. The
-  RenderWare build matches, but the containers have no `0x071C` type directory
-  and their section and object fields are big-endian, so an Origins parser
-  reading them unchanged produces nonsense.
-* *"Directory `0x071C` contains a count of every game-object class"*. True of
-  Origins, absent from Shattered Memories.
-* The sample C++ reader is otherwise sound, but it treats a `uncompressedSize`
-  of zero as "uncompressed data or a sub-archive" without distinguishing the two,
-  and does not recurse into nested archives.
