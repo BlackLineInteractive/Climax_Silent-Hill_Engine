@@ -287,9 +287,12 @@ void RenderManualWindow() {
         "a texture name, an asset path, or an audio file name.");
     ImGui::Spacing();
     ImGui::TextWrapped(
-        "Click a container to load its textures; the Textures panel then works "
-        "as usual. The 3D view stays empty: the Wii geometry format is not read "
-        "yet.");
+        "Click a container to load it. Levels, props and characters all show up "
+        "in 3D with their textures, the same as the PlayStation 2 game.");
+    ImGui::Spacing();
+    ImGui::TextWrapped(
+        "Characters stand in their rest pose - the Wii skinning data is read but "
+        "not applied yet.");
 
     Head("Sound");
     ImGui::TextWrapped(

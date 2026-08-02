@@ -3,6 +3,7 @@
 #include "ClimaxEngine/Core/Common.h"
 #include "ClimaxEngine/Rendering/PS2Texture.h"
 #include "ClimaxEngine/Rendering/WiiTexture.h"
+#include "ClimaxEngine/Loader/WiiGeometry.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -1172,6 +1173,36 @@ static void ApplyAlphaMasks() {
 //
 // docs/SHSM_ARC_FORMAT.md section 4 has the layout and the figures behind it.
 // ---------------------------------------------------------------------------
+// Creates the GL objects for every chunk that does not have them yet. The
+// Origins path builds its buffers as it goes; the Wii decoder produces plain
+// vertex arrays and leaves the upload to here.
+static void UploadChunks() {
+  for (auto &m : g_Chunks) {
+    if (m.vao || m.vertices.empty()) continue;
+    glGenVertexArrays(1, &m.vao);
+    glGenBuffers(1, &m.vbo);
+    glBindVertexArray(m.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
+    glBufferData(GL_ARRAY_BUFFER, (GLsizei)(m.vertices.size() * sizeof(Vertex)),
+                 m.vertices.data(), GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, uv));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, color));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, boneWeights));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(4, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex),
+                          (void *)offsetof(Vertex, boneIds));
+    glEnableVertexAttribArray(4);
+    glBindVertexArray(0);
+  }
+}
+
 static bool IsShsmContainer(const std::vector<uint8_t> &d) {
   if (d.size() < 64) return false;
   auto le = [&](size_t o) {
@@ -1217,7 +1248,7 @@ static void ParseShsmContainer(const std::vector<uint8_t> &d) {
   };
 
   size_t off = 0;
-  int objects = 0, textures = 0;
+  int objects = 0, textures = 0, meshes = 0;
   size_t skipped = 0;
   while (off + 12 <= d.size()) {
     const uint32_t type = le(off);
@@ -1258,6 +1289,40 @@ static void ParseShsmContainer(const std::vector<uint8_t> &d) {
     }
     g_ShoSections.push_back(sec);
 
+    if (sec.name == "rwID_WORLD" && sec.dataStart + 4 + 12 <= d.size()) {
+      const size_t before = g_Chunks.size();
+      const size_t avail = d.size() - (sec.dataStart + 4);
+      const size_t len = sec.payloadSize && sec.payloadSize <= avail
+                             ? sec.payloadSize : avail;
+      // NOTE: the section is already in g_ShoSections, so the flag has to be
+      // set on the stored copy. Setting it on the local `sec` here left every
+      // stored section at isWorldSpace = false, and the renderer then hid all
+      // of them as unplaced models.
+      g_ShoSections.back().isWorldSpace = true;
+      WiiGeom::ReadWorld(d.data(), d.size(), sec.dataStart + 4, len,
+                         (int)g_ShoSections.size() - 1, g_Chunks,
+                         &g_MaterialNames);
+      meshes += (int)(g_Chunks.size() - before);
+    }
+
+    if ((sec.name == "rwID_CLUMP" || sec.name == "rwID_RWS") &&
+        sec.dataStart + 4 + 12 <= d.size()) {
+      // ReadClump bakes each atomic's composed frame matrix into its vertices,
+      // so the result is already in its final position and draws with identity.
+      // Marking it world-space is also what keeps it visible: the renderer
+      // hides a model section that no game object placed, and the Wii 0x0704
+      // records are not decoded yet.
+      g_ShoSections.back().isWorldSpace = true;
+      const size_t before = g_Chunks.size();
+      const size_t avail = d.size() - (sec.dataStart + 4);
+      const size_t len = sec.payloadSize && sec.payloadSize <= avail
+                             ? sec.payloadSize : avail;
+      WiiGeom::ReadClump(d.data(), d.size(), sec.dataStart + 4, len,
+                         (int)g_ShoSections.size() - 1, g_Chunks,
+                         &g_MaterialNames);
+      meshes += (int)(g_Chunks.size() - before);
+    }
+
     if (sec.name == "rwID_TEXDICTIONARY" && sec.dataStart + 4 + 12 <= d.size()) {
       const size_t avail = d.size() - (sec.dataStart + 4);
       const size_t len = sec.payloadSize && sec.payloadSize <= avail
@@ -1280,8 +1345,11 @@ static void ParseShsmContainer(const std::vector<uint8_t> &d) {
     off += 12 + size;
   }
 
+  size_t tris = 0;
+  for (const auto &c : g_Chunks) tris += c.vertices.size() / 3;
   std::cout << "[shsm] " << g_ShoSections.size() << " sections, " << objects
-            << " game objects, " << textures << " textures decoded";
+            << " game objects, " << textures << " textures, " << meshes
+            << " meshes / " << tris << " triangles";
   if (skipped)
     std::cout << " (" << skipped << " paletted, not supported yet)";
   std::cout << "\n";
@@ -1311,8 +1379,13 @@ void LoadLevelData(const std::string &displayName,
     g_MeshTexMap.clear();
     g_Cameras.clear();
     ParseShsmContainer(container);
+    UploadChunks();
     g_CurrentMeshContainer = displayName;
     g_CurrentTxdPaths.clear();
+    g_MeshTexMap.clear();
+    for (int ci = 0; ci < (int)g_Chunks.size(); ci++)
+      g_MeshTexMap[g_Chunks[ci].texName.empty() ? "NULL" : g_Chunks[ci].texName]
+          .push_back(ci);
     return;
   }
 

@@ -8,7 +8,7 @@ texture format their dictionaries use.
 
 Everything below was derived by parsing the retail Wii disc image. Where a claim
 rests on a measurement, the figure is given. Where something is unresolved, it is
-marked as such rather than guessed; §10 lists what remains open.
+marked as such rather than guessed; §11 lists what remains open.
 
 ---
 
@@ -442,7 +442,7 @@ dataSize = sum over mipCount levels, halving w and h each time, minimum 1
 equals the value this formula produces for 1197 of them — every CMPR, RGBA8,
 RGB5A3 and I4 texture without exception. The 20 that differ are all `C8`, which
 carries a separate palette the size field does not account for; that case is
-unresolved (§10).
+unresolved (§11).
 
 The decoder in this repository reads all 4827 dictionaries of `data.arc` and
 produces 20 030 images with no failures, and its output has been checked by eye:
@@ -482,7 +482,131 @@ before use — the same class of problem as the PS2 swizzle in
 
 ---
 
-## 6. Origins and Shattered Memories side by side
+## 6. Native geometry
+
+Meshes are shaped exactly like the Origins ones — a `BinMeshPLG` split table and
+a `NativeDataPLG` blob per sector — but the blob holds GX display lists and
+indexed attribute arrays instead of PS2 VIF packets, and it is big-endian.
+
+Both `rwID_WORLD` and `rwID_CLUMP` / `rwID_RWS` use the same blob, so one
+decoder covers levels, props and characters.
+
+### 6.1 `NativeDataPLG` (0x0510)
+
+The plugin wraps a `Struct` whose payload is:
+
+```
++0x00  u32 LE  platform, 6 = GameCube / Wii
++0x04  u32 LE  header block length
++0x08  u32 LE  data block length
+header block, big-endian:
+  +0x00  u32   flags
+  +0x04  u32   0
+  +0x08  u32   attribute count
+  +0x0C  attribute[], 12 bytes each:
+           u32  offset into the data block
+           u8   GX attribute id
+           u8   stride in bytes
+           u8   GX attribute type
+           u8   padding
+           u16  element count
+           u16  padding
+  then one 8-byte record per BinMesh mesh: [u32 dlOffset][u32 dlSize]
+data block: every display list first, then the attribute arrays
+```
+
+Attributes observed, with their fixed component layout:
+
+| Id | Attribute | Stride | Contents |
+|----|-----------|--------|----------|
+| 9  | `GX_VA_POS`  | 12 | 3 × float32 BE |
+| 10 | `GX_VA_NRM`  | 12 | 3 × float32 BE, unit length |
+| 11 | `GX_VA_CLR0` | 4  | RGBA8 |
+| 13 | `GX_VA_TEX0` | 8  | 2 × float32 BE |
+| 14 | `GX_VA_TEX1` | 8  | 2 × float32 BE, present in about half the sectors |
+
+The `type` byte is the GX attribute type and takes only two values: 2 is
+`GX_INDEX8` and 3 is `GX_INDEX16`. **It varies per attribute within one mesh**,
+and it is what fixes the width of that attribute's index in the display list —
+positions are usually 16-bit while normals and colours are often 8-bit.
+
+### 6.2 Display lists
+
+A display list is raw GX commands. Only one opcode occurs in the whole archive:
+`0x98`, `GX_DRAW_TRIANGLESTRIP` with vertex-attribute table 0. It is followed by
+a big-endian `u16` vertex count and then, per vertex, one index per enabled
+attribute in the order the attribute table lists them. Lists are zero-padded to
+a 32-byte boundary, so a zero opcode ends the list.
+
+Emitting triangles is the ordinary strip rule with alternating winding; a
+triangle with two equal corners is a stitch between strips, not a surface, and
+is dropped.
+
+`BinMeshPLG` is still the material table — mesh *n* uses material
+`meshMaterial[n] + matListWindowBase` — but its index counts describe the source
+geometry, not the display list, and do not match it. The GameCube exporter
+re-strips and welds: one sector declares 996 vertices and 560 triangles in its
+own header while the native data holds 406 positions, 206 normals, 7 colours and
+706 strip triangles. Use the native header for everything except the material
+mapping.
+
+### 6.3 Clumps
+
+Standard RenderWare, with the geometry stored natively as above:
+
+```
+0x0010 Clump
+  0x0001 Struct        atomic / light / camera counts
+  0x000E FrameList     [u32 count][frame[count]], 56 bytes each:
+                       3x3 rotation, position, parent index, flags
+  0x001A GeometryList  [u32 count] then one 0x000F Geometry each
+    0x000F Geometry
+      0x0001 Struct        empty for native geometry
+      0x0008 MaterialList
+      0x0003 Extension     BinMeshPLG + NativeDataPLG (+ Skin, DeltaMorph)
+  0x0014 Atomic        [u32 frameIndex][u32 geometryIndex][u32 flags][u32]
+```
+
+Frame matrices are relative to the parent and have to be composed down the
+hierarchy before an atomic's geometry sits where it belongs.
+
+**Not every geometry in a clump is native**, and assuming otherwise is what
+leaves every character without a face. A character's head is a plain
+RenderWare geometry — because it also carries delta-morph targets for facial
+animation — with everything inline in its `0x0001` struct, little-endian:
+
+```
+u32 flags, u32 numTriangles, u32 numVertices, u32 numMorphTargets
+if PRELIT:    numVertices x RGBA8
+if TEXTURED:  numTexCoordSets x numVertices x 2 floats
+triangles:    numTriangles x [u16 v2][u16 v1][u16 material][u16 v3]
+morph target: 4 floats bounding sphere, u32 hasVertices, u32 hasNormals,
+              then numVertices x 3 floats each as flagged
+```
+
+Bit 24 of `flags` is the native marker; when it is clear, read the struct.
+Adult_Cheryl's head declares 1723 triangles and 983 vertices, and
+16 + 7864 + 13784 + 24 + 11796 + 11796 comes to 45 280 bytes — exactly its
+declared struct size.
+
+### 6.4 Validation
+
+* The display-list sizes sum to **exactly** the offset of the first attribute
+  array, in every sector checked.
+* Every index in all 352 090 primitives of the sample falls inside its own
+  attribute array; no list runs off its declared length.
+* All **599 380** decoded positions land inside their own sector's bounding box,
+  with zero outliers, and the decoded normals are unit length (mean 0.9985).
+* Across the whole of `data.arc` the decoder reads all 1857 containers and 646
+  worlds and produces **4 912 840 triangles** in eight seconds without a single
+  failure.
+* Rendered offline: a level comes out as coherent floor plans, walls and round
+  columns, and a character clump assembles into a correctly posed figure with
+  hands, hair and shoes in the right places.
+
+---
+
+## 7. Origins and Shattered Memories side by side
 
 | | Origins (`SH.ARC`, PS2) | Shattered Memories (`data.arc`, Wii) |
 |---|---|---|
@@ -499,12 +623,13 @@ before use — the same class of problem as the PS2 swizzle in
 | Level sound bank | `rwaID_WAVEDICT` | `rwID_AUDIODATA` |
 | Animation sections | none as sections | `rwID_HANIMANIMATION`, most common tag |
 | Textures | PS2 PSMT4 / PSMT8 / PSMCT32 | GX CMPR / RGBA8 / RGB5A3 / C8 / I4 |
+| Geometry | PS2 VIF display lists | GX display lists, indexed attributes |
 | Music | `MUSIC/*.RWS`, VAG ADPCM | XM modules inside the archive |
 | Cutscene audio | `IGC.ARC/*.IGCStream`, ADS | 279 named streams in `igc.arc` |
 
 ---
 
-## 7. Reading an entry
+## 8. Reading an entry
 
 ```c
 struct ShsmArcHeader { uint32_t magic, entryCount, firstDataOffset, reserved; };
@@ -520,7 +645,7 @@ Everything past that point is big-endian except the RenderWare chunk headers.
 
 ---
 
-## 8. Recovering names
+## 9. Recovering names
 
 The archive gives none. Four sources inside the payloads do:
 
@@ -545,7 +670,7 @@ in practice.
 
 ---
 
-## 9. Sources
+## 10. Sources
 
 Figures come from parsing the retail Wii release. The RenderWare version unpack
 follows the standard library-ID formula; the GX texture formats and their tile
@@ -553,7 +678,7 @@ sizes follow the Nintendo GX specification.
 
 ---
 
-## 10. Open questions
+## 11. Open questions
 
 * **The 32-bit key.** §2.4 records what it is not, across a wide and explicit
   search, including a known name/key pair. The evidence now points at an
@@ -566,8 +691,15 @@ sizes follow the Nintendo GX specification.
 * **The `igc.arc` stream header.** The leading word equals the header length for
   most entries but not for the 19 tagged `0x0F01`. The rest of the block — the
   resource-name table and what follows it — is only partly mapped.
-* **The GX tile order** is stated here from the GX specification, not verified
-  against a decoded image, because the viewer does not yet decode Wii textures.
+* **Skinning.** Character clumps carry a `Skin PLG (0x0116)`, which this decoder
+  ignores, so they render in their rest pose.
+* **Delta-morph targets** (`0x0122`) are not read, so faces render in their
+  neutral shape and do not animate.
+* **Material effects.** Ice and water use a second texture coordinate set and
+  the GX TEV stages to blend a normal or refraction map (`..._Refract`,
+  `..._Nrm`); the viewer samples only TEX0, so those surfaces come out flat.
+  The TEV setup is not in the asset — reading it back from a Dolphin FIFO
+  capture is the practical route.
 * **The new section tags** — `rwID_SPLINE`, `rwID_FUSESTATE`, `rwpID_BODYDEF`,
   `rwID_ZONEINFO`, `rwID_DMORPHANIMATION` — are catalogued but not parsed.
 * **`rwID_AUDIODATA`** is assumed to be the counterpart of the Origins
