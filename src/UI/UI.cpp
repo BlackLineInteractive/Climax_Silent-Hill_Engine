@@ -326,7 +326,7 @@ void RenderManualWindow() {
     ImGui::BulletText("Bake instances - write a copy of a model at each place it is used");
     ImGui::Spacing();
     ImGui::TextWrapped("From the command line:");
-    ImGui::TextDisabled("  SHOViewer SH.ARC MO_1_Room102 --export room.glb");
+    ImGui::TextDisabled("  ClimaxGameEngineToolkit SH.ARC MO_1_Room102 --export room.glb");
 
     Head("Known limits");
     ImGui::BulletText("Animations are read but not played yet.");

@@ -48,7 +48,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install sdl2 glew glm dylibbundler
+          brew install sdl2 glew glm
 
       # ── Configure + build ───────────────────────────────────────────────────
       - name: Configure
@@ -69,7 +69,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri
           export LIBGL_ALWAYS_SOFTWARE=1
           xvfb-run -a --server-args="-screen 0 1280x720x24" \
-            timeout 10s ./build/SHOViewer 2> stderr.txt || true
+            timeout 10s ./build/ClimaxGameEngineToolkit 2> stderr.txt || true
           echo "--- stderr ---"; cat stderr.txt
           if grep -qiE "failed|\[shader\]" stderr.txt; then
             echo "::error::viewer reported errors on startup"; exit 1
@@ -80,7 +80,7 @@ jobs:
         if: runner.os != 'Linux'
         shell: bash
         run: |
-          test -f build/SHOViewer || test -f build/Release/SHOViewer.exe
+          test -f build/ClimaxGameEngineToolkit || test -f build/Release/ClimaxGameEngineToolkit.exe
 
       # ── Package Archive ─────────────────────────────────────────────────────
       - name: Package release archive
@@ -92,12 +92,11 @@ jobs:
             cp README.md LICENSE dist/
             cd dist && 7z a "../Climax_Game_Engine_Toolkit-${{ matrix.name }}.zip" *
           elif [ "${{ runner.os }}" = "macOS" ]; then
-            cp build/SHOViewer dist/
+            cmake --install build --prefix dist/
             cp README.md LICENSE dist/
-            dylibbundler -od -b -x dist/SHOViewer -d dist/libs -p @executable_path/libs
             cd dist && tar -czf "../Climax_Game_Engine_Toolkit-${{ matrix.name }}.tar.gz" *
           else
-            cp build/SHOViewer dist/
+            cp build/ClimaxGameEngineToolkit dist/
             cp README.md LICENSE dist/
             cd dist && tar -czf "../Climax_Game_Engine_Toolkit-${{ matrix.name }}.tar.gz" *
           fi

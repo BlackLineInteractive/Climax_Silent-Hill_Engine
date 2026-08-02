@@ -140,26 +140,26 @@ set(IMGUIZMO_SOURCES
 )
 
 # ── Target ────────────────────────────────────────────────────────────────────
-add_executable(SHOViewer
+add_executable(ClimaxGameEngineToolkit MACOSX_BUNDLE
     ${APP_SOURCES}
     ${IMGUI_SOURCES}
     ${IMGUIZMO_SOURCES}
 )
 
 if(MSVC)
-    target_compile_options(SHOViewer PRIVATE /W3 /utf-8 /permissive-)
-    target_compile_definitions(SHOViewer PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX)
+    target_compile_options(ClimaxGameEngineToolkit PRIVATE /W3 /utf-8 /permissive-)
+    target_compile_definitions(ClimaxGameEngineToolkit PRIVATE _CRT_SECURE_NO_WARNINGS NOMINMAX)
     # Console subsystem: the viewer logs shader/parser diagnostics to stderr.
-    set_target_properties(SHOViewer PROPERTIES WIN32_EXECUTABLE FALSE)
+    set_target_properties(ClimaxGameEngineToolkit PROPERTIES WIN32_EXECUTABLE FALSE)
 else()
-    target_compile_options(SHOViewer PRIVATE -Wall)
+    target_compile_options(ClimaxGameEngineToolkit PRIVATE -Wall)
 endif()
 
 if(SDL2_LIBRARY_DIRS)
-    target_link_directories(SHOViewer PRIVATE ${SDL2_LIBRARY_DIRS})
+    target_link_directories(ClimaxGameEngineToolkit PRIVATE ${SDL2_LIBRARY_DIRS})
 endif()
 if(SDL2_CFLAGS_OTHER)
-    target_compile_options(SHOViewer PRIVATE ${SDL2_CFLAGS_OTHER})
+    target_compile_options(ClimaxGameEngineToolkit PRIVATE ${SDL2_CFLAGS_OTHER})
 endif()
 
 set(EXTRA_LIBS)
@@ -173,10 +173,10 @@ endif()
 
 if(ENABLE_LIBRW)
     list(APPEND EXTRA_LIBS librw)
-    target_compile_definitions(SHOViewer PRIVATE ENABLE_LIBRW=1)
+    target_compile_definitions(ClimaxGameEngineToolkit PRIVATE ENABLE_LIBRW=1)
 endif()
 
-target_link_libraries(SHOViewer
+target_link_libraries(ClimaxGameEngineToolkit
     OpenGL::GL
     GLEW::GLEW
     ZLIB::ZLIB
@@ -187,18 +187,30 @@ target_link_libraries(SHOViewer
 
 # Expose the exact RW version the SHO PS2 binary uses as a compile definition
 # so that any translation unit can reference it with SHO_RW_VERSION.
-target_compile_definitions(SHOViewer PRIVATE
+target_compile_definitions(ClimaxGameEngineToolkit PRIVATE
     SHO_RW_VERSION=0x1c020065   # RenderWare 3.7.0.2 PS2
 )
 
-# ── Install ───────────────────────────────────────────────────────────────────
-install(TARGETS SHOViewer RUNTIME DESTINATION bin)
+install(TARGETS ClimaxGameEngineToolkit
+    BUNDLE DESTINATION .
+    RUNTIME DESTINATION bin
+)
+
+# On macOS, fixup the bundle by copying required dylibs inside the app package.
+if(APPLE)
+    install(CODE "
+        include(BundleUtilities)
+        set(BU_CHMOD_BUNDLE_ITEMS ON)
+        get_filename_component(APP_ABS \"\${CMAKE_INSTALL_PREFIX}/ClimaxGameEngineToolkit.app\" ABSOLUTE)
+        fixup_bundle(\"\${APP_ABS}\" \"\" \"\")
+    ")
+endif()
 
 # Windows: copy the SDL2/GLEW DLLs next to the executable so it runs from the
 # build tree and so CI can archive a self-contained folder.
 if(WIN32 AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.21)
-    add_custom_command(TARGET SHOViewer POST_BUILD
+    add_custom_command(TARGET ClimaxGameEngineToolkit POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                $<TARGET_RUNTIME_DLLS:SHOViewer> $<TARGET_FILE_DIR:SHOViewer>
+                $<TARGET_RUNTIME_DLLS:ClimaxGameEngineToolkit> $<TARGET_FILE_DIR:ClimaxGameEngineToolkit>
         COMMAND_EXPAND_LISTS)
 endif()

@@ -269,7 +269,7 @@ void ScanAudioLibrary() {
 
 // ---------------------------------------------------------------------------
 // Prefs: persist the last opened .arc path so the next launch auto-mounts it.
-// File: <basePath>/SHOViewer.prefs  (one line = arc path)
+// File: <basePath>/ClimaxGameEngineToolkit.prefs  (one line = arc path)
 // ---------------------------------------------------------------------------
 static std::string g_PrefsPath;
 
@@ -277,10 +277,10 @@ static void InitPrefsPath() {
     // SDL_GetBasePath() returns the directory containing the executable.
     char* base = SDL_GetBasePath();
     if (base) {
-        g_PrefsPath = std::string(base) + "SHOViewer.prefs";
+        g_PrefsPath = std::string(base) + "ClimaxGameEngineToolkit.prefs";
         SDL_free(base);
     } else {
-        g_PrefsPath = "SHOViewer.prefs";
+        g_PrefsPath = "ClimaxGameEngineToolkit.prefs";
     }
 }
 
@@ -484,8 +484,8 @@ int main(int argc, char* argv[]) {
     // Load only once a GL context exists — LoadLevel() uploads buffers and
     // textures, and it used to run before SDL was even initialised.
     //
-    //   SHOViewer SH.ARC [LevelName]        — mount the archive, load by name
-    //   SHOViewer <container> [txd ...]     — loose files; TXDs are optional
+    //   ClimaxGameEngineToolkit SH.ARC [LevelName]        — mount the archive, load by name
+    //   ClimaxGameEngineToolkit <container> [txd ...]     — loose files; TXDs are optional
     if (argc >= 2) {
         const std::string first = argv[1];
         const bool looksLikeArc =

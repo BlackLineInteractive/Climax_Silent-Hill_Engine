@@ -26,7 +26,7 @@ OBJS = $(SRCS:.cpp=.o)
 
 LIBS = -lGL -lGLEW -lz $(SDL2_LIBS)
 
-TARGET = SHOViewer
+TARGET = ClimaxGameEngineToolkit
 
 all: $(TARGET)
 

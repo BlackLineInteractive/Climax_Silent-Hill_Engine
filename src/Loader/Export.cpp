@@ -310,7 +310,7 @@ bool ExportGLB(const std::string& path, const GlbExportOptions& opt, std::string
 
     // ── 3. Assemble the JSON chunk ──────────────────────────────────────────
     std::ostringstream j;
-    j << "{\"asset\":{\"version\":\"2.0\",\"generator\":\"SHOViewer\"}";
+    j << "{\"asset\":{\"version\":\"2.0\",\"generator\":\"ClimaxGameEngineToolkit\"}";
     if (nLights) {
         j << ",\"extensionsUsed\":[\"KHR_lights_punctual\"]"
           << ",\"extensions\":{\"KHR_lights_punctual\":{\"lights\":[" << jLights.str() << "]}}";

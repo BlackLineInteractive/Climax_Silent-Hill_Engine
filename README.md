@@ -222,14 +222,14 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/sc
 Then run it — the TXD list is optional, textures may be embedded in the container:
 
 ```bash
-./build/SHOViewer path/to/MO_1_Room102 [texture.txd ...]
+./build/ClimaxGameEngineToolkit path/to/MO_1_Room102 [texture.txd ...]
 ```
 
 ### Makefile (local vendor/)
 
 ```bash
 make -j$(nproc)
-./SHOViewer path/to/MO_1_Room102 [texture.txd ...]
+./ClimaxGameEngineToolkit path/to/MO_1_Room102 [texture.txd ...]
 ```
 
 ---
@@ -239,7 +239,7 @@ make -j$(nproc)
 Preferred — point it at the game archive and pick levels by name:
 
 ```
-SHOViewer path/to/SH.ARC [LevelName]
+ClimaxGameEngineToolkit path/to/SH.ARC [LevelName]
 ```
 
 Without a level name the viewer just mounts the archive; use the **Archive** panel
@@ -250,13 +250,13 @@ the rooms they bridge, e.g. `MO_1_Room102-MO_1_PoolArea.txd`).
 Loose, already-extracted files still work:
 
 ```
-SHOViewer path/to/MO_1_Room102 [txd1 txd2 ...]
+ClimaxGameEngineToolkit path/to/MO_1_Room102 [txd1 txd2 ...]
 ```
 
 Export a level to glTF without opening the window:
 
 ```
-SHOViewer path/to/SH.ARC MO_1_Room102 --export room.glb
+ClimaxGameEngineToolkit path/to/SH.ARC MO_1_Room102 --export room.glb
 ```
 
 Container files have **no extension** — `MO_1_Room102`, `MO_1_Courtyard`, etc.
