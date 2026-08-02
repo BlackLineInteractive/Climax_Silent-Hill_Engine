@@ -48,7 +48,7 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE: "1"
         run: |
           brew untap aws/tap 2>/dev/null || true
-          brew install sdl2 glew glm
+          brew install sdl2 glew glm dylibbundler
 
       # ── Configure + build ───────────────────────────────────────────────────
       - name: Configure
@@ -91,6 +91,11 @@ jobs:
             cp build/Release/*.exe build/Release/*.dll dist/ 2>/dev/null || true
             cp README.md LICENSE dist/
             cd dist && 7z a "../Climax_Game_Engine_Toolkit-${{ matrix.name }}.zip" *
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            cp build/SHOViewer dist/
+            cp README.md LICENSE dist/
+            dylibbundler -od -b -x dist/SHOViewer -d dist/libs -p @executable_path/libs
+            cd dist && tar -czf "../Climax_Game_Engine_Toolkit-${{ matrix.name }}.tar.gz" *
           else
             cp build/SHOViewer dist/
             cp README.md LICENSE dist/
