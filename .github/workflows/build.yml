@@ -23,11 +23,15 @@ jobs:
         include:
           - name: linux-x64
             os: ubuntu-latest
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
           - name: macos-arm64
             os: macos-latest
           - name: macos-x64
             os: macos-13
           - name: windows-x64
+            os: windows-latest
+          - name: windows-arm64
             os: windows-latest
 
     steps:
@@ -58,7 +62,11 @@ jobs:
         run: |
           EXTRA=""
           if [ "${{ runner.os }}" = "Windows" ]; then
-            EXTRA="-DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
+            if [ "${{ matrix.name }}" = "windows-arm64" ]; then
+              EXTRA="-A ARM64 -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=arm64-windows"
+            else
+              EXTRA="-A x64 -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
+            fi
           fi
           cmake -B build -DCMAKE_BUILD_TYPE=Release $EXTRA
 
