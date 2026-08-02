@@ -15,6 +15,8 @@ jobs:
   build:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -107,22 +109,10 @@ jobs:
           path: Climax_Game_Engine_Toolkit-*.*
           if-no-files-found: error
 
-  release:
-    name: Create GitHub Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/Climax_Game_Engine_Toolkit_v')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: release-assets
-          merge-multiple: true
-
-      - name: Publish Release
+      - name: Publish Release Asset
+        if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/Climax_Game_Engine_Toolkit_v')
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/*
+          files: Climax_Game_Engine_Toolkit-*.*
           generate_release_notes: true
 
