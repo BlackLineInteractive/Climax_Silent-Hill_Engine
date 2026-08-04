@@ -252,6 +252,11 @@ struct ViewerState {
   float camPitch = 20.0f; // vertical   rotation, degrees  (-89..89)
   float camDist = 15.0f;  // zoom distance
 
+  // Free flight camera
+  bool useWASD = false;
+  float camPosX = 0.0f, camPosY = 2.0f, camPosZ = 15.0f;
+
+
   bool flipU = false;
   bool flipV = false;
   float uvOffsetX = 0.0f, uvOffsetY = 0.0f;

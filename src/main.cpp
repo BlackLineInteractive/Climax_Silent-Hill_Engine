@@ -302,6 +302,17 @@ static std::string LoadArcPref() {
 static glm::mat4 BuildView(glm::vec3& outEye) {
     float yRad = glm::radians(state.camYaw);
     float pRad = glm::radians(glm::clamp(state.camPitch, -89.0f, 89.0f));
+
+    if (state.useWASD) {
+        outEye = glm::vec3(state.camPosX, state.camPosY, state.camPosZ);
+        glm::vec3 fwd(
+             -cosf(pRad) * sinf(yRad),
+             -sinf(pRad),
+             -cosf(pRad) * cosf(yRad)
+        );
+        return glm::lookAt(outEye, outEye + fwd, glm::vec3(0, 1, 0));
+    }
+
     float dist = std::max(state.camDist, 0.1f);
 
     glm::vec3 target(state.camTargetX, state.camTargetY, state.camTargetZ);
@@ -800,13 +811,28 @@ void main(){
     bool sphereDragging = false;
     bool gizmoUsing     = false;
 
+    bool mouse_captured = false;
+    Uint32 last_tick = SDL_GetTicks();
+
     bool run = true;
     while (run) {
+        Uint32 now = SDL_GetTicks();
+        float dt = (now - last_tick) / 1000.0f;
+        if (dt > 0.1f) dt = 0.1f;
+        last_tick = now;
+
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             ImGui_ImplSDL2_ProcessEvent(&e);
 
             if (e.type == SDL_QUIT) run = false;
+            
+            if (e.type == SDL_KEYDOWN) {
+                if (e.key.keysym.sym == SDLK_m && state.useWASD) {
+                    mouse_captured = !mouse_captured;
+                    SDL_SetRelativeMouseMode(mouse_captured ? SDL_TRUE : SDL_FALSE);
+                }
+            }
 
             // Mouse wheel zoom — proportional so zooming stays usable at any scale
             if (e.type == SDL_MOUSEWHEEL && viewportOwnsMouse) {
@@ -815,7 +841,7 @@ void main(){
             }
 
             // Right mouse button drag → orbit (yaw / pitch)
-            if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT && viewportOwnsMouse) {
+            if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT && viewportOwnsMouse && !mouse_captured) {
                 mouseRight = true;
                 prevMouseX = e.button.x;
                 prevMouseY = e.button.y;
@@ -854,7 +880,7 @@ void main(){
             }
             // Once a drag has started it keeps running even if the cursor leaves the
             // viewport, otherwise the orbit stutters whenever it crosses a panel.
-            if (e.type == SDL_MOUSEMOTION && mouseRight) {
+            if (e.type == SDL_MOUSEMOTION && mouseRight && !mouse_captured) {
                 float dx = (float)(e.motion.x - prevMouseX);
                 float dy = (float)(e.motion.y - prevMouseY);
                 state.camYaw   += dx * 0.4f;
@@ -862,6 +888,36 @@ void main(){
                 prevMouseX = e.motion.x;
                 prevMouseY = e.motion.y;
             }
+            if (e.type == SDL_MOUSEMOTION && mouse_captured && state.useWASD) {
+                state.camYaw   -= e.motion.xrel * 0.4f;
+                state.camPitch  = glm::clamp(state.camPitch + e.motion.yrel * 0.4f, -89.0f, 89.0f);
+            }
+        }
+
+        const Uint8* keys = SDL_GetKeyboardState(nullptr);
+        if (state.useWASD) {
+            float yRad = glm::radians(state.camYaw);
+            float pRad = glm::radians(state.camPitch);
+            glm::vec3 fwd(
+                 -cosf(pRad) * sinf(yRad),
+                 -sinf(pRad),
+                 -cosf(pRad) * cosf(yRad)
+            );
+            glm::vec3 right = glm::normalize(glm::cross(fwd, glm::vec3(0, 1, 0)));
+            glm::vec3 flat_fwd = glm::normalize(glm::cross(glm::vec3(0, 1, 0), right));
+
+            float speed = 20.0f * dt;
+            if (keys[SDL_SCANCODE_LSHIFT]) speed *= 3.0f;
+
+            if (keys[SDL_SCANCODE_W]) { state.camPosX += flat_fwd.x * speed; state.camPosZ += flat_fwd.z * speed; }
+            if (keys[SDL_SCANCODE_S]) { state.camPosX -= flat_fwd.x * speed; state.camPosZ -= flat_fwd.z * speed; }
+            if (keys[SDL_SCANCODE_A]) { state.camPosX -= right.x * speed; state.camPosZ -= right.z * speed; }
+            if (keys[SDL_SCANCODE_D]) { state.camPosX += right.x * speed; state.camPosZ += right.z * speed; }
+            if (keys[SDL_SCANCODE_Q]) { state.camPosY -= speed; }
+            if (keys[SDL_SCANCODE_E]) { state.camPosY += speed; }
+        } else if (mouse_captured) {
+            mouse_captured = false;
+            SDL_SetRelativeMouseMode(SDL_FALSE);
         }
 
         // Logical window size — this is the coordinate space ImGui and ImGuizmo
@@ -1388,8 +1444,40 @@ void main(){
         ImGui::TextDisabled("Camera");
         ImGui::SetNextItemWidth(-1);
         ImGui::SliderFloat("##dist", &state.camDist, 1.0f, 200.0f, "Dist %.1f");
+
+        if (ImGui::Checkbox("Free Flight (WASD, M to toggle mouse)", &state.useWASD)) {
+            if (state.useWASD) {
+                state.showPivotGizmo = false;
+                // Sync position
+                float yRad = glm::radians(state.camYaw);
+                float pRad = glm::radians(glm::clamp(state.camPitch, -89.0f, 89.0f));
+                float dist = std::max(state.camDist, 0.1f);
+                glm::vec3 offset(
+                    dist * cosf(pRad) * sinf(yRad),
+                    dist * sinf(pRad),
+                    dist * cosf(pRad) * cosf(yRad)
+                );
+                state.camPosX = state.camTargetX + offset.x;
+                state.camPosY = state.camTargetY + offset.y;
+                state.camPosZ = state.camTargetZ + offset.z;
+            } else {
+                // Sync orbit target
+                float yRad = glm::radians(state.camYaw);
+                float pRad = glm::radians(glm::clamp(state.camPitch, -89.0f, 89.0f));
+                glm::vec3 fwd(
+                     -cosf(pRad) * sinf(yRad),
+                     -sinf(pRad),
+                     -cosf(pRad) * cosf(yRad)
+                );
+                state.camTargetX = state.camPosX + fwd.x * state.camDist;
+                state.camTargetY = state.camPosY + fwd.y * state.camDist;
+                state.camTargetZ = state.camPosZ + fwd.z * state.camDist;
+            }
+        }
+
         if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) {
             state.camTargetX = 0; state.camTargetY = 2; state.camTargetZ = 0;
+            state.camPosX = 0; state.camPosY = 2; state.camPosZ = 15;
             state.camYaw = 0; state.camPitch = 20; state.camDist = 15;
         }
 
@@ -1425,7 +1513,11 @@ void main(){
             ImGui::Spacing();
         }
 
-        ImGui::Checkbox("Pivot gizmo", &state.showPivotGizmo);
+        if (ImGui::Checkbox("Pivot gizmo", &state.showPivotGizmo)) {
+            if (state.showPivotGizmo) {
+                state.useWASD = false;
+            }
+        }
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Drag the arrows/planes to move the orbit pivot.\n"
                               "Hold Ctrl while dragging to snap.");
