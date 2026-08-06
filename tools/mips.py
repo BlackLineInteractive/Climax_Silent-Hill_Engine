@@ -23,7 +23,12 @@ I_OPS = {0x08: 'addi', 0x09: 'addiu', 0x0A: 'slti', 0x0B: 'sltiu',
 
 M_OPS = {0x20: 'lb', 0x21: 'lh', 0x23: 'lw', 0x24: 'lbu', 0x25: 'lhu',
          0x27: 'lwu', 0x28: 'sb', 0x29: 'sh', 0x2B: 'sw', 0x37: 'ld',
-         0x3F: 'sd', 0x1E: 'lq', 0x1F: 'sq'}
+         0x3F: 'sd', 0x1E: 'lq', 0x1F: 'sq',
+         # Unaligned access. The compiler leans on these constantly -- copying a
+         # 16-byte GUID is two ldl/ldr pairs and two sdl/sdr pairs -- so leaving
+         # them undecoded makes ordinary code unreadable.
+         0x22: 'lwl', 0x26: 'lwr', 0x2A: 'swl', 0x2E: 'swr',
+         0x1A: 'ldl', 0x1B: 'ldr', 0x2C: 'sdl', 0x2D: 'sdr'}
 
 SPECIAL = {0x20: 'add', 0x21: 'addu', 0x22: 'sub', 0x23: 'subu', 0x24: 'and',
            0x25: 'or', 0x26: 'xor', 0x27: 'nor', 0x2A: 'slt', 0x2B: 'sltu',
