@@ -80,11 +80,31 @@ void CResourceHandler::ProcessStream(const char* streamName, RWS::RwStream* stre
         
         auto loader = GetLoader(chunk.type);
         if (loader) {
-            size_t beforeRead = stream->Tell();
+            // The engine's own loop (RWS::CStreamHandler::ProcessStream at
+            // 0x002667B8 in Ghost Rider) never repositions the stream after a
+            // handler: every handler is required to consume exactly its chunk,
+            // and anything else desyncs the walk.
+            //
+            // We keep the corrective skip, because we run this recursively over
+            // sub-ranges rather than over real sub-streams, but a handler that
+            // does not honour the contract is now loud instead of silent. Every
+            // container bug found so far was exactly this kind of divergence.
+            const size_t beforeRead = stream->Tell();
             loader->Read(streamName, stream, chunk.size);
-            size_t bytesRead = stream->Tell() - beforeRead;
+            const size_t bytesRead = stream->Tell() - beforeRead;
+            if (bytesRead != chunk.size) {
+                std::cout << "[stream] handler for chunk 0x" << std::hex << chunk.type
+                          << std::dec << " read " << bytesRead << " of " << chunk.size
+                          << " bytes at " << chunkStart << " in '" << streamName
+                          << "'\n";
+            }
             if (bytesRead < chunk.size) {
                 stream->Skip(chunk.size - bytesRead);
+            } else if (bytesRead > chunk.size) {
+                // Over-read cannot be undone by skipping; the walk is already
+                // off the rails and every later chunk would be garbage.
+                std::cout << "[stream] over-read, abandoning '" << streamName << "'\n";
+                break;
             }
         } else {
             // Unhandled chunk, skip it

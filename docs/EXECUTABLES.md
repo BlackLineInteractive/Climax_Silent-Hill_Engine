@@ -158,7 +158,93 @@ container vocabulary is 17 chunk types, the shipped data uses exactly three of
 them, and the toolkit already handles all three. The other fourteen are engine
 capability that the game never exercised.
 
-### 1.4 Disassembling it
+### 1.5 Parsing the container the way the engine does
+
+Three functions define the whole container format, and each was read rather
+than inferred. Ghost Rider ships unstripped, so they carry their real names;
+Silent Hill Origins has the same code at different addresses.
+
+**`RWS::CStreamHandler::ProcessStream`** — the outer walk.
+
+```c
+ProcessStream(RwStream* s) {
+  goto check;
+loop:
+  RwStreamReadChunkHeaderInfo(s, &hdr);
+  entry = find(handlers, hdr.type);
+  if (entry == end) RwStreamSkip(s, hdr.length);   // unknown chunk
+  else              entry->handler(&hdr, s);        // known chunk
+check:
+  if (!IsEOF(s)) goto loop;
+  CloseStream(s);
+}
+```
+
+Two things matter. The loop is driven purely by end-of-stream, with no byte
+budget — this toolkit needs one because it runs the same walk recursively over
+sub-ranges instead of real sub-streams. And **the engine never repositions the
+stream after a handler**: every handler must consume exactly its chunk. That
+contract is now enforced by a tripwire in `CResourceHandler::ProcessStream`,
+which reports any handler that reads the wrong number of bytes. On the retail
+archive it fires zero times.
+
+**`RWS::LoadEmbeddedAsset`** — the `0x0716` section handler.
+
+```c
+u32 headerSize;  RwStreamRead(s, &headerSize, 4);
+void* buf = Alloc(headerSize);
+RwStreamRead(s, buf, headerSize);          // the header in one block
+u32 payloadSize; RwStreamRead(s, &payloadSize, 4);
+
+u32   tagLen  = *(u32*)buf;
+char* tag     = buf + 4;
+u8*   guid    = tag + tagLen;              // 16 bytes
+u32   nameLen = *(u32*)(guid + 0x10);
+char* name    = guid + 0x14;
+u32   pathLen = *(u32*)(name + nameLen);
+LoadResource(tag, guid, name, ..., s, payloadSize);
+```
+
+Every read is a plain little-endian `lw`; there is no byte swapping anywhere,
+which settles the byte order of the PlayStation 2 container for good. The engine
+also validates nothing — it reads a length, allocates, and walks with pointer
+arithmetic. Our own guards are therefore ours alone, and they must only ever
+reject corrupt data: a guard that rejected a valid `tagLen` is what silently
+disabled all geometry once.
+
+**`RWS::CAttributePacket::CreateEntity`** — the `0x0704` record walk.
+
+```c
+for (;;) {
+    if (*(u32*)(rec + 4) == 0x40000000)    // record kind is the top byte of id
+        copy16(rec + 8);                    // the GUID payload
+    rec += *(u32*)(rec + 0);                // advance by the record's own size
+}
+```
+
+Confirms `[u32 size][u32 id][payload]` to the byte, and that `0x40` is the GUID
+kind. See §1.2 and `tools/attrmap.py` for what the remaining kinds carry.
+
+Two further points fall out of reading the code, and both say the toolkit's
+current shape is already right.
+
+**`0x071C`, the type directory, is dead weight at runtime.** It has no entry in
+the handler table, and the constant appears nowhere in the container code — the
+three matches in the binary are ordinary numbers inside `CHellBike` and an
+unrelated `HandleAttributes`. The engine therefore meets it as an unknown chunk
+and skips it. It is build-tool metadata. Keeping it as a cross-check is
+worthwhile (254 of 255 retail containers hold exactly the object count it
+declares), but nothing may depend on it, and if it ever disagrees with the data
+the engine's own behaviour is to ignore it.
+
+**The section tag does not select a reader.** `rwID_WORLD`,
+`rwID_TEXDICTIONARY` and `rwID_CBSP` have zero code references; only
+`rwID_CLUMP` is mentioned at all, and not from the loader. Routing happens one
+level down, on the payload's own RenderWare chunk type -- `0x000B` World,
+`0x0010` Clump, `0x0016` TexDictionary, `0x1100` CBSP, `0x0809` WaveDict. The
+tag and GUID exist for the resource manager to find things by name later.
+
+### 1.6 Disassembling it
 
 `capstone` reads this with `CS_MODE_MIPS64 | CS_MODE_LITTLE_ENDIAN`. Plain
 `CS_MODE_MIPS32` decodes the R5900 as MIPS SIMD and produces nonsense
