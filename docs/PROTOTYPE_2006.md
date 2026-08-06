@@ -58,3 +58,18 @@ The subsequent files (1 through 60) are the actual levels and assets.
 Unlike the final game, where `.arc` files are cleanly separated, the prototype appears to encrypt or compress the downstream asset bundles using a proprietary scheme (no standard Zlib `78 DA` headers are visible).
 
 However, the internal payloads extracted via `attrmap.py` demonstrate that the raw geometry chunks inside these bundles rely on a twisted RenderWare header structure, frequently storing chunks as `[Size][Version][Type]` rather than `[Type][Size][Version]`.
+
+## 5. Game Executable (`EBOOT.BIN`)
+The game engine logic is contained entirely within `/PSP_GAME/SYSDIR/EBOOT.BIN`. As is standard for PSP games, this file is an encrypted PRX/ELF. 
+If decrypted (via PPSSPP or a PRX decrypter tool), it can be analyzed in Ghidra. Due to the early stage of development, this executable still carries the core `Ghost Rider` logic, property parsing maps (which `attrmap.py` decodes), and the `0x071C` Climax container dispatcher.
+
+## 6. Audio Files (`DATA/MUSIC/*.RWS`)
+Unlike the final game which uses custom Climax Audio Banks, the prototype relies directly on **RenderWare Audio Streams (`.RWS`)**.
+- Example files: `MUSTITLE.RWS`, `MUSCOMBA.RWS`, `MUSFREEZ.RWS`.
+- This confirms that audio middleware was entirely RenderWare-based at this stage before Climax transitioned to their bespoke sound engine for the final SHO release.
+
+## 7. PlayStation Portable Modules (`.prx`)
+The `USRDIR/module` and `USRDIR/kmodule` folders contain standard Sony SCE utility modules. These are not unique to Silent Hill but were used by the Ghost Rider engine to handle basic PSP hardware interfacing.
+- **Audio/Video:** `audiocodec.prx`, `videocodec.prx`, `mpeg.prx`, `libpsmfplayer.prx` (suggests video playback was implemented).
+- **Crypto/Hash:** `libmd5.prx`, `libsha1.prx`, `libbase64.prx`
+- **Other:** `libfont.prx` (PSP system font library), `libatrac3plus.prx` (Sony's proprietary audio codec, likely decoding the `.RWS` audio streams).
