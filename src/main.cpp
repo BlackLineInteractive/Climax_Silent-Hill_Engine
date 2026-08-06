@@ -702,6 +702,9 @@ void main(){
                 std::string path = e.drop.file;
                 SDL_free(e.drop.file);
 
+                // Update the file browser path to remember the directory
+                g_FileBrowser.currentPath = fs::path(path).parent_path().string();
+
                 // Anything the audio parser recognises is played; the sniff is
                 // on the contents, so the extension only decides whether it is
                 // worth reading the file at all.

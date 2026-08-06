@@ -1,6 +1,8 @@
 #include "ClimaxEngine/Loader/Export.h"
 #include "ClimaxEngine/Core/Common.h"
 #include "ClimaxEngine/SG/SceneObject.h"
+extern std::vector<MeshChunk> g_Chunks;
+
 
 #include <cstring>
 #include <fstream>
@@ -114,13 +116,13 @@ const TexPreviewInfo* FindTexInfo(const std::string& name) {
     return it != g_TexInfo.end() ? &it->second : nullptr;
 }
 
+
 } // namespace
 
 bool ExportGLB(const std::string& path, const GlbExportOptions& opt, std::string& error) {
     error.clear();
     
-    auto& objects = ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects();
-    if (objects.empty()) { error = "nothing loaded"; return false; }
+    if (g_Chunks.empty()) { error = "nothing loaded"; return false; }
 
 
     // ── 1. Group every mesh chunk by the texture it uses ────────────────────
@@ -134,9 +136,7 @@ bool ExportGLB(const std::string& path, const GlbExportOptions& opt, std::string
     };
     std::map<std::string, Group> groups;
 
-    for (auto& obj : objects) {
-        for (auto* chunkPtr : obj->GetMeshes()) {
-            const auto& chunk = *chunkPtr;
+    for (const auto& chunk : g_Chunks) {
         const ShoSection* sec = (chunk.sectionIndex >= 0 &&
                                  chunk.sectionIndex < (int)g_ShoSections.size())
                                 ? &g_ShoSections[chunk.sectionIndex] : nullptr;
@@ -352,6 +352,6 @@ bool ExportGLB(const std::string& path, const GlbExportOptions& opt, std::string
     f.write((const char*)bin.data.data(), (std::streamsize)bin.data.size());
 
     if (!f) { error = "write failed"; return false; }
-        }
-    }
+    return true;
+}
 
