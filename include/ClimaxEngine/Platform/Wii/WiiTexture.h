@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include "ClimaxEngine/Core/ITextureDecoder.h"
 
 // ---------------------------------------------------------------------------
 // GameCube / Wii native textures
@@ -66,5 +67,12 @@ void ReadDictionary(const uint8_t* data, size_t size,
 // How many TextureNative chunks a dictionary declares, decodable or not, so a
 // caller can report the ones that were skipped.
 size_t CountTextures(const uint8_t* data, size_t size);
+
+class WiiTextureDecoder : public ClimaxEngine::Core::ITextureDecoder {
+public:
+    void LoadDictionary(const std::vector<uint8_t>& data,
+                        const std::vector<std::string>& allowedNames,
+                        bool fallback) override;
+};
 
 } // namespace Wii

@@ -172,3 +172,112 @@ static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w,
     g_TexInfo[raw.name]  = pi;
     g_TexInfo[upper]     = pi;
 }
+namespace ClimaxEngine { namespace Platform { namespace PS2 {
+void PS2TextureDecoder::LoadDictionary(const std::vector<uint8_t>& data, const std::vector<std::string>& allowedNames, bool fallback) {
+  const size_t sz = data.size();
+  if (sz < 128)
+    return;
+
+  const int MAGIC_OFFSET = 80;
+  size_t pos = 0;
+
+  while (pos + 12 <= sz) {
+    if (pos + 100 > sz) break;   // not enough room for a minimal chunk + header
+    uint32_t type;
+    memcpy(&type, &data[pos], 4);
+    if (type == 0x15) {
+      // All bounds-checked: any out-of-range access skips the chunk.
+      uint32_t chunkSz;
+      memcpy(&chunkSz, &data[pos + 4], 4);
+      const size_t chunkEnd = pos + 12 + (size_t)chunkSz;
+      if (chunkEnd > sz || chunkSz < 64) { pos++; continue; }
+
+      size_t curr = pos + 32;
+      if (curr + 16 > sz) { pos++; continue; }
+
+      uint32_t sLen;
+      memcpy(&sLen, &data[curr + 4], 4);
+      if (sLen > 512 || curr + 12 + sLen + 12 > sz) { pos += 12 + chunkSz; continue; }
+      std::string tName = (sLen > 0) ? std::string((char*)&data[curr + 12], strnlen((char*)&data[curr + 12], sLen)) : "Unknown";
+      curr += 12 + sLen;
+
+      if (curr + 8 > sz) { pos += 12 + chunkSz; continue; }
+      memcpy(&sLen, &data[curr + 4], 4);
+      if (sLen > sz || curr + 12 + sLen + 24 + 56 > sz) { pos += 12 + chunkSz; continue; }
+      curr += 12 + sLen;
+      curr += 24;
+
+      // Raster header bounds check
+      if (curr + 56 > sz) { pos += 12 + chunkSz; continue; }
+
+      uint32_t w, h, d, rasterFormat;
+      memcpy(&w, &data[curr], 4);
+      memcpy(&h, &data[curr + 4], 4);
+      memcpy(&d, &data[curr + 8], 4);
+      memcpy(&rasterFormat, &data[curr + 12], 4);
+      uint32_t dSz, pSz;
+      memcpy(&dSz, &data[curr + 48], 4);
+      memcpy(&pSz, &data[curr + 52], 4);
+
+      // Sanity-check dimensions to reject garbage hits
+      if (w == 0 || h == 0 || w > 4096 || h > 4096 || d > 32
+          || dSz > sz || pSz > sz) {
+        pos += 12 + chunkSz; continue;
+      }
+      curr += 76;
+
+      uint32_t filterAddressing = 0;
+      if (pos + 28 + 4 <= sz)
+        memcpy(&filterAddressing, &data[pos + 28], 4);
+      const uint32_t addrU = (filterAddressing >> 8) & 0xF;
+      const uint32_t addrV = (filterAddressing >> 12) & 0xF;
+
+      RawTexture t;
+      t.name = tName;
+      t.width = w;
+      t.height = h;
+      t.depth = d;
+      t.clampU = (addrU == 3);
+      t.clampV = (addrV == 3);
+      t.paletteColors = ((rasterFormat & 0xF000) == 0x4000) ? 16 : 256;
+
+      bool nameAllowed = fallback;
+      if (!fallback) {
+        for (const auto &allowed : allowedNames) {
+          if (sho_stricmp(t.name.c_str(), allowed.c_str()) == 0) {
+            nameAllowed = true;
+            break;
+          }
+        }
+      }
+      if (!nameAllowed) {
+        pos += 12 + chunkSz;
+        continue;
+      }
+
+      if (curr + MAGIC_OFFSET + (dSz - MAGIC_OFFSET) <= sz &&
+          dSz > (uint32_t)MAGIC_OFFSET) {
+        t.pixels.resize(dSz - MAGIC_OFFSET);
+        memcpy(t.pixels.data(), &data[curr + MAGIC_OFFSET],
+               dSz - MAGIC_OFFSET);
+      }
+      curr += dSz;
+      if (pSz > (uint32_t)MAGIC_OFFSET &&
+          curr + MAGIC_OFFSET + (pSz - MAGIC_OFFSET) <= sz) {
+        t.palette.resize(pSz - MAGIC_OFFSET);
+        memcpy(t.palette.data(), &data[curr + MAGIC_OFFSET],
+               pSz - MAGIC_OFFSET);
+      }
+
+      if (!t.pixels.empty() &&
+          g_TextureMap.find(t.name) == g_TextureMap.end()) {
+        ProcessAndUploadTexture(t);
+      }
+
+      pos += 12 + chunkSz;
+      continue;
+    }
+    pos++;
+  }
+}
+} } }

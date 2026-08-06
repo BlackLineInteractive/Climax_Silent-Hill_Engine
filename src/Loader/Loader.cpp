@@ -48,115 +48,6 @@ std::vector<uint8_t> ReadWholeFile(const std::string &path) {
 }
 
 // ------------------- LOADER LOGIC -------------------
-void LoadTexturesFromTxdData(const std::vector<uint8_t> &data,
-                             const std::vector<std::string> &allowedNames,
-                             bool fallback) {
-  const size_t sz = data.size();
-  if (sz < 128)
-    return;
-
-  const int MAGIC_OFFSET = 80;
-  size_t pos = 0;
-
-  while (pos + 12 <= sz) {
-    if (pos + 100 > sz) break;   // not enough room for a minimal chunk + header
-    uint32_t type;
-    memcpy(&type, &data[pos], 4);
-    if (type == 0x15) {
-      // All bounds-checked: any out-of-range access skips the chunk.
-      uint32_t chunkSz;
-      memcpy(&chunkSz, &data[pos + 4], 4);
-      const size_t chunkEnd = pos + 12 + (size_t)chunkSz;
-      if (chunkEnd > sz || chunkSz < 64) { pos++; continue; }
-
-      size_t curr = pos + 32;
-      if (curr + 16 > sz) { pos++; continue; }
-
-      uint32_t sLen;
-      memcpy(&sLen, &data[curr + 4], 4);
-      if (sLen > 512 || curr + 12 + sLen + 12 > sz) { pos += 12 + chunkSz; continue; }
-      std::string tName = (sLen > 0) ? std::string((char*)&data[curr + 12], strnlen((char*)&data[curr + 12], sLen)) : "Unknown";
-      curr += 12 + sLen;
-
-      if (curr + 8 > sz) { pos += 12 + chunkSz; continue; }
-      memcpy(&sLen, &data[curr + 4], 4);
-      if (sLen > sz || curr + 12 + sLen + 24 + 56 > sz) { pos += 12 + chunkSz; continue; }
-      curr += 12 + sLen;
-      curr += 24;
-
-      // Raster header bounds check
-      if (curr + 56 > sz) { pos += 12 + chunkSz; continue; }
-
-      uint32_t w, h, d, rasterFormat;
-      memcpy(&w, &data[curr], 4);
-      memcpy(&h, &data[curr + 4], 4);
-      memcpy(&d, &data[curr + 8], 4);
-      memcpy(&rasterFormat, &data[curr + 12], 4);
-      uint32_t dSz, pSz;
-      memcpy(&dSz, &data[curr + 48], 4);
-      memcpy(&pSz, &data[curr + 52], 4);
-
-      // Sanity-check dimensions to reject garbage hits
-      if (w == 0 || h == 0 || w > 4096 || h > 4096 || d > 32
-          || dSz > sz || pSz > sz) {
-        pos += 12 + chunkSz; continue;
-      }
-      curr += 76;
-
-      uint32_t filterAddressing = 0;
-      if (pos + 28 + 4 <= sz)
-        memcpy(&filterAddressing, &data[pos + 28], 4);
-      const uint32_t addrU = (filterAddressing >> 8) & 0xF;
-      const uint32_t addrV = (filterAddressing >> 12) & 0xF;
-
-      RawTexture t;
-      t.name = tName;
-      t.width = w;
-      t.height = h;
-      t.depth = d;
-      t.clampU = (addrU == 3);
-      t.clampV = (addrV == 3);
-      t.paletteColors = ((rasterFormat & 0xF000) == 0x4000) ? 16 : 256;
-
-      bool nameAllowed = fallback;
-      if (!fallback) {
-        for (const auto &allowed : allowedNames) {
-          if (sho_stricmp(t.name.c_str(), allowed.c_str()) == 0) {
-            nameAllowed = true;
-            break;
-          }
-        }
-      }
-      if (!nameAllowed) {
-        pos += 12 + chunkSz;
-        continue;
-      }
-
-      if (curr + MAGIC_OFFSET + (dSz - MAGIC_OFFSET) <= sz &&
-          dSz > (uint32_t)MAGIC_OFFSET) {
-        t.pixels.resize(dSz - MAGIC_OFFSET);
-        memcpy(t.pixels.data(), &data[curr + MAGIC_OFFSET],
-               dSz - MAGIC_OFFSET);
-      }
-      curr += dSz;
-      if (pSz > (uint32_t)MAGIC_OFFSET &&
-          curr + MAGIC_OFFSET + (pSz - MAGIC_OFFSET) <= sz) {
-        t.palette.resize(pSz - MAGIC_OFFSET);
-        memcpy(t.palette.data(), &data[curr + MAGIC_OFFSET],
-               pSz - MAGIC_OFFSET);
-      }
-
-      if (!t.pixels.empty() &&
-          g_TextureMap.find(t.name) == g_TextureMap.end()) {
-        ProcessAndUploadTexture(t);
-      }
-
-      pos += 12 + chunkSz;
-      continue;
-    }
-    pos++;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // PS2 display-list geometry (see SH_FORMAT.md section 4)
@@ -1327,20 +1218,9 @@ static void ParseShsmContainer(const std::vector<uint8_t> &d) {
       const size_t avail = d.size() - (sec.dataStart + 4);
       const size_t len = sec.payloadSize && sec.payloadSize <= avail
                              ? sec.payloadSize : avail;
-      std::vector<WiiTexture> tex;
-      const size_t declared = Wii::CountTextures(&d[sec.dataStart + 4], len);
-      Wii::ReadDictionary(&d[sec.dataStart + 4], len, tex);
-      skipped += declared > tex.size() ? declared - tex.size() : 0;
-      for (auto &t : tex) {
-        if (t.rgba.size() != (size_t)t.width * t.height * 4) continue;
-        RawTexture raw;
-        raw.name = t.name;
-        raw.width = t.width;
-        raw.height = t.height;
-        raw.depth = 32;
-        UploadDecodedTexture(raw, t.rgba);
-        textures++;
-      }
+      std::vector<uint8_t> wiiData(&d[sec.dataStart + 4], &d[sec.dataStart + 4 + len]);
+      Wii::WiiTextureDecoder().LoadDictionary(wiiData, {}, true);
+      textures++;
     }
     off += 12 + size;
   }
@@ -1409,7 +1289,7 @@ void LoadLevelData(const std::string &displayName,
 
   // 1. Спочатку шукаємо строго за іменем
   for (const auto &[name, blob] : txds)
-    LoadTexturesFromTxdData(blob, g_MaterialNames, false);
+    ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(blob, g_MaterialNames, false);
 
   // 2. Якщо лишились незаповнені слоти – fallback
   std::vector<std::string> missing;
@@ -1418,11 +1298,11 @@ void LoadLevelData(const std::string &displayName,
       missing.push_back(mat);
   if (!missing.empty())
     for (const auto &[name, blob] : txds)
-      LoadTexturesFromTxdData(blob, missing, true);
+      ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(blob, missing, true);
 
   // Textures may also be embedded directly in the container.
   if (g_TextureMap.empty())
-    LoadTexturesFromTxdData(container, g_MaterialNames, true);
+    ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(container, g_MaterialNames, true);
 
   // Names a texture that no loaded dictionary provides. Those meshes bind
   // texture 0 and come out solid black, which looks exactly like an untextured
@@ -1490,7 +1370,7 @@ void LoadLevelData(const std::string &displayName,
 void LoadTexturesFromTxd(const std::string &txdPath,
                          const std::vector<std::string> &allowedNames,
                          bool fallback) {
-  LoadTexturesFromTxdData(ReadWholeFile(txdPath), allowedNames, fallback);
+  ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(ReadWholeFile(txdPath), allowedNames, fallback);
 }
 
 void LoadGeometry(const std::string &geomPath) {

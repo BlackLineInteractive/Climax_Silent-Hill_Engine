@@ -372,3 +372,39 @@ size_t Wii::CountTextures(const uint8_t* d, size_t size) {
     }
     return n;
 }
+
+#include "ClimaxEngine/Platform/PS2/PS2Texture.h"
+#include "ClimaxEngine/Core/Common.h"
+
+namespace Wii {
+
+void WiiTextureDecoder::LoadDictionary(const std::vector<uint8_t>& data,
+                                       const std::vector<std::string>& allowedNames,
+                                       bool fallback) {
+    std::vector<WiiTexture> tex;
+    ReadDictionary(data.data(), data.size(), tex);
+
+    for (auto& t : tex) {
+        if (t.rgba.size() != (size_t)t.width * t.height * 4) continue;
+
+        bool nameAllowed = fallback;
+        if (!fallback) {
+            for (const auto& allowed : allowedNames) {
+                if (sho_stricmp(t.name.c_str(), allowed.c_str()) == 0) {
+                    nameAllowed = true;
+                    break;
+                }
+            }
+        }
+        if (!nameAllowed) continue;
+
+        RawTexture raw;
+        raw.name = t.name;
+        raw.width = t.width;
+        raw.height = t.height;
+        raw.depth = 32;
+        UploadDecodedTexture(raw, t.rgba);
+    }
+}
+
+} // namespace Wii
