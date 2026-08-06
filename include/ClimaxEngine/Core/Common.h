@@ -198,7 +198,12 @@ struct GameObject {
   glm::vec3 position = glm::vec3(0.0f);
   bool atOrigin = true; // identity transform → not spatially placed
   uint32_t offset = 0;  // chunk offset, for the structure panel
-  std::vector<std::string> guidRefs; // raw 16-byte GUIDs of referenced sections
+  std::vector<std::string> guidRefs;
+  // A second 64-byte property some components carry (CZone property 3). It is
+  // the object's own volume, not where it stands, and keeping the two apart is
+  // what removed the need for a hand-maintained list of "volume classes".
+  glm::mat4 volume = glm::mat4(1.0f);
+  bool haveVolume = false; // raw 16-byte GUIDs of referenced sections
 
   // CColorLight payload. Component 1 property 0 is an RGBA colour; component 2
   // carries [type][cone angle in degrees][range][enabled].

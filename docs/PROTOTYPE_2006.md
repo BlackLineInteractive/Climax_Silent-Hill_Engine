@@ -60,8 +60,14 @@ Unlike the final game, where `.arc` files are cleanly separated, the prototype a
 However, the internal payloads extracted via `attrmap.py` demonstrate that the raw geometry chunks inside these bundles rely on a twisted RenderWare header structure, frequently storing chunks as `[Size][Version][Type]` rather than `[Type][Size][Version]`.
 
 ## 5. Game Executable (`EBOOT.BIN`)
-The game engine logic is contained entirely within `/PSP_GAME/SYSDIR/EBOOT.BIN`. As is standard for PSP games, this file is an encrypted PRX/ELF. 
-If decrypted (via PPSSPP or a PRX decrypter tool), it can be analyzed in Ghidra. Due to the early stage of development, this executable still carries the core `Ghost Rider` logic, property parsing maps (which `attrmap.py` decodes), and the `0x071C` Climax container dispatcher.
+The game engine logic is contained entirely within `/PSP_GAME/SYSDIR/EBOOT.BIN`. As is standard for PSP games, this file is an encrypted PRX/ELF, but remarkably, the prototype's `EBOOT.BIN` is a **raw, unencrypted ELF** (`\x7FELF`).
+
+Due to the early stage of development, this executable still carries the core `Ghost Rider` logic and property parsing maps (which `attrmap.py` decodes), as well as the `0x071C` Climax container dispatcher. The binary is stripped of its symbol table, meaning debugging symbols like `HandleAttributes` are absent.
+
+**Lore / Identity Crisis:**
+A string analysis of the `.rodata` and `.data` sections reveals a hilarious mix of assets, proving that Climax LA simply dropped the Silent Hill protagonist into a fully functioning Ghost Rider build:
+* **Silent Hill References:** `TravisGrady`, `CZone`, `Asylum_1flr_z1`
+* **Ghost Rider Leftovers:** `CHellBike.MPGhostRider`, `CBikeBossBehaviour`, `CDemonEssenceManager`, `CLilithBehaviour`, `character_classic_ghost_rider_unlock_seq`
 
 ## 6. Audio Files (`DATA/MUSIC/*.RWS`)
 Unlike the final game which uses custom Climax Audio Banks, the prototype relies directly on **RenderWare Audio Streams (`.RWS`)**.

@@ -608,6 +608,11 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
 
   bool haveClass = false;
   bool haveXform = false;
+  // A 0x80 record is not the instance name -- it opens a new component and
+  // names its class. Property indices restart at 0 inside each one, because
+  // the engine's attribute iterator is filtered by class id, so an index means
+  // nothing without knowing which component it belongs to.
+  std::string component;
 
   size_t p = body + 4; // the body opens with a 4-byte field we skip
   while (p + 8 <= bodyEnd) {
@@ -627,11 +632,23 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
         haveClass = true;
       }
     } else if (kind == 0x80) {
+      component = readName(payOff, payLen);
       if (go.instName.empty())
-        go.instName = readName(payOff, payLen);
+        go.instName = component;
     } else if (kind == 0x00 && payLen == 16) {
       go.guidRefs.emplace_back((const char *)&data[payOff], 16);
-    } else if (kind == 0x00 && idx == 1 && payLen == 64 && !haveXform) {
+    } else if (kind == 0x00 && payLen == 64 && component == "CZone" && idx == 3) {
+      // CZone carries its own 64-byte value as well. It is the zone's volume,
+      // not a placement -- measured on 120 containers: all 70 objects that hold
+      // two 64-byte properties are exactly (CSystemCommands, CZone) pairs.
+      memcpy(&go.volume[0][0], &data[payOff], 64);
+      go.haveVolume = true;
+    } else if (kind == 0x00 && idx == 1 && payLen == 64 &&
+               component == "CSystemCommands" && !haveXform) {
+      // The placement matrix always lives here: property 1 of the
+      // CSystemCommands component, in 3726 of 3726 placed objects across the
+      // sample. Keying on the index alone would let another component's
+      // 64-byte property win by arriving first.
       glm::mat4 m;
       memcpy(&m[0][0], &data[payOff], 64);
       m[0][3] = 0.0f;
@@ -648,18 +665,12 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
     return;
 
   if (haveXform) {
-    // Determine if this is a spatial transform vs a volume extent
-    bool isVolume = (go.className == "CPhysicsObject" || 
-                     go.className == "CZone" ||
-                     go.className == "CWaterZone" ||
-                     go.className == "CCameraZone" ||
-                     go.className == "CCameraArea");
-    if (!isVolume) {
-      go.position = glm::vec3(go.transform[3]);
-      go.atOrigin = (glm::length(go.position) < 1e-4f);
-    } else {
-      go.atOrigin = true; // don't use it as a mesh placement transform
-    }
+    // Every class is placed the same way, so there is no list of "volume
+    // classes" to maintain. What made those classes look different is that
+    // they carry a *second* 64-byte property of their own; that one is now
+    // read separately as go.volume and never mistaken for a placement.
+    go.position = glm::vec3(go.transform[3]);
+    go.atOrigin = (glm::length(go.position) < 1e-4f);
   }
 
   // Second pass for CColorLight: the payload is spread over two components.
