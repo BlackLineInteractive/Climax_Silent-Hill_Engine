@@ -1,9 +1,9 @@
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Core/Arc.h"
 #include "ClimaxEngine/Core/Common.h"
-#include "ClimaxEngine/Rendering/PS2Texture.h"
-#include "ClimaxEngine/Rendering/WiiTexture.h"
-#include "ClimaxEngine/Loader/WiiGeometry.h"
+#include "ClimaxEngine/Platform/PS2/PS2Texture.h"
+#include "ClimaxEngine/Platform/Wii/WiiTexture.h"
+#include "ClimaxEngine/Platform/Wii/WiiGeometry.h"
 #include <algorithm>
 #include <cmath>
 #include <cstring>

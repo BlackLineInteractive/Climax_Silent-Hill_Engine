@@ -21,7 +21,7 @@
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Rendering/CPURasterizer.h"
 #include "ClimaxEngine/UI/UI.h"
-#include "ClimaxEngine/Core/AudioParser.h"
+#include "ClimaxEngine/Platform/PS2/AudioParser.h"
 
 // ---------------------------------------------------------------------------
 // Audio playback

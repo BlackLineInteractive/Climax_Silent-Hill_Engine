@@ -1,4 +1,4 @@
-#include "ClimaxEngine/Rendering/WiiTexture.h"
+#include "ClimaxEngine/Platform/Wii/WiiTexture.h"
 
 #include <algorithm>
 #include <cstring>

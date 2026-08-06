@@ -1,4 +1,4 @@
-#include "ClimaxEngine/Rendering/PS2Texture.h"
+#include "ClimaxEngine/Platform/PS2/PS2Texture.h"
 #include <iostream>
 #include <algorithm>
 #include <cstring>

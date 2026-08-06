@@ -3,7 +3,7 @@
 #include <vector>
 #include <filesystem>
 
-#include "ClimaxEngine/Core/AudioParser.h"
+#include "ClimaxEngine/Platform/PS2/AudioParser.h"
 
 enum class FileBrowserMode {
     Arc,   // pick an .ARC archive to mount

@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include "ClimaxEngine/Core/AudioParser.h"
+#include "ClimaxEngine/Platform/PS2/AudioParser.h"
 
 namespace fs = std::filesystem;
 

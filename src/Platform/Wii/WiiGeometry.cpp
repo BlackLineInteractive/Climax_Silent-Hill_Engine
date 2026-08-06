@@ -1,4 +1,4 @@
-#include "ClimaxEngine/Loader/WiiGeometry.h"
+#include "ClimaxEngine/Platform/Wii/WiiGeometry.h"
 
 #include <algorithm>
 #include <cstring>

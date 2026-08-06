@@ -108,14 +108,14 @@ set(APP_SOURCES
     src/main.cpp
     src/Core/Common.cpp
     src/Core/Arc.cpp
-    src/Core/AudioParser.cpp
-    src/Rendering/PS2Texture.cpp
-    src/Rendering/WiiTexture.cpp
+    src/Platform/PS2/AudioParser.cpp
+    src/Platform/PS2/PS2Texture.cpp
+    src/Platform/Wii/WiiTexture.cpp
     src/Rendering/RenderBackend.cpp
     src/Rendering/GLSLBackend.cpp
     src/Rendering/CPURasterizer.cpp
     src/Loader/Loader.cpp
-    src/Loader/WiiGeometry.cpp
+    src/Platform/Wii/WiiGeometry.cpp
     src/Loader/Export.cpp
     src/UI/UI.cpp
 )
