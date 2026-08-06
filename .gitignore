@@ -30,6 +30,7 @@ Motel/
 *.TXD
 
 game/
+original_iso/
 
 # Editor / IDE
 .vscode/
