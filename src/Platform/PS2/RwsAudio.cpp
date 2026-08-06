@@ -79,9 +79,9 @@ int RwaVirtualVoice::Process(int16_t* out, int frames, bool loop) {
                 }
             }
             
-            // Push up to 4096 frames at a time
+            // Push up to 32768 frames at a time to prevent stuttering
             if (m_currentFrame < m_sourceFrames) {
-                size_t pushFrames = std::min<size_t>(4096, m_sourceFrames - m_currentFrame);
+                size_t pushFrames = std::min<size_t>(32768, m_sourceFrames - m_currentFrame);
                 const int16_t* srcPtr = m_clip.pcm.data() + m_currentFrame * m_clip.channels;
                 if (SDL_AudioStreamPut(m_stream, srcPtr, (int)pushFrames * sourceFrameSize) == -1) {
                     std::cerr << "[audio] SDL_AudioStreamPut failed: " << SDL_GetError() << "\n";
@@ -144,7 +144,7 @@ bool CAudioRelay::Init() {
     want.freq     = m_deviceRate;
     want.format   = AUDIO_S16SYS;
     want.channels = (Uint8)m_deviceChans;
-    want.samples  = 4096;
+    want.samples  = 8192; // Increased buffer to prevent stuttering
     want.callback = AudioCallbackStub;
     want.userdata = this;
 

@@ -1,4 +1,8 @@
 #include "ClimaxEngine/Loader/ResourceLoader.h"
+#include "ClimaxEngine/Platform/PS2/PS2Texture.h"
+#include "ClimaxEngine/Core/Common.h"
+
+
 #include <iostream>
 
 namespace ClimaxEngine {
@@ -96,7 +100,24 @@ bool CClumpStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t 
 
 bool CTexDictionaryStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
     std::cout << "[ResourceLoader] Found CTexDictionaryStreamLoader chunk (size: " << length << ")\n";
-    stream->Skip(length);
+    
+    std::vector<uint8_t> data(length + 12);
+    // Rewind back 12 bytes because PS2TextureDecoder expects the chunk header
+    stream->Seek(stream->Tell() - 12);
+    stream->Read(data.data(), length + 12);
+    
+    // Attempt to load dictionary for all remaining missing materials, or just blindly
+    std::vector<std::string> missing;
+    for (const auto &mat : ::g_MaterialNames) {
+        if (::g_TextureMap.find(mat) == ::g_TextureMap.end()) {
+            missing.push_back(mat);
+        }
+    }
+    
+    if (!missing.empty() || ::g_MaterialNames.empty()) {
+        ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(data, missing.empty() ? ::g_MaterialNames : missing, true);
+    }
+    
     return true;
 }
 
