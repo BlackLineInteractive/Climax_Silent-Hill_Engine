@@ -422,6 +422,20 @@ void LoadLevelData(const std::string &displayName,
     size_t m = 0;
     for (auto &o : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects())
       m += o->GetMeshes().size();
+    {
+      std::map<uint32_t, int> bm;
+      std::map<uint32_t, std::string> ex;
+      for (auto &o : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects())
+        for (auto *mc : o->GetMeshes()) {
+          bm[mc->blendMode]++;
+          if (mc->blendMode) ex[mc->blendMode] = mc->texName;
+        }
+      std::cout << "[scene] blend modes:";
+      for (auto &kv : bm)
+        std::cout << " " << kv.first << "=" << kv.second
+                  << (ex.count(kv.first) ? " (" + ex[kv.first] + ")" : "");
+      std::cout << "\n";
+    }
     std::cout << "[scene] " << g_MaterialNames.size() << " material names, "
               << g_TextureMap.size() << " textures; registered "
               << ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects().size()

@@ -1002,10 +1002,18 @@ void main(){
                         glUniform1i(uIce, (chunk.iceEffect && state.iceShading) ? 1 : 0);
 
                         if (addNow) {
+                            // ClimaxT1AtomicSetAlphaOpADD sets SRCBLEND to
+                            // rwBLENDSRCALPHA (5) and DESTBLEND to rwBLENDONE
+                            // (2) -- the source is scaled by its own alpha
+                            // before being added. GL_ONE, GL_ONE adds the full
+                            // colour instead, which is what made the headlight
+                            // beams read as flat white.
                             glBlendEquation(GL_FUNC_ADD);
-                            glBlendFunc(GL_ONE, GL_ONE);
+                            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
                             glDepthMask(GL_FALSE);
                         } else if (subNow) {
+                            // SUB sets the same two blend factors as ADD and
+                            // changes the equation instead.
                             glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
                             glBlendFunc(GL_SRC_ALPHA, GL_ONE);
                             glDepthMask(GL_FALSE);

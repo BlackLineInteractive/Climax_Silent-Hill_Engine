@@ -323,7 +323,10 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
             }
             texChild += 12 + tcSize;
           }
-          break;
+          // No break here. A Material's children are Struct, Texture, then
+          // Extension, and the extension is where the blend mode lives --
+          // stopping at the texture meant the 0x0A01 field was never read and
+          // every mesh came out as standard alpha.
         }
         child += 12 + cSize;
       }
