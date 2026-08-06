@@ -16,22 +16,6 @@
 #include <vector>
 
 // --- Utilits ---
-static size_t FindPattern(const std::vector<uint8_t> &d,
-                          const std::vector<uint8_t> &p, size_t s) {
-  if (d.size() < p.size())
-    return -1;
-  for (size_t i = s; i <= d.size() - p.size(); ++i) {
-    bool match = true;
-    for (size_t j = 0; j < p.size(); ++j)
-      if (d[i + j] != p[j]) {
-        match = false;
-        break;
-      }
-    if (match)
-      return i;
-  }
-  return -1;
-}
 
 std::vector<uint8_t> ReadWholeFile(const std::string &path) {
   std::ifstream f(path, std::ios::binary | std::ios::ate);
@@ -358,51 +342,34 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
     return names;
   };
 
-  // --- STEP 1: Collect all valid MaterialList positions ---
+  // --- STEP 1 & 2: Collect all valid MaterialList and BinMesh positions using strict chunk traversal ---
   std::vector<size_t> allMlPos;
-  {
-    size_t search = 0;
-    while (search + 12 < sz) {
-      size_t cand = FindPattern(data, {0x08, 0x00, 0x00, 0x00}, search);
-      if (cand == (size_t)-1)
-        break;
-      uint32_t mlSz = ru32(cand + 4);
-      if (mlSz < 12 || cand + 12 + mlSz > sz) {
-        search = cand + 1;
-        continue;
+  std::vector<size_t> allBinMeshPos;
+
+  auto walkChunks = [&](auto& self, size_t offset, size_t sizeLimit) -> void {
+      size_t p = offset;
+      while (p + 12 <= offset + sizeLimit && p + 12 <= sz) {
+          uint32_t type = ru32(p);
+          uint32_t csize = ru32(p + 4);
+          if (csize > sz || p + 12 + csize > sz) break;
+          
+          if (type == 0x08) allMlPos.push_back(p);
+          else if (type == 0x050E) allBinMeshPos.push_back(p);
+          
+          // Container types that have children
+          if (type == 0x14 || type == 0x16 || type == 0x0F || type == 0x10 || type == 0x24 || type == 0x0E || type == 0x0510) {
+              self(self, p + 12, csize);
+          }
+          p += 12 + csize;
       }
-      // Both the list and its Struct child must carry the RenderWare version.
-      // Without this the byte scan accepts anything shaped vaguely like a chunk:
-      // MO_1_Room102 came out with 453 material names across 3 "lists", one of
-      // which was a stretch of vertex data, and every geometry object after it
-      // then indexed into the wrong range and drew the wrong texture.
-      if (ru32(cand + 8) != 0x1C020065) {
-        search = cand + 1;
-        continue;
+  };
+
+  for (const auto& sec : g_ShoSections) {
+      if (sec.size > 0 && sec.offset + sec.size <= sz) {
+          walkChunks(walkChunks, sec.offset, sec.size);
       }
-      size_t fc = cand + 12;
-      if (ru32(fc) != 0x01 || ru32(fc + 8) != 0x1C020065 || ru32(fc + 4) < 4 ||
-          fc + 12 + ru32(fc + 4) > sz) {
-        search = cand + 1;
-        continue;
-      }
-      uint32_t numMat = ru32(fc + 12);
-      if (numMat == 0 || numMat > 512) {
-        search = cand + 1;
-        continue;
-      }
-      size_t fm = fc + 12 + ru32(fc + 4);
-      if (fm + 12 >= sz || ru32(fm) != 0x07) {
-        search = cand + 1;
-        continue;
-      }
-      allMlPos.push_back(cand);
-      search = cand + 1;
-    }
   }
 
-  // --- STEP 2: Collect all BinMesh sections, pair with nearest preceding ML
-  // ---
   struct BatchInfo {
     int matIndex;
     int vertexQuota;
@@ -418,17 +385,10 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
   std::vector<GeoObject> geoObjs;
 
   {
-    size_t search = 0;
-    while (search < sz) {
-      size_t cand = FindPattern(data, {0x0E, 0x05, 0x00, 0x00}, search);
-      if (cand == (size_t)-1)
-        break;
+    for (size_t cand : allBinMeshPos) {
       uint32_t flags = ru32(cand + 12);
       uint32_t numMeshes = ru32(cand + 16);
-      if (numMeshes == 0 || numMeshes > 4096) {
-        search = cand + 1;
-        continue;
-      }
+      if (numMeshes == 0 || numMeshes > 4096) continue;
       bool isTriList = (flags == 0);
 
       GeoObject go;
@@ -450,7 +410,6 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         curr += skip;
       }
       if (go.batches.empty()) {
-        search = cand + 1;
         continue;
       }
 
@@ -463,7 +422,6 @@ void LoadGeometryData(const std::vector<uint8_t> &data) {
         go.matNames = parseMaterialList(bestMl);
 
       geoObjs.push_back(std::move(go));
-      search = cand + 1;
     }
   }
 

@@ -116,6 +116,7 @@ set(APP_SOURCES
     src/Rendering/GLSLBackend.cpp
     src/Rendering/CPURasterizer.cpp
     src/Loader/Loader.cpp
+    src/Loader/ResourceLoader.cpp
     src/Platform/Wii/WiiGeometry.cpp
     src/Loader/Export.cpp
     src/UI/UI.cpp
