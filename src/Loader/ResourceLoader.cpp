@@ -15,16 +15,42 @@ bool RwChunk::Read(const uint8_t* d, size_t dataSize, size_t offset) {
     return true;
 }
 
+bool RwChunk::Read(RWS::RwStream* stream) {
+    uint32_t header[3];
+    if (stream->Read(header, 12) != 12) {
+        return false;
+    }
+    type = header[0];
+    size = header[1];
+    version = header[2];
+    
+    // Payload pointer cannot be used directly with RwStream if it's not memory stream, 
+    // but we can assume memory stream for now and use GetCurrentPointer.
+    if (auto* memStream = dynamic_cast<RWS::RwMemoryStream*>(stream)) {
+        payload = memStream->GetCurrentPointer();
+    }
+    return true;
+}
+
+CResourceHandler::CResourceHandler() {
+    // Automatically register standard loaders
+    RegisterLoader(std::make_shared<CWorldStreamLoader>());
+    RegisterLoader(std::make_shared<CClumpStreamLoader>());
+    RegisterLoader(std::make_shared<CTexDictionaryStreamLoader>());
+    RegisterLoader(std::make_shared<CAudioCuesStreamLoader>());
+    RegisterLoader(std::make_shared<CSHOSceneStreamLoader>());
+}
+
 CResourceHandler& CResourceHandler::GetInstance() {
     static CResourceHandler instance;
     return instance;
 }
 
-void CResourceHandler::AddLoader(uint32_t typeId, std::shared_ptr<CStreamLoader> loader) {
-    m_loaders[typeId] = loader;
+void CResourceHandler::RegisterLoader(std::shared_ptr<IStreamLoader> loader) {
+    m_loaders[loader->GetTypeID()] = loader;
 }
 
-std::shared_ptr<CStreamLoader> CResourceHandler::GetLoader(uint32_t typeId) const {
+std::shared_ptr<IStreamLoader> CResourceHandler::GetLoader(uint32_t typeId) const {
     auto it = m_loaders.find(typeId);
     if (it != m_loaders.end()) {
         return it->second;
@@ -32,49 +58,57 @@ std::shared_ptr<CStreamLoader> CResourceHandler::GetLoader(uint32_t typeId) cons
     return nullptr;
 }
 
-void CResourceHandler::ProcessStream(const uint8_t* data, size_t size) {
-    size_t offset = 0;
-    while (offset + 12 <= size) {
+void CResourceHandler::ProcessStream(const char* streamName, RWS::RwStream* stream, uint32_t streamSize) {
+    size_t startPos = stream->Tell();
+    while (stream->Tell() + 12 <= startPos + streamSize && !stream->IsEOF()) {
         RwChunk chunk;
-        if (!chunk.Read(data, size, offset)) {
+        if (!chunk.Read(stream)) {
             break;
         }
         
         auto loader = GetLoader(chunk.type);
         if (loader) {
-            loader->LoadStream(chunk, data, size);
+            // Loaders read the chunk payload themselves, so they should leave the stream at the end of the chunk
+            loader->Read(streamName, stream, chunk.size);
         } else {
-            // std::cout << "[loader] Unhandled chunk type: 0x" << std::hex << chunk.type << std::dec << "\n";
+            // Unhandled chunk, skip it
+            // std::cout << "[ResourceLoader] Unhandled chunk type: 0x" << std::hex << chunk.type << std::dec << "\n";
+            stream->Skip(chunk.size);
         }
         
-        offset += 12 + chunk.size;
+        // Ensure stream is properly aligned if a loader failed to read the entire chunk
     }
 }
 
 // --- Specific Loaders Stub ---
-// These will eventually populate our Scene Graph (CSceneObject) instead of returning raw structs.
-// For now they are just stubs to demonstrate the 1:1 architecture mapping.
 
-bool CWorldStreamLoader::LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) {
-    std::cout << "[ResourceLoader] Found World chunk (size: " << chunk.size << ")\n";
-    // TODO: Recursively parse World sub-chunks, extract materials, geometry, sectors
+bool CWorldStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
+    std::cout << "[ResourceLoader] Found CWorldStreamLoader chunk (size: " << length << ")\n";
+    stream->Skip(length);
     return true;
 }
 
-bool CClumpStreamLoader::LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) {
-    std::cout << "[ResourceLoader] Found Clump chunk (size: " << chunk.size << ")\n";
-    // TODO: Recursively parse Clump, FrameList, GeometryList, Atomics
+bool CClumpStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
+    std::cout << "[ResourceLoader] Found CClumpStreamLoader chunk (size: " << length << ")\n";
+    stream->Skip(length);
     return true;
 }
 
-bool CTexDictionaryStreamLoader::LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) {
-    std::cout << "[ResourceLoader] Found TexDictionary chunk (size: " << chunk.size << ")\n";
-    // TODO: Parse Texture Native chunks
+bool CTexDictionaryStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
+    std::cout << "[ResourceLoader] Found CTexDictionaryStreamLoader chunk (size: " << length << ")\n";
+    stream->Skip(length);
     return true;
 }
 
-bool CAudioCuesStreamLoader::LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) {
-    std::cout << "[ResourceLoader] Found AudioCues chunk (size: " << chunk.size << ")\n";
+bool CAudioCuesStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
+    std::cout << "[ResourceLoader] Found CAudioCuesStreamLoader chunk (size: " << length << ")\n";
+    stream->Skip(length);
+    return true;
+}
+
+bool CSHOSceneStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
+    std::cout << "[ResourceLoader] Found CSHOSceneStreamLoader chunk (size: " << length << ")\n";
+    stream->Skip(length);
     return true;
 }
 

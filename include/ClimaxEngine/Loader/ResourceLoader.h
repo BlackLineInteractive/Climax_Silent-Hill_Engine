@@ -1,10 +1,12 @@
 #pragma once
+
 #include <cstdint>
 #include <vector>
 #include <string>
-#include <functional>
 #include <memory>
 #include <map>
+#include "ClimaxEngine/Loader/IStreamLoader.h"
+#include "ClimaxEngine/Core/RWS/RwStream.h"
 
 namespace ClimaxEngine {
 namespace ResourceLoader {
@@ -15,54 +17,62 @@ struct RwChunk {
     uint32_t version = 0;
     const uint8_t* payload = nullptr;
     
-    // Returns true if parsing the 12-byte header succeeded and the payload fits in the buffer
     bool Read(const uint8_t* d, size_t dataSize, size_t offset);
-};
-
-class CStreamLoader {
-public:
-    virtual ~CStreamLoader() = default;
-    
-    // Process a chunk. Return true on success.
-    virtual bool LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) = 0;
+    bool Read(RWS::RwStream* stream);
 };
 
 class CResourceHandler {
 public:
     static CResourceHandler& GetInstance();
     
-    void AddLoader(uint32_t typeId, std::shared_ptr<CStreamLoader> loader);
-    std::shared_ptr<CStreamLoader> GetLoader(uint32_t typeId) const;
+    void RegisterLoader(std::shared_ptr<IStreamLoader> loader);
+    std::shared_ptr<IStreamLoader> GetLoader(uint32_t typeId) const;
     
-    // Parses a buffer containing a stream of RwChunks, dispatching to loaders.
-    void ProcessStream(const uint8_t* data, size_t size);
+    // Process stream chunks
+    void ProcessStream(const char* streamName, RWS::RwStream* stream, uint32_t streamSize);
     
 private:
-    CResourceHandler() = default;
-    std::map<uint32_t, std::shared_ptr<CStreamLoader>> m_loaders;
+    CResourceHandler();
+    std::map<uint32_t, std::shared_ptr<IStreamLoader>> m_loaders;
 };
 
 // --- Standard Climax / RenderWare Stream Loaders ---
 
-class CWorldStreamLoader : public CStreamLoader {
+class CWorldStreamLoader : public IStreamLoader {
 public:
-    bool LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) override;
+    uint32_t GetTypeID() const override { return 0x000B; }
+    const char* GetTypeName() const override { return "CWorldStreamLoader"; }
+    bool Read(const char* name, RWS::RwStream* stream, uint32_t length) override;
 };
 
-class CClumpStreamLoader : public CStreamLoader {
+class CClumpStreamLoader : public IStreamLoader {
 public:
-    bool LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) override;
+    uint32_t GetTypeID() const override { return 0x0010; }
+    const char* GetTypeName() const override { return "CClumpStreamLoader"; }
+    bool Read(const char* name, RWS::RwStream* stream, uint32_t length) override;
 };
 
-class CTexDictionaryStreamLoader : public CStreamLoader {
+class CTexDictionaryStreamLoader : public IStreamLoader {
 public:
-    bool LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) override;
+    uint32_t GetTypeID() const override { return 0x0016; }
+    const char* GetTypeName() const override { return "CTexDictionaryStreamLoader"; }
+    bool Read(const char* name, RWS::RwStream* stream, uint32_t length) override;
 };
 
-// Climax Engine specific loaders
-class CAudioCuesStreamLoader : public CStreamLoader {
+class CAudioCuesStreamLoader : public IStreamLoader {
 public:
-    bool LoadStream(const RwChunk& chunk, const uint8_t* streamStart, size_t streamSize) override;
+    uint32_t GetTypeID() const override { return 0x0F00; }
+    const char* GetTypeName() const override { return "CAudioCuesStreamLoader"; }
+    bool Read(const char* name, RWS::RwStream* stream, uint32_t length) override;
+};
+
+// Climax specifically has 0x0716 (SHO Model Container) and 0x071C (SHO World Container)
+// Ghost Rider symbols don't have them, but they exist in SHO. We map them explicitly.
+class CSHOSceneStreamLoader : public IStreamLoader {
+public:
+    uint32_t GetTypeID() const override { return 0x071C; } // Or 0x0716
+    const char* GetTypeName() const override { return "CSHOSceneStreamLoader"; }
+    bool Read(const char* name, RWS::RwStream* stream, uint32_t length) override;
 };
 
 } // namespace ResourceLoader

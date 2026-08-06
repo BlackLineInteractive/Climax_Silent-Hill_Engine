@@ -1,3 +1,5 @@
+#include "ClimaxEngine/Loader/ResourceLoader.h"
+#include "ClimaxEngine/Core/RWS/RwStream.h"
 #include "ClimaxEngine/SG/SceneObject.h"
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
@@ -1590,6 +1592,11 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   const size_t sz = data.size();
   if (sz < 16)
     return;
+
+  // New StreamLoader API
+  ClimaxEngine::RWS::RwMemoryStream memStream(data);
+  ClimaxEngine::ResourceLoader::CResourceHandler::GetInstance().ProcessStream("Container", &memStream, sz);
+
 
   const uint32_t RW_VER = 0x1c020065;
 
