@@ -2,6 +2,7 @@
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Core/Common.h"
+#include "ClimaxEngine/SG/SceneObject.h"
 #include "imgui.h"
 #include <algorithm>
 #include <cstring>
@@ -600,9 +601,13 @@ void RenderStructureWindow() {
         ? "(no level)"
         : fs::path(g_CurrentMeshContainer).filename().string();
 
-    size_t totalMeshes = g_Chunks.size();
+    size_t totalMeshes = 0;
     size_t totalTris   = 0;
-    for (const auto& ch : g_Chunks) totalTris += ch.vertices.size() / 3;
+    for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+        auto meshes = obj->GetMeshes();
+        totalMeshes += meshes.size();
+        for (auto* ch : meshes) totalTris += ch->vertices.size() / 3;
+    }
 
     ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
     bool rootOpen = ImGui::TreeNodeEx("##root",
@@ -614,11 +619,10 @@ void RenderStructureWindow() {
     }
 
     if (rootOpen) {
-        for (const auto& [texName, chunkIdxs] : g_MeshTexMap) {
+        for (const auto& [texName, meshes] : g_MeshTexMap) {
             size_t triCount = 0;
-            for (int ci : chunkIdxs)
-                if (ci < (int)g_Chunks.size())
-                    triCount += g_Chunks[ci].vertices.size() / 3;
+            for (auto* ch : meshes)
+                triCount += ch->vertices.size() / 3;
 
             // Resolve texture (try lowercase then uppercase)
             bool hasTex = g_TextureMap.count(texName) > 0;
@@ -655,16 +659,16 @@ void RenderStructureWindow() {
                 ImGui::PopStyleColor();
             } else {
                 ImGui::SameLine();
-                ImGui::TextDisabled("  %zu meshes  %zu tris", chunkIdxs.size(), triCount);
+                ImGui::TextDisabled("  %zu meshes  %zu tris", meshes.size(), triCount);
             }
 
             if (nodeOpen) {
-                for (int ci : chunkIdxs) {
-                    if (ci >= (int)g_Chunks.size()) continue;
-                    size_t t = g_Chunks[ci].vertices.size() / 3;
+                int ci = 0;
+                for (auto* ch : meshes) {
+                    size_t t = ch->vertices.size() / 3;
                     ImGui::Bullet();
                     ImGui::SameLine();
-                    ImGui::TextDisabled("Mesh #%d   (%zu tris)", ci, t);
+                    ImGui::TextDisabled("Mesh #%d   (%zu tris)", ci++, t);
                 }
                 ImGui::TreePop();
             }

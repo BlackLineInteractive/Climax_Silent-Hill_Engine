@@ -310,7 +310,6 @@ struct ViewerState {
 
 // ------------------- ГЛОБАЛЬНІ ДАНІ (Оголошення) -------------------
 extern ViewerState state;
-extern std::vector<MeshChunk> g_Chunks;
 extern std::vector<RawTexture> g_RawTextures;
 extern std::vector<std::string> g_MaterialNames;
 extern std::map<std::string, GLuint> g_TextureMap;
@@ -320,7 +319,7 @@ extern std::map<std::string, bool> g_TexGradient;
 // it must be drawn additively because nothing can cut the background away.
 extern std::map<std::string, bool> g_TexOpaque;
 extern std::vector<ContainerChunkInfo> g_ContainerChunks;
-extern std::map<std::string, std::vector<int>> g_MeshTexMap;
+extern std::map<std::string, std::vector<MeshChunk*>> g_MeshTexMap;
 
 // SHO container meta
 extern std::vector<ShoTypeEntry> g_ShoTypes;  // from file header type table

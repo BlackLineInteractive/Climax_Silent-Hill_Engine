@@ -267,35 +267,24 @@ void CPURasterizer::RasterizeTriangle(const Vertex& v0, const Vertex& v1, const 
     }
 }
 
-void CPURasterizer::RenderScene(const std::vector<MeshChunk>& chunks,
+void CPURasterizer::RenderScene(const std::vector<std::shared_ptr<ClimaxEngine::SG::CSceneObject>>& objects,
                                 const glm::mat4& mvp,
                                 const glm::vec3& eyePos) {
     const glm::mat4 identity(1.0f);
 
-    for (const auto& chunk : chunks) {
-        const RawTexture* tex = nullptr;
-        for (const auto& t : g_RawTextures) {
-            if (t.name == chunk.texName) { tex = &t; break; }
-        }
+    for (const auto& obj : objects) {
+        for (const auto* chunkPtr : obj->GetMeshes()) {
+            const auto& chunk = *chunkPtr;
+            const RawTexture* tex = nullptr;
+            for (const auto& t : g_RawTextures) {
+                if (t.name == chunk.texName) { tex = &t; break; }
+            }
 
-        const ShoSection* sec = (chunk.sectionIndex >= 0 &&
-                                 chunk.sectionIndex < (int)g_ShoSections.size())
-                                ? &g_ShoSections[chunk.sectionIndex] : nullptr;
-
-        auto drawTriangles = [&](const glm::mat4& modelMat) {
+            glm::mat4 modelMat = obj->GetTransform();
             glm::mat4 m = mvp * modelMat;
             for (size_t i = 0; i + 2 < chunk.vertices.size(); i += 3) {
                 RasterizeTriangle(chunk.vertices[i], chunk.vertices[i + 1], chunk.vertices[i + 2],
                                   m, modelMat, tex, eyePos);
-            }
-        };
-
-        if (!sec || sec->isWorldSpace || sec->instances.empty()) {
-            if (sec && !sec->isWorldSpace && !state.showUnplacedModels) continue;
-            drawTriangles(identity);
-        } else {
-            for (const auto& inst : sec->instances) {
-                drawTriangles(inst.transform);
             }
         }
     }

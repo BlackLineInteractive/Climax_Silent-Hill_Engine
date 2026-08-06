@@ -1,6 +1,9 @@
+#include "ClimaxEngine/SG/SceneObject.h"
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
+
+static std::vector<MeshChunk> g_Chunks;
 #include "ClimaxEngine/Platform/PS2/PS2Texture.h"
 #include "ClimaxEngine/Platform/Wii/WiiTexture.h"
 #include "ClimaxEngine/Platform/Wii/WiiGeometry.h"
@@ -1234,9 +1237,7 @@ void LoadLevelData(const std::string &displayName,
     g_CurrentMeshContainer = displayName;
     g_CurrentTxdPaths.clear();
     g_MeshTexMap.clear();
-    for (int ci = 0; ci < (int)g_Chunks.size(); ci++)
-      g_MeshTexMap[g_Chunks[ci].texName.empty() ? "NULL" : g_Chunks[ci].texName]
-          .push_back(ci);
+
     return;
   }
 
@@ -1316,10 +1317,56 @@ void LoadLevelData(const std::string &displayName,
 
   // Build per-texture mesh-chunk index map using the directly stored texName
   g_MeshTexMap.clear();
-  for (int ci = 0; ci < (int)g_Chunks.size(); ci++) {
-    const std::string &tName = g_Chunks[ci].texName;
-    g_MeshTexMap[tName.empty() ? "NULL" : tName].push_back(ci);
+  // Build per-texture mesh-chunk index map using the directly stored texName
+  g_MeshTexMap.clear();
+  // Wait, g_Chunks are moved into CSceneObjects now. 
+  // We will populate g_MeshTexMap down below after objects are created.
+  
+  // Phase 2: Convert to CSceneObjectRegistrar
+  ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().Clear();
+  for (const auto& sec : g_ShoSections) {
+      if (sec.isWorldSpace) {
+          auto obj = std::make_shared<ClimaxEngine::SG::CWorldObject>(sec.name.empty() ? "WorldSpace" : sec.name);
+          for (size_t i = 0; i < g_Chunks.size(); i++) {
+              if (g_Chunks[i].sectionIndex == &sec - g_ShoSections.data()) {
+                  obj->AddMesh(std::move(g_Chunks[i]));
+              }
+          }
+          ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().RegisterObject(obj);
+      } else {
+          for (size_t instIdx = 0; instIdx < sec.instances.size(); instIdx++) {
+              const auto& inst = sec.instances[instIdx];
+              std::string name = sec.name + "_Inst" + std::to_string(instIdx);
+              if (inst.gameObjectId >= 0 && inst.gameObjectId < (int)g_GameObjects.size()) {
+                  name = g_GameObjects[inst.gameObjectId].instName;
+              }
+              
+              auto obj = std::make_shared<ClimaxEngine::SG::CClumpObject>(name);
+              obj->SetTransform(inst.transform);
+              obj->skeleton = sec.skeleton;
+              obj->animClip = sec.animClip;
+              
+              for (size_t i = 0; i < g_Chunks.size(); i++) {
+                  if (g_Chunks[i].sectionIndex == &sec - g_ShoSections.data()) {
+                      // We must copy the mesh because multiple instances share the same geometry
+                      MeshChunk copy = g_Chunks[i];
+                      obj->AddMesh(std::move(copy));
+                  }
+              }
+              ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().RegisterObject(obj);
+          }
+      }
   }
+
+  // Populate g_MeshTexMap
+  g_MeshTexMap.clear();
+  for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+      for (auto* chunk : obj->GetMeshes()) {
+          const std::string &tName = chunk->texName;
+          g_MeshTexMap[tName.empty() ? "NULL" : tName].push_back(chunk);
+      }
+  }
+
   std::cerr << "[level] LoadLevelData complete.\n"; std::cerr.flush();
 }
 

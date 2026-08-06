@@ -11,7 +11,7 @@ std::map<std::string, TexPreviewInfo>   g_TexInfo;
 std::map<std::string, bool>             g_TexGradient;
 std::map<std::string, bool>             g_TexOpaque;
 std::vector<ContainerChunkInfo>         g_ContainerChunks;
-std::map<std::string, std::vector<int>> g_MeshTexMap;
+std::map<std::string, std::vector<MeshChunk*>> g_MeshTexMap;
 
 std::vector<ShoTypeEntry>  g_ShoTypes;
 std::vector<ShoSection>    g_ShoSections;

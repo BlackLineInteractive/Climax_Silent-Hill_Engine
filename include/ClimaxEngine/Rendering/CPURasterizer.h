@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ClimaxEngine/Core/Common.h"
+#include "ClimaxEngine/SG/SceneObject.h"
 #include <vector>
 #include <cstdint>
 #include <glm/glm.hpp>
@@ -15,7 +16,7 @@ public:
     void Resize(int width, int height);
 
     // Main render pass for scene geometry
-    void RenderScene(const std::vector<MeshChunk>& chunks,
+    void RenderScene(const std::vector<std::shared_ptr<ClimaxEngine::SG::CSceneObject>>& objects,
                      const glm::mat4& mvp,
                      const glm::vec3& eyePos);
 

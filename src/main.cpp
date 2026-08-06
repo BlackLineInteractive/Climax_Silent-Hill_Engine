@@ -17,6 +17,7 @@
 
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
+#include "ClimaxEngine/SG/SceneObject.h"
 #include "ClimaxEngine/Loader/Export.h"
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Rendering/CPURasterizer.h"
@@ -806,14 +807,18 @@ void main(){
         if (ImGui::IsKeyPressed(ImGuiKey_G,  false) && !io.WantCaptureKeyboard)
             state.showPivotGizmo = !state.showPivotGizmo;
 
-        const bool haveModel = !g_Chunks.empty();
+        size_t totalMeshes = 0;
+        for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+            totalMeshes += obj->GetMeshes().size();
+        }
+        const bool haveModel = totalMeshes > 0;
 
         if (state.renderDevice == RenderDevice::CPU) {
             // --- CPU Software Rasterization Pass ---
             g_CPURasterizer.Init(fbW, fbH);
             g_CPURasterizer.Clear(state.skyColorBot[0], state.skyColorBot[1], state.skyColorBot[2], 1.0f);
             if (haveModel) {
-                g_CPURasterizer.RenderScene(g_Chunks, mvp, eye);
+                g_CPURasterizer.RenderScene(ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects(), mvp, eye);
             }
             g_CPURasterizer.PresentOnScreen();
         } else {
@@ -871,12 +876,12 @@ void main(){
             // Advance animation time for all objects playing a clip
             static size_t s_lastLoadChunkCount = 0;
             static bool s_debugPrinted = false;
-            if (g_Chunks.size() != s_lastLoadChunkCount) {
-                s_lastLoadChunkCount = g_Chunks.size();
+            if (totalMeshes != s_lastLoadChunkCount) {
+                s_lastLoadChunkCount = totalMeshes;
                 s_debugPrinted = false;
             }
-            if (!s_debugPrinted && !g_Chunks.empty()) {
-                std::cerr << "[render] first frame: chunks=" << g_Chunks.size()
+            if (!s_debugPrinted && totalMeshes > 0) {
+                std::cerr << "[render] first frame: meshes=" << totalMeshes
                           << " sections=" << g_ShoSections.size()
                           << " gameObjects=" << g_GameObjects.size() << "\n";
                 std::cerr.flush();
@@ -887,7 +892,7 @@ void main(){
                     go.animTime += dt;
                 } // No auto-start: user picks clip from UI
             }
-            if (!s_debugPrinted && !g_Chunks.empty()) {
+            if (!s_debugPrinted && totalMeshes > 0) {
                 std::cerr << "[render] after anim loop OK\n";
                 std::cerr.flush();
             }
@@ -901,182 +906,88 @@ void main(){
             // with them off. A blended surface that writes depth hides whatever
             // stands behind it, which is why one semi-transparent sheet made the
             // next one disappear.
+            
+            ClimaxEngine::SG::RenderContext ctx;
+            ctx.viewProj = mvp;
+            ctx.eye = eye;
+            ctx.uM = uM;
+            ctx.uModel = uModel;
+            ctx.uUntex = uUntex;
+            ctx.uAdd = uAdd;
+            ctx.uUnlit = uUnlit;
+            ctx.uMatCol = uMatCol;
+            ctx.uIce = uIce;
+            ctx.uUseSkinning = glGetUniformLocation(p, "useSkinning");
+            ctx.textureMap = &g_TextureMap;
+            
             for (int pass = 0; pass < 2; pass++) {
-            for (const auto& chunk : g_Chunks) {
-                // "GreyAlpha_<base>" is the mask half of a two-pass transparency
-                // setup, white shapes on black. Drawing it as a colour map paints
-                // white branches over the tree. The base texture already carries
-                // its own alpha, so the mask pass is redundant here.
-                if (chunk.alphaPass) continue;
-                {
-                    // Effect sheets must never occlude each other. Some fire and
-                    // ember cards have near-binary alpha (FX_ember_Dahlia is 70%
-                    // clear / 4% partial / 24% opaque), so a gradient test alone
-                    // left them in the opaque pass where they wrote depth and hid
-                    // the softer flames behind them.
-                    auto itG0 = g_TexGradient.find(chunk.texName);
-                    const bool isFx = chunk.texName.size() > 3 &&
-                        sho_strnicmp(chunk.texName.c_str(), "FX_", 3) == 0;
-                    const bool blended = isFx || chunk.additive ||
-                        (itG0 != g_TexGradient.end() && itG0->second);
-                    if ((pass == 0) == blended) continue;
-                }
-                // Use the directly stored texName (set at load time per-geometry-object).
-                // Wii materials may name a frozen twin in their 0x0129
-                // extension; showing it is a straight swap.
-                const std::string& tName =
-                    (state.frozenVariant && !chunk.altTexName.empty())
-                        ? chunk.altTexName : chunk.texName;
-                GLuint tid = 0;
-                if (g_TextureMap.count(tName)) tid = g_TextureMap[tName];
-                if (!tid) {
-                    std::string alt = tName;
-                    for (auto& ch : alt) ch = (char)toupper((unsigned char)ch);
-                    if (g_TextureMap.count(alt)) tid = g_TextureMap[alt];
-                }
-                if (!tid) {
-                    std::string alt = tName;
-                    for (auto& ch : alt) ch = (char)tolower((unsigned char)ch);
-                    if (g_TextureMap.count(alt)) tid = g_TextureMap[alt];
-                }
-                // A material with no texture chunk and a pure white colour is a
-                // placeholder sheet the game does not draw — those were the white
-                // cards standing in front of the fir trees. Untextured materials
-                // Materials with no texture chunk paint solid white cards over
-                // characters and props, so they stay hidden until the real rule
-                // for them is known.
-                if (chunk.untextured) continue;
-                // An FX sheet whose alpha is a gradient fades out by itself and
-                // must be alpha-blended: forcing it additive ignored the alpha
-                // entirely and drew the whole quad, so the fire cards showed
-                // their rectangular borders.
-                // Blending is NOT recorded in the container: on PS2 it is the
-                // GS ALPHA register, set per draw. FX_fire_Dahlia and FX_Flare_01
-                // have identical signatures in the asset (flat opaque alpha, no
-                // gradient, no clear texel) yet need opposite treatment, so no
-                // rule derived from the texture can separate them.
-                //
-                // Everything therefore blends normally — that is what makes the
-                // fire, the smoke and the TV screen come out right — and only the
-                // glow sprites listed here are additive. They fade through their
-                // COLOUR over a black surround, so alpha blending would draw that
-                // surround as a black card.
-                static const char* kAdditiveNames[] = {
-                    "FX_Flare", "FX_Glow", "FX_Halo", "FX_Corona", "FX_Lens",
-                };
-                bool addNow = false;
-                for (const char* pre : kAdditiveNames)
-                    if (tName.size() >= strlen(pre) &&
-                        sho_strnicmp(tName.c_str(), pre, strlen(pre)) == 0) {
-                        addNow = true;
-                        break;
-                    }
-                glUniform1i(uAdd, addNow ? 1 : 0);
-                glUniform1i(uUnlit, chunk.unlitGeometry ? 1 : 0);
-                glUniform1i(uIce, (chunk.iceEffect && state.iceShading) ? 1 : 0);
-                if (addNow) {
-                    glBlendFunc(GL_ONE, GL_ONE);
-                    glDepthMask(GL_FALSE);
-                } else {
-                    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    // Blended geometry must not write depth or it hides whatever
-                    // stands behind it.
-                    glDepthMask(pass == 0 ? GL_TRUE : GL_FALSE);
-                }
-                glBindTexture(GL_TEXTURE_2D, tid);
-                // A resolved-but-missing texture still renders as a flat material.
-                glUniform1i(uUntex, (chunk.untextured || tid == 0) ? 1 : 0);
-                glUniform4fv(uMatCol, 1, glm::value_ptr(chunk.matColor));
-                glBindVertexArray(chunk.vao);
-
-                // World geometry draws once; a model section draws once per game
-                // object that placed it, and not at all when nothing references it.
-                const ShoSection* sec = (chunk.sectionIndex >= 0 &&
-                                         chunk.sectionIndex < (int)g_ShoSections.size())
-                                        ? &g_ShoSections[chunk.sectionIndex] : nullptr;
-                if (!sec || sec->isWorldSpace || sec->instances.empty()) {
-                    if (sec && !sec->isWorldSpace && !state.showUnplacedModels) continue;
-                    glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(mvp));
-                    glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(identity));
-                    glUniform1i(glGetUniformLocation(p, "useSkinning"), 0);
-                    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
-                } else {
-                    for (size_t instIdx = 0; instIdx < sec->instances.size(); instIdx++) {
-                        const auto& inst = sec->instances[instIdx];
-                        glm::mat4 m = mvp * inst.transform;
-                        glUniformMatrix4fv(uM,     1, GL_FALSE, glm::value_ptr(m));
-                        glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(inst.transform));
+                ctx.pass = pass;
+                
+                auto& registrar = ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance();
+                for (auto& obj : registrar.GetObjects()) {
+                    auto meshes = obj->GetMeshes();
+                    for (auto* chunkPtr : meshes) {
+                        const auto& chunk = *chunkPtr;
                         
-                        bool hasSkin = false;
-                        if (inst.gameObjectId >= 0 && inst.gameObjectId < (int)g_GameObjects.size() && !sec->skeleton.bones.empty()) {
-                            GameObject& go = g_GameObjects[inst.gameObjectId];
-                            if (go.currentClipIndex >= 0 && go.currentClipIndex < (int)go.clipSectionIndices.size()) {
-                                int clipSecIdx = go.clipSectionIndices[go.currentClipIndex];
-                                if (clipSecIdx >= 0 && clipSecIdx < (int)g_ShoSections.size()) {
-                                    const AnimClip& clip = g_ShoSections[clipSecIdx].animClip;
-                                    if (clip.duration > 0.0f) {
-                                        // Evaluate tracks at go.animTime
-                                        float t = fmod(go.animTime, clip.duration);
-                                        const size_t numBones = std::min(sec->skeleton.bones.size(), (size_t)128);
-                                        std::vector<glm::mat4> boneMats(numBones, glm::mat4(1.0f));
-                                        
-                                        for (size_t b = 0; b < numBones; ++b) {
-                                            glm::mat4 local = sec->skeleton.bones[b].restLocal;
-                                            if (b < clip.tracks.size() && !clip.tracks[b].times.empty()) {
-                                                const auto& times = clip.tracks[b].times;
-                                                const auto& poss  = clip.tracks[b].pos;
-                                                const auto& rots  = clip.tracks[b].rot;
-                                                
-                                                int idx0 = 0, idx1 = 0;
-                                                float factor = 0.0f;
-                                                
-                                                if (t <= times.front()) {
-                                                    idx0 = idx1 = 0;
-                                                } else if (t >= times.back()) {
-                                                    idx0 = idx1 = (int)times.size() - 1;
-                                                } else {
-                                                    auto it = std::lower_bound(times.begin(), times.end(), t);
-                                                    idx1 = (int)std::distance(times.begin(), it);
-                                                    idx0 = idx1 - 1;
-                                                    float span = times[idx1] - times[idx0];
-                                                    factor = (span > 1e-6f) ? (t - times[idx0]) / span : 0.0f;
-                                                }
-                                                
-                                                glm::vec3 pos = glm::mix(poss[idx0], poss[idx1], factor);
-                                                glm::quat rot = glm::slerp(rots[idx0], rots[idx1], factor);
-                                                local = glm::translate(glm::mat4(1.0f), pos) * glm::mat4_cast(rot);
-                                            }
-                                            
-                                            int parent = sec->skeleton.bones[b].parent;
-                                            // Guard: parent must be a valid, already-computed bone index
-                                            if (parent >= 0 && parent < (int)b) {
-                                                boneMats[b] = boneMats[parent] * local;
-                                            } else {
-                                                boneMats[b] = local;
-                                            }
-                                        }
-                                        
-                                        // Compute skinning matrices and upload to GPU
-                                        std::vector<glm::mat4> shaderTransforms(numBones);
-                                        for (size_t b = 0; b < numBones; ++b)
-                                            shaderTransforms[b] = boneMats[b] * sec->skeleton.bones[b].invBind;
-                                        
-                                        if (!shaderTransforms.empty()) {
-                                            glUniformMatrix4fv(glGetUniformLocation(p, "boneTransforms"),
-                                                (GLsizei)shaderTransforms.size(), GL_FALSE,
-                                                glm::value_ptr(shaderTransforms[0]));
-                                            hasSkin = true;
-                                        }
-                                    }
-                                }
-                            }
+                        if (chunk.alphaPass) continue;
+                        
+                        // Effect sheets must never occlude each other.
+                        auto itG0 = g_TexGradient.find(chunk.texName);
+                        const bool isFx = chunk.texName.size() > 3 &&
+                            sho_strnicmp(chunk.texName.c_str(), "FX_", 3) == 0;
+                        const bool blended = isFx || chunk.additive ||
+                            (itG0 != g_TexGradient.end() && itG0->second);
+                        if ((pass == 0) == blended) continue;
+                        
+                        const std::string& tName =
+                            (state.frozenVariant && !chunk.altTexName.empty())
+                                ? chunk.altTexName : chunk.texName;
+                        GLuint tid = 0;
+                        if (g_TextureMap.count(tName)) tid = g_TextureMap[tName];
+                        if (!tid) {
+                            std::string alt = tName;
+                            for (auto& ch : alt) ch = (char)toupper((unsigned char)ch);
+                            if (g_TextureMap.count(alt)) tid = g_TextureMap[alt];
+                        }
+                        if (!tid) {
+                            std::string alt = tName;
+                            for (auto& ch : alt) ch = (char)tolower((unsigned char)ch);
+                            if (g_TextureMap.count(alt)) tid = g_TextureMap[alt];
                         }
                         
-                        glUniform1i(glGetUniformLocation(p, "useSkinning"), hasSkin ? 1 : 0);
-                        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk.vertices.size());
+                        if (chunk.untextured) continue;
+                        
+                        static const char* kAdditiveNames[] = {
+                            "FX_Flare", "FX_Glow", "FX_Halo", "FX_Corona", "FX_Lens",
+                        };
+                        bool addNow = false;
+                        for (const char* pre : kAdditiveNames)
+                            if (tName.size() >= strlen(pre) &&
+                                sho_strnicmp(tName.c_str(), pre, strlen(pre)) == 0) {
+                                addNow = true;
+                                break;
+                            }
+                        
+                        glUniform1i(uAdd, addNow ? 1 : 0);
+                        glUniform1i(uUnlit, chunk.unlitGeometry ? 1 : 0);
+                        glUniform1i(uIce, (chunk.iceEffect && state.iceShading) ? 1 : 0);
+                        
+                        if (addNow) {
+                            glBlendFunc(GL_ONE, GL_ONE);
+                            glDepthMask(GL_FALSE);
+                        } else {
+                            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                            glDepthMask(pass == 0 ? GL_TRUE : GL_FALSE);
+                        }
+                        
+                        glBindTexture(GL_TEXTURE_2D, tid);
+                        glUniform1i(uUntex, (chunk.untextured || tid == 0) ? 1 : 0);
+                        glUniform4fv(uMatCol, 1, glm::value_ptr(chunk.matColor));
+                        
+                        // Delegate drawing to the object which handles transformations
+                        obj->SetMatrixAndDraw(ctx, chunkPtr);
                     }
                 }
-            }
             } // opaque pass, then blended pass
             glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1289,7 +1200,7 @@ void main(){
             ImGui::TextColored(ImVec4(0.52f, 0.86f, 0.52f, 1.0f), "%s",
                 fs::path(g_CurrentMeshContainer).filename().string().c_str());
             ImGui::TextDisabled("%zu meshes  |  %zu textures",
-                g_Chunks.size(), g_TextureMap.size() / 2);
+                totalMeshes, g_TextureMap.size() / 2);
         }
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
@@ -1507,9 +1418,12 @@ void main(){
         // Wii-only options; hidden when the loaded container has neither.
         {
             bool anyIce = false, anyAlt = false;
-            for (const auto& c : g_Chunks) {
-                anyIce |= c.iceEffect;
-                anyAlt |= !c.altTexName.empty() && c.altTexName != c.texName;
+            for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+                for (auto* cPtr : obj->GetMeshes()) {
+                    const auto& c = *cPtr;
+                    anyIce |= c.iceEffect;
+                    anyAlt |= !c.altTexName.empty() && c.altTexName != c.texName;
+                }
             }
             if (anyIce || anyAlt) {
                 ImGui::Spacing();
@@ -1647,9 +1561,12 @@ void main(){
     glDeleteBuffers(1, &markerVbo);
     ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().UnmountAll();
 
-    for (auto& chunk : g_Chunks) {
-        if (chunk.vao) glDeleteVertexArrays(1, &chunk.vao);
-        if (chunk.vbo) glDeleteBuffers(1, &chunk.vbo);
+    for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+        for (auto* chunkPtr : obj->GetMeshes()) {
+            auto& chunk = *chunkPtr;
+            if (chunk.vao) glDeleteVertexArrays(1, &chunk.vao);
+            if (chunk.vbo) glDeleteBuffers(1, &chunk.vbo);
+        }
     }
     for (auto& [name, id] : g_TextureMap) glDeleteTextures(1, &id);
     g_Collision.Free();

@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <string>
 #include <vector>
+#include <map>
 #include <memory>
 #include "ClimaxEngine/Core/Common.h"
 
@@ -22,7 +23,7 @@ public:
     CSceneObject(const std::string& name) : m_name(name), m_transform(1.0f) {}
     virtual ~CSceneObject() = default;
 
-    virtual void Render(const RenderContext& ctx) = 0;
+    virtual void SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* mesh) = 0;
     
     const std::string& GetName() const { return m_name; }
     void SetTransform(const glm::mat4& t) { m_transform = t; }
@@ -44,7 +45,6 @@ public:
         m_meshes.push_back(std::move(mesh));
     }
     
-    void Render(const RenderContext& ctx) override;
     std::vector<MeshChunk*> GetMeshes() override;
 
 protected:
@@ -54,7 +54,7 @@ protected:
 class CWorldObject : public CMeshObject {
 public:
     CWorldObject(const std::string& name) : CMeshObject(name) {}
-    void Render(const RenderContext& ctx) override;
+    void SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* mesh) override;
 };
 
 class CClumpObject : public CMeshObject {
@@ -66,7 +66,7 @@ public:
     AnimClip animClip;
     float animTime = 0.0f;
     
-    void Render(const RenderContext& ctx) override;
+    void SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* mesh) override;
 };
 
 class CSceneObjectRegistrar {
