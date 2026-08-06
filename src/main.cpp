@@ -30,149 +30,18 @@
 // rate or channel count -- the level banks alone span 6 kHz mono to 32 kHz,
 // and the cutscene streams are 48 kHz stereo.
 // ---------------------------------------------------------------------------
-static AudioClip         g_NowPlaying;
-static SDL_AudioDeviceID g_AudioDevice = 0;
-static int               g_DeviceRate  = 0;
-static int               g_DeviceChans = 0;
+#include "ClimaxEngine/Platform/PS2/RwsAudio.h"
 
-ClimaxEngine::RWS::FileSystem::CArchive g_IgcArc;   // cutscene archive, when one is found beside SH.ARC
-
-const AudioClip& CurrentAudioClip() { return g_NowPlaying; }
-
-// The device is opened once, at a rate the hardware actually runs, and every
-// clip is rate-converted into it here.
-//
-// Reopening the device per clip and asking SDL for the clip's own rate is what
-// made the music stutter: the tracks are 44094 Hz, which is neither the
-// hardware rate nor a power-of-two ratio away from it, so SDL fell back to a
-// conversion path that could not keep up. The cutscenes (48000) and the level
-// banks (22050, 16000, ...) were fine, which is exactly the pattern that
-// pointed at the odd rate rather than at the decoder.
-static const int kDeviceRate = 48000;
-static const int kDeviceChans = 2;
-
-static double g_SrcPos = 0.0;   // playback position, in source frames
-
-// Callback health. A stutter is either starvation -- the device asking for the
-// next buffer later than it can afford -- or bad data. These counters tell the
-// two apart without having to hear it: `g_AudioLate` only grows when the gap
-// between callbacks exceeds the buffer's own duration.
-static Uint64 g_AudioPrevTick = 0;
-static int    g_AudioCalls = 0;
-static int    g_AudioLate = 0;
-static double g_AudioWorstMs = 0.0;
-static double g_AudioBufferMs = 0.0;
-
-static void AudioCallback(void*, Uint8* stream, int len) {
-    {
-        const Uint64 now = SDL_GetPerformanceCounter();
-        if (g_AudioPrevTick) {
-            const double ms = (double)(now - g_AudioPrevTick) * 1000.0 /
-                              (double)SDL_GetPerformanceFrequency();
-            if (ms > g_AudioWorstMs) g_AudioWorstMs = ms;
-            if (ms > g_AudioBufferMs * 1.5) g_AudioLate++;
-        }
-        g_AudioPrevTick = now;
-        g_AudioCalls++;
-    }
-
-    int16_t* out = (int16_t*)stream;
-    const int frames = len / (int)(sizeof(int16_t) * kDeviceChans);
-    const int srcChans = g_NowPlaying.channels;
-    const size_t srcFrames = srcChans ? g_NowPlaying.pcm.size() / srcChans : 0;
-
-    if (!state.isAudioPlaying || srcFrames == 0) {
-        std::memset(stream, 0, (size_t)len);
-        return;
-    }
-
-    const float vol = state.audioVolume;
-    const double step = (double)g_NowPlaying.sampleRate / (double)kDeviceRate;
-    const int16_t* src = g_NowPlaying.pcm.data();
-
-    for (int i = 0; i < frames; ++i) {
-        if (g_SrcPos >= (double)srcFrames) {
-            if (state.audioLoop) {
-                g_SrcPos -= (double)srcFrames;
-            } else {
-                std::memset(out + (size_t)i * kDeviceChans, 0,
-                            (size_t)(frames - i) * kDeviceChans * sizeof(int16_t));
-                state.isAudioPlaying = false;
-                break;
-            }
-        }
-
-        // Linear interpolation between neighbouring source frames; at these
-        // ratios anything fancier is inaudible.
-        const size_t i0 = (size_t)g_SrcPos;
-        const size_t i1 = (i0 + 1 < srcFrames) ? i0 + 1 : i0;
-        const float frac = (float)(g_SrcPos - (double)i0);
-
-        for (int c = 0; c < kDeviceChans; ++c) {
-            const int sc = srcChans == 1 ? 0 : (c < srcChans ? c : srcChans - 1);
-            const float a = (float)src[i0 * srcChans + sc];
-            const float b = (float)src[i1 * srcChans + sc];
-            const int32_t v = (int32_t)((a + (b - a) * frac) * vol);
-            out[(size_t)i * kDeviceChans + c] =
-                (int16_t)(v < -32768 ? -32768 : (v > 32767 ? 32767 : v));
-        }
-        g_SrcPos += step;
-    }
-    state.audioProgress = (float)(g_SrcPos / (double)srcFrames);
-}
-
-static bool OpenAudioDevice() {
-    if (g_AudioDevice) return true;
-
-    SDL_AudioSpec want;
-    SDL_zero(want);
-    want.freq     = kDeviceRate;
-    want.format   = AUDIO_S16SYS;
-    want.channels = (Uint8)kDeviceChans;
-    want.samples  = 4096;   // 85 ms at 48 kHz; 1024 was not enough headroom
-    want.callback = AudioCallback;
-
-    g_AudioDevice = SDL_OpenAudioDevice(nullptr, 0, &want, nullptr, 0);
-    if (!g_AudioDevice) {
-        std::cerr << "[audio] SDL_OpenAudioDevice failed: " << SDL_GetError()
-                  << "\n";
-        return false;
-    }
-    g_DeviceRate  = kDeviceRate;
-    g_DeviceChans = kDeviceChans;
-    g_AudioBufferMs = 4096.0 * 1000.0 / (double)kDeviceRate;
-    return true;
-}
-
-void AudioHealth(int& calls, int& late, double& worstMs, double& bufferMs) {
-    calls = g_AudioCalls; late = g_AudioLate;
-    worstMs = g_AudioWorstMs; bufferMs = g_AudioBufferMs;
-}
-
+ClimaxEngine::RWS::FileSystem::CArchive g_IgcArc;
+const AudioClip& CurrentAudioClip() { return ClimaxEngine::Audio::CAudioRelay::GetInstance().CurrentAudioClip(); }
 void PlayAudioClip(const AudioClip& clip) {
-    if (!clip.Valid()) return;
-    if (!OpenAudioDevice()) return;
-
-    SDL_PauseAudioDevice(g_AudioDevice, 1);
-    SDL_LockAudioDevice(g_AudioDevice);
-    state.isAudioPlaying = false;
-    g_NowPlaying = clip;
-    g_SrcPos = 0.0;
-    g_AudioCalls = g_AudioLate = 0;
-    g_AudioWorstMs = 0.0;
-    g_AudioPrevTick = 0;
-    state.audioProgress = 0.0f;
-    SDL_UnlockAudioDevice(g_AudioDevice);
-
-    state.isAudioPlaying = true;
+    ClimaxEngine::Audio::CAudioRelay::GetInstance().PlayAudioClip(clip);
     state.showAudioPlayer = true;
-    SDL_PauseAudioDevice(g_AudioDevice, 0);
 }
 
 void PlayLibraryEntry(int index) {
     if (index < 0 || index >= (int)g_AudioLibrary.size()) return;
     const AudioSourceRef& ref = g_AudioLibrary[(size_t)index];
-
     AudioClip clip;
     if (ref.arcIndex >= 0 && g_IgcArc.IsOpen()) {
         std::vector<uint8_t> blob;
@@ -187,31 +56,10 @@ void PlayLibraryEntry(int index) {
     PlayAudioClip(clip);
 }
 
-void ToggleAudioPlayback() {
-    if (!g_AudioDevice || !g_NowPlaying.Valid()) return;
-    // Restart rather than resume once the clip has run to its end.
-    const size_t srcFrames = g_NowPlaying.pcm.size() / g_NowPlaying.channels;
-    if (!state.isAudioPlaying && g_SrcPos >= (double)srcFrames) g_SrcPos = 0.0;
-    state.isAudioPlaying = !state.isAudioPlaying;
-    SDL_PauseAudioDevice(g_AudioDevice, state.isAudioPlaying ? 0 : 1);
-}
-
-void StopAudio() {
-    if (g_AudioDevice) SDL_PauseAudioDevice(g_AudioDevice, 1);
-    state.isAudioPlaying = false;
-    g_SrcPos = 0.0;
-    state.audioProgress = 0.0f;
-}
-
-void SetAudioProgress(float progress) {
-    if (!g_NowPlaying.Valid()) return;
-    progress = progress < 0.0f ? 0.0f : (progress > 1.0f ? 1.0f : progress);
-    const double srcFrames = (double)(g_NowPlaying.pcm.size() / g_NowPlaying.channels);
-    if (g_AudioDevice) SDL_LockAudioDevice(g_AudioDevice);
-    g_SrcPos = progress * srcFrames;
-    state.audioProgress = progress;
-    if (g_AudioDevice) SDL_UnlockAudioDevice(g_AudioDevice);
-}
+void ToggleAudioPlayback() { ClimaxEngine::Audio::CAudioRelay::GetInstance().ToggleAudioPlayback(); }
+void StopAudio() { ClimaxEngine::Audio::CAudioRelay::GetInstance().StopAudio(); }
+void SetAudioProgress(float progress) { ClimaxEngine::Audio::CAudioRelay::GetInstance().SetAudioProgress(progress); }
+void AudioHealth(int& calls, int& late, double& worstMs, double& bufferMs) { calls = late = 0; worstMs = bufferMs = 0.0; }
 
 // The music and cutscenes are not inside SH.ARC: MUSIC/ and IGC.ARC sit beside
 // it on the disc. Mounting the archive is enough to find them.
@@ -939,6 +787,12 @@ void main(){
         glm::mat4 mvp  = proj * view;
 
         // --- Render 3-D scene ---
+        // Sync audio state
+        state.isAudioPlaying = ClimaxEngine::Audio::CAudioRelay::GetInstance().IsAudioPlaying();
+        state.audioProgress = ClimaxEngine::Audio::CAudioRelay::GetInstance().GetAudioProgress();
+        ClimaxEngine::Audio::CAudioRelay::GetInstance().SetVolume(state.audioVolume);
+        ClimaxEngine::Audio::CAudioRelay::GetInstance().SetLoop(state.audioLoop);
+
         ImGui_ImplOpenGL3_NewFrame(); ImGui_ImplSDL2_NewFrame(); ImGui::NewFrame();
         ImGuizmo::BeginFrame();
 

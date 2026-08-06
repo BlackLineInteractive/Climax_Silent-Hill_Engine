@@ -109,6 +109,7 @@ set(APP_SOURCES
     src/Core/Common.cpp
     src/Core/RWS/FileSystem/CArchive.cpp
     src/Platform/PS2/AudioParser.cpp
+    src/Platform/PS2/RwsAudio.cpp
     src/Platform/PS2/PS2Texture.cpp
     src/Platform/Wii/WiiTexture.cpp
     src/Rendering/RenderBackend.cpp
