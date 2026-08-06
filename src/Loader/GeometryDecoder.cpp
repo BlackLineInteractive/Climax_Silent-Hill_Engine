@@ -223,7 +223,11 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
   if (sz < 32)
     return;
 
-  g_MaterialNames.clear();
+  // Deliberately NOT cleared here. This function now runs once per World or
+  // Clump section -- six times for MO_1_Room102 -- so clearing on entry left
+  // only the last section's material names behind, and the texture loader then
+  // skipped every dictionary the earlier sections needed. LoadLevelData clears
+  // the list once per level, which is the right place for it.
 
   // Helper to safely read a uint32 from the buffer
   auto ru32 = [&](size_t off) -> uint32_t {

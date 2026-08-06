@@ -422,7 +422,8 @@ void LoadLevelData(const std::string &displayName,
     size_t m = 0;
     for (auto &o : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects())
       m += o->GetMeshes().size();
-    std::cout << "[scene] registered "
+    std::cout << "[scene] " << g_MaterialNames.size() << " material names, "
+              << g_TextureMap.size() << " textures; registered "
               << ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects().size()
               << " objects with " << m << " meshes in total\n";
   }
