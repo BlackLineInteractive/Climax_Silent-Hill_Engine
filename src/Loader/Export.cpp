@@ -1,9 +1,7 @@
 #include "ClimaxEngine/Loader/Export.h"
 #include "ClimaxEngine/Core/Common.h"
 #include "ClimaxEngine/SG/SceneObject.h"
-extern std::vector<MeshChunk> g_Chunks;
-
-
+#include "ClimaxEngine/SG/SceneObject.h"
 #include <cstring>
 #include <fstream>
 #include <map>
@@ -122,7 +120,8 @@ const TexPreviewInfo* FindTexInfo(const std::string& name) {
 bool ExportGLB(const std::string& path, const GlbExportOptions& opt, std::string& error) {
     error.clear();
     
-    if (g_Chunks.empty()) { error = "nothing loaded"; return false; }
+    auto& registrar = ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance();
+    if (registrar.GetObjects().empty()) { error = "nothing loaded"; return false; }
 
 
     // ── 1. Group every mesh chunk by the texture it uses ────────────────────
@@ -136,29 +135,16 @@ bool ExportGLB(const std::string& path, const GlbExportOptions& opt, std::string
     };
     std::map<std::string, Group> groups;
 
-    for (const auto& chunk : g_Chunks) {
-        const ShoSection* sec = (chunk.sectionIndex >= 0 &&
-                                 chunk.sectionIndex < (int)g_ShoSections.size())
-                                ? &g_ShoSections[chunk.sectionIndex] : nullptr;
+    for (auto& obj : registrar.GetObjects()) {
+        glm::mat4 x = obj->GetTransform();
+        for (MeshChunk* chunk : obj->GetMeshes()) {
+            const std::string key = chunk->texName.empty() ? "NULL" : chunk->texName;
+            Group& g = groups[key];
 
-        std::vector<glm::mat4> xforms;
-        if (!sec || sec->isWorldSpace) xforms.push_back(glm::mat4(1.0f));
-        else if (!sec->instances.empty() && opt.bakeInstances) {
-            xforms.clear();
-            for (const auto& inst : sec->instances) xforms.push_back(inst.transform);
-        }
-        else if (!sec->instances.empty()) {
-            xforms.push_back(sec->instances[0].transform);
-        }
-        else continue;   // model nothing placed — skip rather than dump at origin
-
-        const std::string key = chunk.texName.empty() ? "NULL" : chunk.texName;
-        Group& g = groups[key];
-
-        for (const auto& x : xforms) {
-            for (const auto& v : chunk.vertices) {
+            for (const auto& v : chunk->vertices) {
                 const glm::vec4 wp = x * glm::vec4(v.pos, 1.0f);
-                g.pos.push_back(wp.x); g.pos.push_back(wp.y); g.pos.push_back(wp.z);
+                float vx = wp.x, vy = wp.y, vz = wp.z;
+                g.pos.push_back(vx); g.pos.push_back(vy); g.pos.push_back(vz);
                 g.uv.push_back(v.uv.x); g.uv.push_back(v.uv.y);
                 for (int c = 0; c < 4; c++) {
                     float f = v.color[c];

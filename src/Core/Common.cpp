@@ -3,7 +3,6 @@
 
 // Визначення глобальних змінних
 ViewerState state;
-std::vector<MeshChunk>        g_Chunks;
 std::vector<RawTexture>       g_RawTextures;
 std::vector<std::string>      g_MaterialNames;
 std::map<std::string, GLuint>           g_TextureMap;

@@ -175,7 +175,7 @@ void WiiGeom::ReadMaterialList(const uint8_t* d, size_t size, size_t off,
 bool WiiGeom::ReadNative(const uint8_t* d, size_t size, size_t off,
                          const std::vector<uint32_t>& meshMaterial,
                          const std::vector<WiiMaterial>& materials,
-                         int matListWindowBase, int sectionIndex,
+                         int matListWindowBase, int /*sectionIndex*/,
                          std::vector<MeshChunk>& out) {
     Chunk plug;
     if (!ReadChunk(d, size, off, plug) || plug.type != 0x0510) return false;
@@ -228,7 +228,7 @@ bool WiiGeom::ReadNative(const uint8_t* d, size_t size, size_t off,
         if ((size_t)dlOff + dlSize > dataLen) continue;
 
         MeshChunk chunk;
-        chunk.sectionIndex = sectionIndex;
+        // chunk.sectionIndex = sectionIndex;
         const int matId = m < meshMaterial.size()
                               ? (int)meshMaterial[m] + matListWindowBase : -1;
         if (matId >= 0 && matId < (int)materials.size()) {
@@ -330,7 +330,7 @@ bool WiiGeom::ReadNative(const uint8_t* d, size_t size, size_t off,
 // bounding box, then an Extension carrying BinMeshPLG and NativeDataPLG.
 // ---------------------------------------------------------------------------
 void WiiGeom::ReadWorld(const uint8_t* d, size_t size, size_t off, size_t len,
-                        int sectionIndex, std::vector<MeshChunk>& out,
+                        int /*sectionIndex*/, std::vector<MeshChunk>& out,
                         std::vector<std::string>* materialNames) {
     Chunk world;
     if (!ReadChunk(d, size, off, world) || world.type != 0x000B) return;
@@ -395,7 +395,7 @@ void WiiGeom::ReadWorld(const uint8_t* d, size_t size, size_t off, size_t len,
         }
     };
 
-    Walker w{d, size, sectionIndex, &materials, &out};
+    Walker w{d, size, -1, &materials, &out};
     w.Sector(world.payload, world.payload + world.size, 0);
 }
 
@@ -467,7 +467,7 @@ bool WiiGeom::ReadPlainGeometry(const uint8_t* d, size_t size, size_t structOff,
 
         MeshChunk& chunk = byMaterial[mi];
         if (chunk.vertices.empty()) {
-            chunk.sectionIndex = sectionIndex;
+            // chunk.sectionIndex = sectionIndex;
             chunk.materialIndex = (int)mi;
             if (mi < materials.size()) {
                 chunk.texName = materials[mi].texName;
@@ -522,7 +522,7 @@ bool WiiGeom::ReadPlainGeometry(const uint8_t* d, size_t size, size_t structOff,
 // full 0x0001 struct and no 0x0510 -- and those are skipped here.
 // ---------------------------------------------------------------------------
 void WiiGeom::ReadClump(const uint8_t* d, size_t size, size_t off, size_t len,
-                        int sectionIndex, std::vector<MeshChunk>& out,
+                        int /*sectionIndex*/, std::vector<MeshChunk>& out,
                         std::vector<std::string>* materialNames) {
     Chunk clump;
     if (!ReadChunk(d, size, off, clump) || clump.type != 0x0010) return;
@@ -629,10 +629,10 @@ void WiiGeom::ReadClump(const uint8_t* d, size_t size, size_t off, size_t len,
         const size_t before = out.size();
         if (geo.nativeOff) {
             ReadNative(d, size, geo.nativeOff, geo.meshMat, geo.materials, 0,
-                       sectionIndex, out);
+                       -1, out);
         } else if (geo.structSize > 16) {
             ReadPlainGeometry(d, size, geo.structOff, geo.structSize,
-                              geo.materials, sectionIndex, out);
+                              geo.materials, -1, out);
         }
         if (out.size() == before) continue;
         if (a.frame < world.size()) {

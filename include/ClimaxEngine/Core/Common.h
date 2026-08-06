@@ -93,8 +93,6 @@ struct MeshChunk {
   std::string altTexName;
   bool iceEffect = false;
   glm::vec4 matColor = glm::vec4(1.0f);
-  int sectionIndex =
-      -1; // index into g_ShoSections, -1 = not inside any section
 };
 
 struct RawTexture {
