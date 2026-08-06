@@ -431,8 +431,9 @@ void LoadLevelData(const std::string &displayName,
   for (const auto& sec : g_ShoSections) {
       // Find the base object parsed for this section
       std::shared_ptr<ClimaxEngine::SG::CSceneObject> baseObj = nullptr;
+      std::string expectedName = std::to_string(sec.offset);
       for (auto& obj : objects) {
-          if (obj->GetName() == sec.name || obj->GetName() == (sec.name.empty() ? "WorldSpace" : sec.name)) {
+          if (obj->GetName() == expectedName || obj->GetName() == sec.name || obj->GetName() == (sec.name.empty() ? "WorldSpace" : sec.name)) {
               baseObj = obj;
               break;
           }
@@ -440,9 +441,10 @@ void LoadLevelData(const std::string &displayName,
       
       if (!baseObj) continue;
 
-      if (sec.isWorldSpace) {
-          registrar.RegisterObject(baseObj); // World space has no instances
-      } else {
+      if (sec.isWorldSpace || sec.instances.empty()) {
+          registrar.RegisterObject(baseObj); 
+      }
+      if (!sec.isWorldSpace) {
           for (size_t instIdx = 0; instIdx < sec.instances.size(); instIdx++) {
               const auto& inst = sec.instances[instIdx];
               std::string name = sec.name + "_Inst" + std::to_string(instIdx);

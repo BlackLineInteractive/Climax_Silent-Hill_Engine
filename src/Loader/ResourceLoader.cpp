@@ -44,7 +44,9 @@ CResourceHandler::CResourceHandler() {
     RegisterLoader(std::make_shared<CClumpStreamLoader>());
     RegisterLoader(std::make_shared<CTexDictionaryStreamLoader>());
     RegisterLoader(std::make_shared<CAudioCuesStreamLoader>());
-    RegisterLoader(std::make_shared<CSHOSceneStreamLoader>());
+    auto shoLoader = std::make_shared<CSHOSceneStreamLoader>();
+    m_loaders[0x071C] = shoLoader;
+    m_loaders[0x0716] = shoLoader;
 }
 
 CResourceHandler& CResourceHandler::GetInstance() {
@@ -66,23 +68,29 @@ std::shared_ptr<IStreamLoader> CResourceHandler::GetLoader(uint32_t typeId) cons
 
 void CResourceHandler::ProcessStream(const char* streamName, RWS::RwStream* stream, uint32_t streamSize) {
     size_t startPos = stream->Tell();
+    std::cout << "[ProcessStream] Starting stream '" << streamName << "' at pos " << startPos << " size " << streamSize << "\n";
     while (stream->Tell() + 12 <= startPos + streamSize && !stream->IsEOF()) {
         RwChunk chunk;
+        size_t chunkStart = stream->Tell();
         if (!chunk.Read(stream)) {
+            std::cout << "[ProcessStream] Failed to read chunk at " << chunkStart << "\n";
             break;
         }
+        std::cout << "[ProcessStream] Found chunk type 0x" << std::hex << chunk.type << std::dec << " size " << chunk.size << " at " << chunkStart << "\n";
         
         auto loader = GetLoader(chunk.type);
         if (loader) {
-            // Loaders read the chunk payload themselves, so they should leave the stream at the end of the chunk
+            size_t beforeRead = stream->Tell();
             loader->Read(streamName, stream, chunk.size);
+            size_t bytesRead = stream->Tell() - beforeRead;
+            if (bytesRead < chunk.size) {
+                stream->Skip(chunk.size - bytesRead);
+            }
         } else {
             // Unhandled chunk, skip it
             // std::cout << "[ResourceLoader] Unhandled chunk type: 0x" << std::hex << chunk.type << std::dec << "\n";
             stream->Skip(chunk.size);
         }
-        
-        // Ensure stream is properly aligned if a loader failed to read the entire chunk
     }
 }
 
@@ -112,36 +120,54 @@ bool CClumpStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t 
 }
 
 bool CSHOSceneStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
+    size_t chunkStart = stream->Tell() - 12;
     if (length < 20) { stream->Skip(length); return false; }
     
+    // We are at "inner"
     uint32_t header[2];
     if (stream->Read(header, 8) != 8) return false;
     
-    auto be = [](uint32_t v) { return ((v >> 24) & 0xFF) | ((v >> 8) & 0xFF00) | ((v << 8) & 0xFF0000) | ((v << 24) & 0xFF000000); };
-    uint32_t tagLen = be(header[1]);
+    uint32_t headerSize = header[0];
+    uint32_t tagLen = header[1];
     
     if (tagLen > 1024) { stream->Skip(length - 8); return false; }
     
     stream->Skip(tagLen);
-    
     uint8_t guidBuf[16];
     if (stream->Read(guidBuf, 16) != 16) return false;
     
-    uint32_t nameLenBe;
-    if (stream->Read(&nameLenBe, 4) != 4) return false;
-    uint32_t nameLen = be(nameLenBe);
-    
-    if (nameLen > 1024) { stream->Skip(length - 8 - tagLen - 20); return false; }
+    uint32_t nameLen;
+    if (stream->Read(&nameLen, 4) != 4) return false;
     
     std::string secName;
-    if (nameLen > 0) {
+    if (nameLen > 0 && nameLen < 1024) {
         std::vector<char> nameBuf(nameLen);
         stream->Read(nameBuf.data(), nameLen);
         secName.assign(nameBuf.data(), strnlen(nameBuf.data(), nameLen));
+    } else {
+        if (nameLen >= 1024) stream->Skip(nameLen);
     }
     
-    uint32_t remaining = length - (8 + tagLen + 20 + nameLen);
-    CResourceHandler::GetInstance().ProcessStream(secName.c_str(), stream, remaining);
+    std::cout << "[CSHOSceneStreamLoader] Found section: '" << secName << "' (tagLen=" << tagLen << ", nameLen=" << nameLen << ")\n";
+    
+    // The actual chunk starts at inner + 4 + headerSize + 4 (for payloadSize)
+    // We have read 8 + tagLen + 16 + 4 + nameLen bytes so far from inner.
+    uint32_t bytesRead = 8 + tagLen + 20 + nameLen;
+    uint32_t targetOffset = 4 + headerSize; // relative to inner
+    
+    if (targetOffset > bytesRead) {
+        stream->Skip(targetOffset - bytesRead);
+    }
+    
+    // Now we are at dataOff. There is a 4-byte payloadSize.
+    uint32_t payloadSize;
+    if (stream->Read(&payloadSize, 4) == 4) {
+        uint32_t remaining = length - targetOffset - 4;
+        
+        std::string uniqueName = std::to_string(chunkStart);
+        std::cout << "[CSHOSceneStreamLoader] payloadSize=" << payloadSize << " remaining=" << remaining << "\n";
+        CResourceHandler::GetInstance().ProcessStream(uniqueName.c_str(), stream, payloadSize > 0 ? std::min(payloadSize, remaining) : remaining);
+    }
     
     return true;
 }

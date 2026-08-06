@@ -28,8 +28,9 @@ public:
     const AudioClip& GetClip() const { return m_clip; }
 
 private:
-    AudioClip m_clip;
-    SDL_AudioStream* m_stream = nullptr;
+    AudioClip m_clip;               // description only; its pcm is released
+    std::vector<int16_t> m_pcm;     // the clip already in device format
+    int  m_channels = 2;
     bool m_playing = false;
     bool m_paused = false;
     size_t m_sourceFrames = 0;

@@ -1,4 +1,6 @@
 #include "ClimaxEngine/Platform/PS2/RwsAudio.h"
+#include <algorithm>
+#include <cstring>
 #include <iostream>
 
 namespace ClimaxEngine {
@@ -15,30 +17,65 @@ bool RwaVirtualVoice::Play(const AudioClip& clip, int targetRate, int targetChan
     Stop();
     if (!clip.Valid()) return false;
 
+    // Convert the whole clip to the device format once, here, and let the
+    // callback do nothing but copy.
+    //
+    // Resampling inside the callback is what made the music break up. The old
+    // code only refilled the SDL_AudioStream once it had run dry, and then
+    // pushed 32768 frames at a time -- three quarters of a second of audio
+    // resampled in a single callback, every three quarters of a second, while
+    // every other callback did almost nothing. One spike over the buffer
+    // deadline is one dropout, and it repeated for the whole track.
+    //
+    // It only ever showed on music: the cutscenes are already 48 kHz stereo,
+    // so SDL_AudioStream copies them without resampling at all, and the level
+    // sounds are short enough that their single spike falls at the start.
     m_clip = clip;
-    m_sourceFrames = clip.pcm.size() / clip.channels;
+    m_channels = targetChannels;
     m_currentFrame = 0;
-    
-    m_stream = SDL_NewAudioStream(
-        AUDIO_S16SYS, clip.channels, clip.sampleRate,
-        AUDIO_S16SYS, targetChannels, targetRate
-    );
-    
-    if (!m_stream) {
-        std::cerr << "[audio] SDL_NewAudioStream failed: " << SDL_GetError() << "\n";
-        return false;
+
+    if (clip.sampleRate == targetRate && clip.channels == targetChannels) {
+        m_pcm = clip.pcm;                       // already in device format
+    } else {
+        SDL_AudioStream* conv = SDL_NewAudioStream(
+            AUDIO_S16SYS, (Uint8)clip.channels, clip.sampleRate,
+            AUDIO_S16SYS, (Uint8)targetChannels, targetRate);
+        if (!conv) {
+            std::cerr << "[audio] SDL_NewAudioStream failed: " << SDL_GetError() << "\n";
+            return false;
+        }
+        const int srcBytes = (int)(clip.pcm.size() * sizeof(int16_t));
+        if (SDL_AudioStreamPut(conv, clip.pcm.data(), srcBytes) == -1 ||
+            SDL_AudioStreamFlush(conv) == -1) {
+            std::cerr << "[audio] conversion failed: " << SDL_GetError() << "\n";
+            SDL_FreeAudioStream(conv);
+            return false;
+        }
+        const int outBytes = SDL_AudioStreamAvailable(conv);
+        m_pcm.resize((size_t)outBytes / sizeof(int16_t));
+        if (outBytes > 0)
+            SDL_AudioStreamGet(conv, m_pcm.data(), outBytes);
+        SDL_FreeAudioStream(conv);
     }
-    
+
+    m_sourceFrames = m_channels ? m_pcm.size() / (size_t)m_channels : 0;
+    if (m_sourceFrames == 0) return false;
+
+    // The decoded source is no longer needed; only its description is kept so
+    // the panel can still report the original rate and codec.
+    m_clip.pcm.clear();
+    m_clip.pcm.shrink_to_fit();
+
     m_playing = true;
     m_paused = false;
     return true;
 }
 
 void RwaVirtualVoice::Stop() {
-    if (m_stream) {
-        SDL_FreeAudioStream(m_stream);
-        m_stream = nullptr;
-    }
+    m_pcm.clear();
+    m_pcm.shrink_to_fit();
+    m_sourceFrames = 0;
+    m_currentFrame = 0;
     m_playing = false;
     m_paused = false;
     m_clip = AudioClip();
@@ -49,71 +86,31 @@ void RwaVirtualVoice::Pause(bool pause) {
 }
 
 int RwaVirtualVoice::Process(int16_t* out, int frames, bool loop) {
-    if (!m_playing || m_paused || !m_stream) return 0;
-    
-    // Hardcoded to device format in CAudioRelay (S16 stereo)
-    const int targetChans = 2;
-    const int targetFrameSize = targetChans * sizeof(int16_t);
-    const int sourceFrameSize = m_clip.channels * sizeof(int16_t);
-    
-    int framesNeeded = frames;
-    int framesProduced = 0;
-    
-    while (framesNeeded > 0) {
-        // How many bytes are ready to be read?
-        int availBytes = SDL_AudioStreamAvailable(m_stream);
-        int availFrames = availBytes / targetFrameSize;
-        
-        if (availFrames == 0) {
-            // Need to push more source data into the stream
-            if (m_currentFrame >= m_sourceFrames) {
-                if (loop) {
-                    m_currentFrame = 0;
-                } else {
-                    // EOF
-                    SDL_AudioStreamFlush(m_stream);
-                    if (SDL_AudioStreamAvailable(m_stream) == 0) {
-                        m_playing = false;
-                        break;
-                    }
-                }
-            }
-            
-            // Push up to 32768 frames at a time to prevent stuttering
-            if (m_currentFrame < m_sourceFrames) {
-                size_t pushFrames = std::min<size_t>(32768, m_sourceFrames - m_currentFrame);
-                const int16_t* srcPtr = m_clip.pcm.data() + m_currentFrame * m_clip.channels;
-                if (SDL_AudioStreamPut(m_stream, srcPtr, (int)pushFrames * sourceFrameSize) == -1) {
-                    std::cerr << "[audio] SDL_AudioStreamPut failed: " << SDL_GetError() << "\n";
-                    break;
-                }
-                m_currentFrame += pushFrames;
-            }
-            continue; // Now we should have something available
+    if (!m_playing || m_paused || m_sourceFrames == 0) return 0;
+
+    const int chans = m_channels;
+    int produced = 0;
+    while (produced < frames) {
+        if (m_currentFrame >= m_sourceFrames) {
+            if (!loop) { m_playing = false; break; }
+            m_currentFrame = 0;
         }
-        
-        int getFrames = std::min(framesNeeded, availFrames);
-        int getBytes = getFrames * targetFrameSize;
-        int gotBytes = SDL_AudioStreamGet(m_stream, out + (framesProduced * targetChans), getBytes);
-        
-        if (gotBytes > 0) {
-            int gotFrames = gotBytes / targetFrameSize;
-            framesProduced += gotFrames;
-            framesNeeded -= gotFrames;
-        } else if (gotBytes == -1) {
-            std::cerr << "[audio] SDL_AudioStreamGet failed: " << SDL_GetError() << "\n";
-            break;
-        }
+        const size_t avail = m_sourceFrames - m_currentFrame;
+        const int take = (int)std::min<size_t>(avail, (size_t)(frames - produced));
+        std::memcpy(out + (size_t)produced * chans,
+                    m_pcm.data() + m_currentFrame * (size_t)chans,
+                    (size_t)take * chans * sizeof(int16_t));
+        m_currentFrame += (size_t)take;
+        produced += take;
     }
-    
-    return framesProduced;
+    return produced;
 }
 
 void RwaVirtualVoice::SetProgress(float progress) {
-    if (!m_stream || !m_playing) return;
+    if (!m_playing || m_sourceFrames == 0) return;
     progress = std::max(0.0f, std::min(1.0f, progress));
     m_currentFrame = (size_t)(progress * (float)m_sourceFrames);
-    SDL_AudioStreamClear(m_stream);
+    if (m_currentFrame >= m_sourceFrames) m_currentFrame = m_sourceFrames - 1;
 }
 
 float RwaVirtualVoice::GetProgress() const {
@@ -148,11 +145,25 @@ bool CAudioRelay::Init() {
     want.callback = AudioCallbackStub;
     want.userdata = this;
 
-    m_device = SDL_OpenAudioDevice(nullptr, 0, &want, nullptr, 0);
+    // Take whatever rate the hardware actually runs at and resample to that
+    // ourselves, instead of asking SDL for a fixed 48 kHz and letting it
+    // convert. Forcing the rate leaves a second, hidden conversion in the
+    // output path -- and a non-integer ratio there is what makes a long track
+    // warble while a 48 kHz cutscene, which needs no conversion at all, plays
+    // clean.
+    SDL_AudioSpec have;
+    SDL_zero(have);
+    m_device = SDL_OpenAudioDevice(nullptr, 0, &want, &have,
+                                   SDL_AUDIO_ALLOW_FREQUENCY_CHANGE);
     if (!m_device) {
         std::cerr << "[audio] SDL_OpenAudioDevice failed: " << SDL_GetError() << "\n";
         return false;
     }
+    if (have.freq > 0) m_deviceRate = have.freq;
+    std::cout << "[audio] device: " << m_deviceRate << " Hz, "
+              << (int)have.channels << " ch, " << have.samples << "-frame buffer"
+              << (have.freq != want.freq ? "  (rate chosen by the driver)" : "")
+              << "\n";
     SDL_PauseAudioDevice(m_device, 0);
     return true;
 }
