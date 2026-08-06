@@ -479,6 +479,11 @@ void LoadLevelData(const std::string &displayName,
         continue;
       }
 
+      if (auto clump = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(baseObj)) {
+          if (clump->skeleton.bones.empty()) clump->skeleton = sec.skeleton;
+          if (clump->animClip.duration <= 0.0f) clump->animClip = sec.animClip;
+      }
+
       if (sec.isWorldSpace || sec.instances.empty()) {
           registrar.RegisterObject(baseObj); 
       }
@@ -493,8 +498,18 @@ void LoadLevelData(const std::string &displayName,
               if (auto clump = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(baseObj)) {
                   auto obj = std::make_shared<ClimaxEngine::SG::CClumpObject>(name);
                   obj->SetTransform(inst.transform);
-                  obj->skeleton = sec.skeleton;
-                  obj->animClip = sec.animClip;
+                  obj->skeleton = clump->skeleton;
+                  obj->animClip = clump->animClip;
+                  
+                  if (inst.gameObjectId >= 0 && inst.gameObjectId < (int)g_GameObjects.size()) {
+                      const auto& go = g_GameObjects[inst.gameObjectId];
+                      if (!go.clipSectionIndices.empty()) {
+                          int animIdx = go.clipSectionIndices[0];
+                          if (animIdx >= 0 && animIdx < (int)g_ShoSections.size()) {
+                              obj->animClip = g_ShoSections[animIdx].animClip;
+                          }
+                      }
+                  }
                   
                   for (auto* m : clump->GetMeshes()) {
                       MeshChunk copy = *m;
