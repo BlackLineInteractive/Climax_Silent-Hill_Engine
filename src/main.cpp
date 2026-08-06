@@ -15,7 +15,7 @@
 #include "imgui_impl_opengl3.h"
 #include "ImGuizmo.h"
 
-#include "ClimaxEngine/Core/Arc.h"
+#include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
 #include "ClimaxEngine/Loader/Export.h"
 #include "ClimaxEngine/Loader/Loader.h"
@@ -35,7 +35,7 @@ static SDL_AudioDeviceID g_AudioDevice = 0;
 static int               g_DeviceRate  = 0;
 static int               g_DeviceChans = 0;
 
-ArcArchive g_IgcArc;   // cutscene archive, when one is found beside SH.ARC
+ClimaxEngine::RWS::FileSystem::CArchive g_IgcArc;   // cutscene archive, when one is found beside SH.ARC
 
 const AudioClip& CurrentAudioClip() { return g_NowPlaying; }
 
@@ -217,10 +217,10 @@ void SetAudioProgress(float progress) {
 // it on the disc. Mounting the archive is enough to find them.
 void ScanAudioLibrary() {
     g_AudioLibrary.clear();
-    if (!g_Arc.IsOpen()) return;
+    if (!ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()) return;
 
     std::error_code ec;
-    const fs::path root = fs::path(g_Arc.Path()).parent_path();
+    const fs::path root = fs::path(ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Path()).parent_path();
 
     for (const char* dirName : {"MUSIC", "Music", "music"}) {
         const fs::path dir = root / dirName;
@@ -259,7 +259,7 @@ void ScanAudioLibrary() {
     }
 
     std::cout << "[audio] library: " << g_AudioLibrary.size() << " tracks beside "
-              << fs::path(g_Arc.Path()).filename().string() << " (looked in "
+              << fs::path(ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Path()).filename().string() << " (looked in "
               << root.string() << ")\n";
     if (!g_AudioLibrary.empty() && !state.audioAutoOpened) {
         state.audioAutoOpened = true;
@@ -502,19 +502,19 @@ int main(int argc, char* argv[]) {
         const bool looksLikeArc =
             first.size() > 4 && sho_stricmp(first.c_str() + first.size() - 4, ".arc") == 0;
 
-        if (looksLikeArc && g_Arc.Open(first)) {
+        if (looksLikeArc && ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().Mount(first)) {
             ScanAudioLibrary();
             SaveArcPref(first);                         // ← remember for next launch
             std::cerr << "[arc] mounted " << first << " ("
-                      << g_Arc.Entries().size() << " files)\n";
+                      << ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Entries().size() << " files)\n";
             if (argc >= 3 && std::string(argv[2]) != "--export") {
-                const int idx = g_Arc.Find(argv[2]);
+                const int idx = ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Find(argv[2]);
                 if (idx >= 0) LoadLevelFromArc(idx);
                 else std::cerr << "[arc] no entry named '" << argv[2] << "'\n";
             }
         } else {
             if (looksLikeArc)
-                std::cerr << "[arc] " << g_Arc.Error() << " — treating as a container\n";
+                std::cerr << "[arc] " << ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Error() << " — treating as a container\n";
             std::vector<std::string> txds;
             for (int i = 2; i < argc; i++) txds.push_back(argv[i]);
             LoadLevel(first, txds);
@@ -523,10 +523,10 @@ int main(int argc, char* argv[]) {
         // No CLI argument: try to auto-mount the last opened archive
         const std::string saved = LoadArcPref();
         if (!saved.empty()) {
-            if (g_Arc.Open(saved)) {
+            if (ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().Mount(saved)) {
                 ScanAudioLibrary();
                 std::cerr << "[arc] auto-mounted last arc: " << saved
-                          << " (" << g_Arc.Entries().size() << " files)\n";
+                          << " (" << ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Entries().size() << " files)\n";
                 state.showArc = true;   // open the archive browser automatically
             } else {
                 std::cerr << "[arc] prefs arc no longer accessible: " << saved << "\n";
@@ -1423,10 +1423,10 @@ void main(){
         if (ImGui::Button("Open SH.ARC", ImVec2(-1, 0))) g_FileBrowser.Open(FileBrowserMode::Arc);
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Load the game archive and browse levels by their real names");
-        if (g_Arc.IsOpen()) {
-            ImGui::TextDisabled("%s", fs::path(g_Arc.Path()).filename().string().c_str());
+        if (ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()) {
+            ImGui::TextDisabled("%s", fs::path(ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Path()).filename().string().c_str());
             ImGui::SameLine();
-            ImGui::TextDisabled("(%zu files)", g_Arc.Entries().size());
+            ImGui::TextDisabled("(%zu files)", ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Entries().size());
         }
         if (ImGui::Button("Open Loose File", ImVec2(-1, 0))) g_FileBrowser.Open(FileBrowserMode::Mesh);
 
@@ -1791,7 +1791,7 @@ void main(){
     glDeleteVertexArrays(1, &skyVao);
     glDeleteVertexArrays(1, &markerVao);
     glDeleteBuffers(1, &markerVbo);
-    g_Arc.Close();
+    ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().UnmountAll();
 
     for (auto& chunk : g_Chunks) {
         if (chunk.vao) glDeleteVertexArrays(1, &chunk.vao);

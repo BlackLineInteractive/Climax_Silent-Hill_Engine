@@ -1,4 +1,5 @@
-#include "ClimaxEngine/Core/Arc.h"
+
+#include "ClimaxEngine/Core/RWS/FileSystem/CArchive.h"
 #include "ClimaxEngine/Core/Common.h"
 
 #include <algorithm>
@@ -6,7 +7,10 @@
 #include <iostream>
 #include <zlib.h>
 
-ArcArchive g_Arc;
+namespace ClimaxEngine {
+namespace RWS {
+namespace FileSystem {
+
 
 namespace {
 
@@ -35,7 +39,7 @@ std::string Printable(const uint8_t* p, size_t max) {
 
 } // namespace
 
-void ArcArchive::Close() {
+void CArchive::Close() {
     if (m_file.is_open()) m_file.close();
     m_entries.clear();
     m_path.clear();
@@ -43,7 +47,7 @@ void ArcArchive::Close() {
     m_open = false;
 }
 
-bool ArcArchive::Open(const std::string& path) {
+bool CArchive::Open(const std::string& path) {
     Close();
 
     m_file.open(path, std::ios::binary);
@@ -81,7 +85,7 @@ bool ArcArchive::Open(const std::string& path) {
     return true;
 }
 
-bool ArcArchive::OpenA2(uint64_t fileSize, const uint8_t* hdr) {
+bool CArchive::OpenA2(uint64_t fileSize, const uint8_t* hdr) {
     const uint32_t count     = ru32(hdr + 4);
     const uint32_t nameOff   = ru32(hdr + 12);
     const uint32_t nameSize  = ru32(hdr + 16);
@@ -147,7 +151,7 @@ bool ArcArchive::OpenA2(uint64_t fileSize, const uint8_t* hdr) {
 // offsets relative to its own start. The ten of those in igc.arc are flattened
 // into the entry list here, so the rest of the toolkit never has to know.
 // ---------------------------------------------------------------------------
-bool ArcArchive::OpenShsm(uint64_t fileSize) {
+bool CArchive::OpenShsm(uint64_t fileSize) {
     auto readTable = [&](uint64_t base, uint64_t limit,
                          std::vector<uint8_t>& table, uint32_t& count) -> bool {
         uint8_t h[16];
@@ -226,7 +230,7 @@ bool ArcArchive::OpenShsm(uint64_t fileSize) {
 // which is cheap enough to do at mount time and avoids a cache file that could
 // go stale.
 // ---------------------------------------------------------------------------
-void ArcArchive::BuildNameCatalogue() {
+void CArchive::BuildNameCatalogue() {
     std::vector<uint8_t> head;
     size_t named = 0;
 
@@ -254,7 +258,7 @@ void ArcArchive::BuildNameCatalogue() {
 }
 
 // Inflates (or copies) the first `want` bytes of an entry.
-bool ArcArchive::PeekHead(size_t index, size_t want, std::vector<uint8_t>& out) const {
+bool CArchive::PeekHead(size_t index, size_t want, std::vector<uint8_t>& out) const {
     out.clear();
     if (!m_open || index >= m_entries.size()) return false;
     const ArcEntry& e = m_entries[index];
@@ -285,7 +289,7 @@ bool ArcArchive::PeekHead(size_t index, size_t want, std::vector<uint8_t>& out) 
     return !out.empty();
 }
 
-std::string ArcArchive::NameFromPayload(const std::vector<uint8_t>& d) {
+std::string CArchive::NameFromPayload(const std::vector<uint8_t>& d) {
     const uint8_t* p = d.data();
     const size_t n = d.size();
     if (n < 16) return {};
@@ -382,7 +386,7 @@ std::string ArcArchive::NameFromPayload(const std::vector<uint8_t>& d) {
     return {};
 }
 
-bool ArcArchive::Read(size_t index, std::vector<uint8_t>& out) const {
+bool CArchive::Read(size_t index, std::vector<uint8_t>& out) const {
     out.clear();
     if (!m_open || index >= m_entries.size()) return false;
     const ArcEntry& e = m_entries[index];
@@ -413,14 +417,14 @@ bool ArcArchive::Read(size_t index, std::vector<uint8_t>& out) const {
     return true;
 }
 
-int ArcArchive::Find(const std::string& name) const {
+int CArchive::Find(const std::string& name) const {
     for (size_t i = 0; i < m_entries.size(); i++)
         if (sho_stricmp(m_entries[i].name.c_str(), name.c_str()) == 0)
             return (int)i;
     return -1;
 }
 
-std::vector<int> ArcArchive::Containers() const {
+std::vector<int> CArchive::Containers() const {
     std::vector<int> out;
     for (size_t i = 0; i < m_entries.size(); i++)
         if (m_entries[i].name.find('.') == std::string::npos)
@@ -428,7 +432,7 @@ std::vector<int> ArcArchive::Containers() const {
     return out;
 }
 
-std::vector<int> ArcArchive::TxdsFor(const std::string& containerName) const {
+std::vector<int> CArchive::TxdsFor(const std::string& containerName) const {
     std::vector<int> out;
     if (containerName.empty()) return out;
 
@@ -453,3 +457,7 @@ std::vector<int> ArcArchive::TxdsFor(const std::string& containerName) const {
     }
     return out;
 }
+
+} // namespace FileSystem
+} // namespace RWS
+} // namespace ClimaxEngine

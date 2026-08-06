@@ -1,5 +1,5 @@
 #include "ClimaxEngine/Loader/Loader.h"
-#include "ClimaxEngine/Core/Arc.h"
+#include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
 #include "ClimaxEngine/Platform/PS2/PS2Texture.h"
 #include "ClimaxEngine/Platform/Wii/WiiTexture.h"
@@ -1395,23 +1395,23 @@ void LoadLevel(const std::string &meshContainerPath,
 
 // ── Archive entry point ─────────────────────────────────────────────────────
 bool LoadLevelFromArc(int entryIndex) {
-  if (!g_Arc.IsOpen() || entryIndex < 0 ||
-      entryIndex >= (int)g_Arc.Entries().size())
+  if (!ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive() || entryIndex < 0 ||
+      entryIndex >= (int)ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Entries().size())
     return false;
 
-  const std::string &name = g_Arc.Entries()[entryIndex].name;
+  const std::string &name = ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Entries()[entryIndex].name;
 
   std::vector<uint8_t> container;
-  if (!g_Arc.Read((size_t)entryIndex, container) || container.empty()) {
+  if (!ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Read((size_t)entryIndex, container) || container.empty()) {
     std::cerr << "[arc] cannot inflate container '" << name << "'\n";
     return false;
   }
 
   std::vector<NamedBlob> txds;
-  for (int ti : g_Arc.TxdsFor(name)) {
+  for (int ti : ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->TxdsFor(name)) {
     std::vector<uint8_t> blob;
-    if (g_Arc.Read((size_t)ti, blob) && !blob.empty())
-      txds.emplace_back(g_Arc.Entries()[ti].name, std::move(blob));
+    if (ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Read((size_t)ti, blob) && !blob.empty())
+      txds.emplace_back(ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Entries()[ti].name, std::move(blob));
   }
 
   std::cerr << "[arc] loading '" << name << "' (" << container.size()

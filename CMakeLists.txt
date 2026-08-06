@@ -107,7 +107,7 @@ endif()
 set(APP_SOURCES
     src/main.cpp
     src/Core/Common.cpp
-    src/Core/Arc.cpp
+    src/Core/RWS/FileSystem/CArchive.cpp
     src/Platform/PS2/AudioParser.cpp
     src/Platform/PS2/PS2Texture.cpp
     src/Platform/Wii/WiiTexture.cpp

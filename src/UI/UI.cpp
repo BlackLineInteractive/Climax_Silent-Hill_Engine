@@ -1,5 +1,5 @@
 #include "ClimaxEngine/UI/UI.h"
-#include "ClimaxEngine/Core/Arc.h"
+#include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/Core/Common.h"
 #include "imgui.h"
@@ -176,14 +176,14 @@ void FileBrowserState::Render() {
             RefreshEntries();
         }
         if (!pendingMountArc.empty()) {
-            if (g_Arc.Open(pendingMountArc)) {
+            if (ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().Mount(pendingMountArc)) {
                 ScanAudioLibrary();
                 SaveArcPref(pendingMountArc);   // remember for next launch
                 showBrowser = false;
                 state.showArc = true;
                 arcFilter[0] = '\0';
             } else {
-                errorMessage = "Cannot open archive: " + g_Arc.Error();
+                errorMessage = "Cannot open archive: " + ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Error();
             }
         }
         if (pendingOpenTxd) {
@@ -358,7 +358,7 @@ void RenderArcWindow() {
     ImGui::SetNextWindowSize(ImVec2(360, 420), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Archive", &state.showArc)) { ImGui::End(); return; }
 
-    if (!g_Arc.IsOpen()) {
+    if (!ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()) {
         ImGui::TextDisabled("No archive mounted.");
         ImGui::TextWrapped("Use \"Open SH.ARC\" to mount the game archive and "
                            "browse levels by their real names.");
@@ -366,8 +366,8 @@ void RenderArcWindow() {
         return;
     }
 
-    const auto& entries = g_Arc.Entries();
-    ImGui::TextDisabled("%s", g_Arc.Path().c_str());
+    const auto& entries = ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Entries();
+    ImGui::TextDisabled("%s", ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Path().c_str());
 
     static bool onlyContainers = true;
     ImGui::Checkbox("Levels only", &onlyContainers);
@@ -432,7 +432,7 @@ void RenderArcWindow() {
             else       pendingLoad = (int)i;
         }
         if (ImGui::IsItemHovered()) {
-            const size_t nTxd = g_Arc.TxdsFor(n).size();
+            const size_t nTxd = ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->TxdsFor(n).size();
             ImGui::SetTooltip("%u bytes%s\n%zu matching .txd", entries[i].Size(),
                               entries[i].Stored() ? " (stored uncompressed)"
                                                   : " uncompressed",
@@ -450,7 +450,7 @@ void RenderArcWindow() {
     if (pendingPlay >= 0) {
         std::vector<uint8_t> blob;
         AudioClip clip;
-        if (g_Arc.Read((size_t)pendingPlay, blob) && !blob.empty() &&
+        if (ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Read((size_t)pendingPlay, blob) && !blob.empty() &&
             Audio::LoadBuffer(blob.data(), blob.size(), clip)) {
             clip.name = entries[(size_t)pendingPlay].name;
             PlayAudioClip(clip);
@@ -969,10 +969,10 @@ void RenderAudioPlayer() {
                         "Nothing found. %s has to sit in the same folder as the "
                         "archive you mounted.",
                         isMusic ? "A MUSIC folder" : "IGC.ARC");
-                    if (g_Arc.IsOpen()) {
+                    if (ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()) {
                         ImGui::Spacing();
                         ImGui::TextDisabled("Looked next to:");
-                        ImGui::TextWrapped("%s", g_Arc.Path().c_str());
+                        ImGui::TextWrapped("%s", ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().GetFirstArchive()->Path().c_str());
                     } else {
                         ImGui::Spacing();
                         ImGui::TextDisabled("No archive is mounted yet.");
