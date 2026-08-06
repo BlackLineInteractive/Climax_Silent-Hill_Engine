@@ -418,6 +418,15 @@ void LoadLevelData(const std::string &displayName,
 
   ApplyAlphaMasks();
 
+  {
+    size_t m = 0;
+    for (auto &o : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects())
+      m += o->GetMeshes().size();
+    std::cout << "[scene] registered "
+              << ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects().size()
+              << " objects with " << m << " meshes in total\n";
+  }
+
   g_CurrentMeshContainer = displayName;
   g_CurrentTxdPaths.clear();
   for (const auto &[name, blob] : txds)
@@ -426,6 +435,16 @@ void LoadLevelData(const std::string &displayName,
   // Re-instantiate Clumps based on g_ShoSections
   auto& registrar = ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance();
   auto objects = registrar.GetObjects(); // Get a copy of the base objects
+  {
+    size_t withMeshes = 0, meshTotal = 0;
+    for (auto &o : objects) {
+      const size_t n = o->GetMeshes().size();
+      meshTotal += n;
+      if (n) withMeshes++;
+    }
+    std::cout << "[scene] loaders produced " << objects.size() << " objects, "
+              << withMeshes << " of them carrying " << meshTotal << " meshes\n";
+  }
   registrar.Clear(); // Clear so we can register the instanced versions
 
   for (const auto& sec : g_ShoSections) {
@@ -439,7 +458,11 @@ void LoadLevelData(const std::string &displayName,
           }
       }
       
-      if (!baseObj) continue;
+      if (!baseObj) {
+        std::cout << "[scene] section '" << sec.name << "' at " << sec.offset
+                  << " has no loaded object\n";
+        continue;
+      }
 
       if (sec.isWorldSpace || sec.instances.empty()) {
           registrar.RegisterObject(baseObj); 

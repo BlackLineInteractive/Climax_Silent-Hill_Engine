@@ -1,4 +1,5 @@
 #include "GeometryDecoder.h"
+#include <iostream>
 #include "ClimaxEngine/Core/Common.h"
 #include <cstring>
 #include <algorithm>
@@ -352,18 +353,34 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
           else if (type == 0x050E) allBinMeshPos.push_back(p);
           
           // Container types that have children
-          if (type == 0x14 || type == 0x16 || type == 0x0F || type == 0x10 || type == 0x24 || type == 0x0E || type == 0x0510) {
+          // Descend into everything that can contain a BinMeshPLG. A world
+          // keeps it under PlaneSector -> AtomicSector -> Extension, and a
+          // clump under GeometryList -> Geometry -> Extension; none of those
+          // were in this list, so the scan never reached a single 0x050E.
+          if (type == 0x14 || type == 0x16 || type == 0x0F || type == 0x10 ||
+              type == 0x24 || type == 0x0E || type == 0x0510 ||
+              type == 0x0B || type == 0x0A || type == 0x09 ||
+              type == 0x1A || type == 0x03) {
               self(self, p + 12, csize);
           }
           p += 12 + csize;
       }
   };
 
-  for (const auto& sec : g_ShoSections) {
-      if (sec.size > 0 && sec.offset + sec.size <= sz) {
-          walkChunks(walkChunks, sec.offset, sec.size);
-      }
-  }
+  // This function is handed one section's payload, not the whole container, so
+  // the walk starts at 0 and runs to the end of what was passed in.
+  //
+  // It used to iterate g_ShoSections and walk each sec.offset, which are
+  // offsets into the container. Against a section-local buffer that test
+  // (sec.offset + sec.size <= sz) is false for every section, so the walk never
+  // ran, no BinMesh or MaterialList positions were collected, and every object
+  // came out with zero meshes.
+  walkChunks(walkChunks, 0, sz);
+  std::cout << "[geom] '" << name << "' payload " << sz
+            << " root=0x" << std::hex << ru32(0) << std::dec
+            << " ver=0x" << std::hex << ru32(8) << std::dec
+            << " binmesh=" << allBinMeshPos.size()
+            << " matlists=" << allMlPos.size() << "\n";
 
   struct BatchInfo {
     int matIndex;
@@ -458,9 +475,17 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
     
     
 
-    const uint32_t rootType = ru32(root);
-    const uint32_t rootSize = ru32(root + 4);
-    const size_t rootEnd = std::min(root + 12 + (size_t)rootSize, secEnd);
+    // The caller hands over the *body* of the World or Clump chunk: the stream
+    // loader consumed the 12-byte chunk header before calling in, so offset 0
+    // is already the first child (a Struct), not the root chunk itself.
+    //
+    // Reading a root header here instead produced type 0x01 for every payload,
+    // so neither the World nor the Clump branch below ever ran and every object
+    // came out with no meshes at all. `isWorld` is what the caller knows and
+    // this function has to trust.
+    const uint32_t rootType = isWorld ? 0x0B : 0x10;
+    const size_t rootEnd = secEnd;
+    const size_t rootBody = 0;          // children start at the buffer's start
 
     // Direct children of World hold the list; for a Clump it sits one level
     // deeper, inside each Geometry of the GeometryList.
@@ -481,9 +506,9 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
     };
 
     if (rootType == 0x0B) {
-      collectFrom(root + 12, rootEnd);
+      collectFrom(rootBody, rootEnd);
     } else if (rootType == 0x10) {
-      size_t c = root + 12;
+      size_t c = rootBody;
       while (c + 12 <= rootEnd) {
         const uint32_t ct = ru32(c), cs = ru32(c + 4);
         if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
@@ -749,39 +774,29 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
     }
   };
 
-  for (size_t si = 0; si < g_ShoSections.size(); si++) {
-    const auto &sec = g_ShoSections[si];
-    const bool isBareSection = (sec.offset == 0 && sec.dataStart == 0 &&
-                                (sec.name == "rwID_CLUMP" || sec.name == "rwID_RWS"));
-    const size_t secEnd = isBareSection ? sz : (size_t)sec.offset + 12 + sec.size;
-    const size_t root   = isBareSection ? 0  : (size_t)sec.dataStart + 4;
-    if (root + 12 > secEnd || ru32(root + 8) != 0x1C020065)
-      continue;
-    // A section payload is a SEQUENCE of chunks, not one root. rwID_RWS opens
-    // with header chunks 0x23/0x24 and 0x29 and only then holds the real Clump
-    // (offset +116 and +65976 in IntroRoad), so looking at the first chunk alone
-    // missed it entirely.
-    std::vector<std::pair<size_t, uint32_t>> roots;
-    {
-      const size_t payEnd = std::min(root + (size_t)sec.payloadSize, secEnd);
-      size_t p = root;
-      while (p + 12 <= payEnd) {
-        const uint32_t ct = ru32(p), cs = ru32(p + 4);
-        if (ru32(p + 8) != 0x1C020065 || cs == 0 || p + 12 + cs > payEnd) {
-          p += 4;
-          continue;
-        }
-        roots.emplace_back(p, ct);
-        p += 12 + cs;
-      }
-      if (roots.empty())
-        roots.emplace_back(root, ru32(root));
-    }
+  // One payload in, one pass. This was a loop over g_ShoSections, which both
+  // repeated the work and indexed sectionMats[si] past its single element as
+  // soon as the section guard above stopped skipping iterations.
+  {
+    const size_t si = 0;
+    // The caller hands over the body of one World or Clump chunk, so there is
+    // exactly one root and its children span the whole buffer.
+    //
+    // This used to index g_ShoSections[si] and derive root from sec.dataStart,
+    // which are offsets into the *container*. Applied to a section-local buffer
+    // the version check at root+8 failed every time and the loop bailed before
+    // emitting anything -- BinMesh tables were found, materials were parsed, and
+    // still no mesh ever came out.
+    const size_t secEnd = sz;
+    const std::vector<std::pair<size_t, uint32_t>> roots{
+        {0, isWorld ? 0x000Bu : 0x0010u}};
 
     for (const auto &[rootOff, rootTypeCur] : roots) {
     const size_t root = rootOff;
     const uint32_t rootType = rootTypeCur;
-    const size_t rootEnd = std::min(root + 12 + (size_t)ru32(root + 4), secEnd);
+    // Synthetic root: no header to skip, so the children begin where it does.
+    const size_t rootBody = rootOff;
+    const size_t rootEnd = secEnd;
 
     // Finds the Extension of a chunk and hands it over.
     auto handleOwner = [&](size_t a, size_t b, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols) {
@@ -808,7 +823,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
           c += 12 + cs;
         }
       };
-      walk(root + 12, rootEnd);
+      walk(rootBody, rootEnd);
     } else if (rootType == 0x0010) { // Clump -> GeometryList -> Geometry
       // A clump is a hierarchy, not one rigid model. FrameList holds a local
       // matrix per frame, and every Atomic binds one geometry to one frame.
@@ -817,7 +832,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       // carries a scale came out the wrong size.
       std::vector<glm::mat4> frameWorld;
       {
-        for (size_t c = root + 12; c + 12 <= rootEnd;) {
+        for (size_t c = rootBody; c + 12 <= rootEnd;) {
           const uint32_t ct = ru32(c), cs = ru32(c + 4);
           if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
             break;
@@ -854,7 +869,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
 
       // Atomic (0x0014) binds geometryIndex -> frameIndex.
       std::map<uint32_t, uint32_t> geomFrame;
-      for (size_t c = root + 12; c + 12 <= rootEnd;) {
+      for (size_t c = rootBody; c + 12 <= rootEnd;) {
         const uint32_t ct = ru32(c), cs = ru32(c + 4);
         if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
           break;
@@ -864,7 +879,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       }
 
       uint32_t geomIndex = 0;
-      for (size_t c = root + 12; c + 12 <= rootEnd;) {
+      for (size_t c = rootBody; c + 12 <= rootEnd;) {
         const uint32_t ct = ru32(c), cs = ru32(c + 4);
         if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > rootEnd)
           break;

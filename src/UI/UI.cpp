@@ -988,15 +988,75 @@ void RenderAudioPlayer() {
 
     // ── Transport ──────────────────────────────────────────────────
     ImGui::BeginDisabled(!cur.Valid());
-    if (ImGui::Button(state.isAudioPlaying ? "Pause" : "Play", ImVec2(64, 0)))
-      ToggleAudioPlayback();
+    
+    ImGui::Spacing();
+    
+    // Progress bar with time text centered
+    const float elapsed = cur.Valid() ? cur.Seconds() * state.audioProgress : 0.0f;
+    char progText[64];
+    snprintf(progText, sizeof(progText), "%s / %s", timecode(elapsed).c_str(), timecode(cur.Seconds()).c_str());
+    
+    ImGui::PushItemWidth(-1);
+    float prog = state.audioProgress;
+    if (ImGui::SliderFloat("##progress", &prog, 0.0f, 1.0f, progText))
+      SetAudioProgress(prog);
+    ImGui::PopItemWidth();
+    
+    ImGui::Spacing();
+    
+    // Centered transport controls
+    float btnSize = 32.0f;
+    float space = ImGui::GetStyle().ItemSpacing.x;
+    float totalWidth = (btnSize * 4) + (space * 3) + 70.0f; // 70 for Loop checkbox
+    ImGui::SetCursorPosX((ImGui::GetWindowSize().x - totalWidth) * 0.5f);
+
+    auto playOffset = [&](int dir) {
+        if (!cur.Valid()) return;
+        for (size_t i = 0; i < g_Sounds.size(); ++i) {
+            if (g_Sounds[i].name == cur.name) {
+                int nextIdx = (int)i + dir;
+                if (nextIdx >= 0 && nextIdx < (int)g_Sounds.size()) {
+                    state.audioSelected = nextIdx;
+                    PlayAudioClip(g_Sounds[nextIdx]);
+                }
+                return;
+            }
+        }
+        for (size_t i = 0; i < g_AudioLibrary.size(); ++i) {
+            if (g_AudioLibrary[i].name == cur.name) {
+                int nextIdx = (int)i + dir;
+                while (nextIdx >= 0 && nextIdx < (int)g_AudioLibrary.size()) {
+                    if (g_AudioLibrary[nextIdx].group == g_AudioLibrary[i].group) {
+                        PlayLibraryEntry(nextIdx);
+                        return;
+                    }
+                    nextIdx += dir;
+                }
+                return;
+            }
+        }
+    };
+
+    if (ImGui::Button("|<", ImVec2(btnSize, btnSize))) { playOffset(-1); }
     ImGui::SameLine();
-    if (ImGui::Button("Stop", ImVec2(52, 0)))
-      StopAudio();
+    if (ImGui::Button(state.isAudioPlaying ? "||" : ">", ImVec2(btnSize, btnSize))) ToggleAudioPlayback();
     ImGui::SameLine();
+    if (ImGui::Button("[]", ImVec2(btnSize, btnSize))) StopAudio();
+    ImGui::SameLine();
+    if (ImGui::Button(">|", ImVec2(btnSize, btnSize))) { playOffset(1); }
+    ImGui::SameLine();
+    
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (btnSize - ImGui::GetFrameHeight()) * 0.5f);
     ImGui::Checkbox("Loop", &state.audioLoop);
-    ImGui::SameLine();
-    if (ImGui::Button("Save WAV")) {
+    
+    ImGui::Spacing();
+    
+    // Bottom row: Volume and Save WAV
+    ImGui::SetNextItemWidth(120.0f);
+    ImGui::SliderFloat("Volume", &state.audioVolume, 0.0f, 1.5f, "%.2f");
+    
+    ImGui::SameLine(ImGui::GetWindowSize().x - 90.0f);
+    if (ImGui::Button("Save WAV", ImVec2(80, 0))) {
       std::string name = cur.name.empty() ? std::string("sound") : cur.name;
       for (auto &c : name)
         if (c == '/' || c == '\\' || c == ':')
@@ -1005,19 +1065,7 @@ void RenderAudioPlayer() {
         std::cout << "[audio] wrote " << name << ".wav\n";
     }
 
-    const float elapsed =
-        cur.Valid() ? cur.Seconds() * state.audioProgress : 0.0f;
-    ImGui::Text("%s / %s", timecode(elapsed).c_str(),
-                timecode(cur.Seconds()).c_str());
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
-    float prog = state.audioProgress;
-    if (ImGui::SliderFloat("##progress", &prog, 0.0f, 1.0f, ""))
-      SetAudioProgress(prog);
     ImGui::EndDisabled();
-
-    ImGui::SetNextItemWidth(160.0f);
-    ImGui::SliderFloat("Volume", &state.audioVolume, 0.0f, 1.5f, "%.2f");
 
     {
       int calls = 0, late = 0;

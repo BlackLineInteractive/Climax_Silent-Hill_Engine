@@ -120,57 +120,80 @@ bool CClumpStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t 
 }
 
 bool CSHOSceneStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
-    size_t chunkStart = stream->Tell() - 12;
     if (length < 20) { stream->Skip(length); return false; }
-    
-    // We are at "inner"
-    uint32_t header[2];
-    if (stream->Read(header, 8) != 8) return false;
-    
-    uint32_t headerSize = header[0];
-    uint32_t tagLen = header[1];
-    
-    if (tagLen > 1024) { stream->Skip(length - 8); return false; }
-    
+
+    size_t chunkStart = stream->Tell() - 12;
+
+    uint32_t raw[2];
+    if (stream->Read(raw, 8) != 8) return false;
+
+    auto swap = [](uint32_t v) {
+        return ((v >> 24) & 0xFF) | ((v >> 8) & 0xFF00) | ((v << 8) & 0xFF0000) |
+               ((v << 24) & 0xFF000000);
+    };
+
+    // The section header is little-endian on PlayStation 2 and big-endian on
+    // Wii, so the order has to come from the data rather than from a constant.
+    // Measured on the retail PS2 archive: headerSize = 200 and tagLen = 4 read
+    // little-endian, which become 3355443200 and 67108864 the other way round.
+    // Reading a PS2 container as big-endian therefore trips the tagLen guard
+    // and the whole section is skipped -- which is exactly a container that
+    // loads with no geometry at all.
+    uint32_t headerSize = raw[0], tagLen = raw[1];
+    bool bigEndian = false;
+    if (tagLen > 1024 || headerSize >= length) {
+        const uint32_t sHdr = swap(raw[0]), sTag = swap(raw[1]);
+        if (sTag <= 1024 && sHdr < length) {
+            headerSize = sHdr;
+            tagLen = sTag;
+            bigEndian = true;
+        }
+    }
+    auto rd = [&](uint32_t v) { return bigEndian ? swap(v) : v; };
+
+    if (tagLen > 1024 || headerSize >= length) { stream->Skip(length - 8); return false; }
+
     stream->Skip(tagLen);
     uint8_t guidBuf[16];
     if (stream->Read(guidBuf, 16) != 16) return false;
-    
-    uint32_t nameLen;
-    if (stream->Read(&nameLen, 4) != 4) return false;
-    
+
+    uint32_t nameLenRaw;
+    if (stream->Read(&nameLenRaw, 4) != 4) return false;
+    const uint32_t nameLen = rd(nameLenRaw);
+
     std::string secName;
     if (nameLen > 0 && nameLen < 1024) {
         std::vector<char> nameBuf(nameLen);
         stream->Read(nameBuf.data(), nameLen);
         secName.assign(nameBuf.data(), strnlen(nameBuf.data(), nameLen));
-    } else {
-        if (nameLen >= 1024) stream->Skip(nameLen);
+    } else if (nameLen >= 1024) {
+        stream->Skip(length - 8 - tagLen - 20);
+        return false;
     }
-    
-    std::cout << "[CSHOSceneStreamLoader] Found section: '" << secName << "' (tagLen=" << tagLen << ", nameLen=" << nameLen << ")\n";
-    
-    // The actual chunk starts at inner + 4 + headerSize + 4 (for payloadSize)
-    // We have read 8 + tagLen + 16 + 4 + nameLen bytes so far from inner.
-    uint32_t bytesRead = 8 + tagLen + 20 + nameLen;
-    uint32_t targetOffset = 4 + headerSize; // relative to inner
-    
-    if (targetOffset > bytesRead) {
-        stream->Skip(targetOffset - bytesRead);
-    }
-    
-    // Now we are at dataOff. There is a 4-byte payloadSize.
-    uint32_t payloadSize;
-    if (stream->Read(&payloadSize, 4) == 4) {
-        uint32_t remaining = length - targetOffset - 4;
-        
-        std::string uniqueName = std::to_string(chunkStart);
-        std::cout << "[CSHOSceneStreamLoader] payloadSize=" << payloadSize << " remaining=" << remaining << "\n";
-        CResourceHandler::GetInstance().ProcessStream(uniqueName.c_str(), stream, payloadSize > 0 ? std::min(payloadSize, remaining) : remaining);
-    }
-    
+
+    // Skip forward to the payload: the section header states its own length,
+    // so the build-path strings never have to be walked.
+    const uint32_t bytesRead = 8 + tagLen + 20 + nameLen;
+    const uint32_t targetOffset = 4 + headerSize;
+    if (targetOffset > bytesRead) stream->Skip(targetOffset - bytesRead);
+    else if (targetOffset < bytesRead) return false;
+
+    uint32_t payloadRaw;
+    if (stream->Read(&payloadRaw, 4) != 4) return false;
+    const uint32_t payloadSize = rd(payloadRaw);
+
+    if (targetOffset + 4 > length) return false;
+    const uint32_t remaining = length - targetOffset - 4;
+    const uint32_t take = (payloadSize > 0 && payloadSize <= remaining) ? payloadSize
+                                                                       : remaining;
+
+    // Named by the section's own chunk offset, which is what LoadLevelData
+    // matches ShoSection::offset against when it places the instances.
+    const std::string uniqueName = std::to_string(chunkStart);
+    CResourceHandler::GetInstance().ProcessStream(uniqueName.c_str(), stream, take);
     return true;
 }
+
 
 bool CTexDictionaryStreamLoader::Read(const char* name, RWS::RwStream* stream, uint32_t length) {
     std::cout << "[ResourceLoader] Found CTexDictionaryStreamLoader chunk (size: " << length << ")\n";
