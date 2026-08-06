@@ -670,6 +670,27 @@ void main(){
         if (dt > 0.1f) dt = 0.1f;
         last_tick = now;
 
+        if (state.animSpeed > 0.0f) {
+            for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+                if (auto clump = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(obj)) {
+                    if (clump->animClip.duration > 0.0f) {
+                        clump->animTime += dt * state.animSpeed;
+                        if (clump->animTime > clump->animClip.duration) {
+                            clump->animTime = fmod(clump->animTime, clump->animClip.duration);
+                        }
+                    }
+                }
+            }
+        }
+        if (state.animRestPose) {
+            for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+                if (auto clump = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(obj)) {
+                    clump->animTime = 0.0f; // Force rest pose evaluation (time 0 usually maps to bind pose? Or wait, if we want rest pose, we can just clear the clip. Actually, animClip.duration = 0 in SceneObject.cpp forces rest pose).
+                    // We'll let UI.cpp or SceneObject handle rest pose explicitly.
+                }
+            }
+        }
+
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             ImGui_ImplSDL2_ProcessEvent(&e);
@@ -960,29 +981,40 @@ void main(){
                         
                         if (chunk.untextured) continue;
                         
-                        static const char* kAdditiveNames[] = {
-                            "FX_Flare", "FX_Glow", "FX_Halo", "FX_Corona", "FX_Lens",
-                        };
-                        bool addNow = false;
-                        for (const char* pre : kAdditiveNames)
-                            if (tName.size() >= strlen(pre) &&
-                                sho_strnicmp(tName.c_str(), pre, strlen(pre)) == 0) {
-                                addNow = true;
-                                break;
-                            }
-                        
+                        // Blend mode comes from the material itself -- the
+                        // 0x0A01 extension field the engine reads through
+                        // ClimaxT1MaterialGetFrameBlendMode. 0 is standard
+                        // alpha, 1 additive, 2 subtractive.
+                        //
+                        // This replaces a hand-maintained list of FX_ name
+                        // prefixes. The list could never be right: FX_TV and
+                        // FX_save_point1 are standard alpha while FX_Flare_01
+                        // is additive, and nothing in their names says so. The
+                        // field also carries a third mode the list had no way
+                        // to express -- subtractive, used by the blood decals,
+                        // two of which spell SUB in the texture name.
+                        const uint32_t blend = chunk.blendMode & 0xFFFF;
+                        const bool addNow = (blend == 1);
+                        const bool subNow = (blend == 2);
+
                         glUniform1i(uAdd, addNow ? 1 : 0);
                         glUniform1i(uUnlit, chunk.unlitGeometry ? 1 : 0);
                         glUniform1i(uIce, (chunk.iceEffect && state.iceShading) ? 1 : 0);
-                        
+
                         if (addNow) {
+                            glBlendEquation(GL_FUNC_ADD);
                             glBlendFunc(GL_ONE, GL_ONE);
                             glDepthMask(GL_FALSE);
+                        } else if (subNow) {
+                            glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
+                            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+                            glDepthMask(GL_FALSE);
                         } else {
+                            glBlendEquation(GL_FUNC_ADD);
                             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                             glDepthMask(pass == 0 ? GL_TRUE : GL_FALSE);
                         }
-                        
+
                         glBindTexture(GL_TEXTURE_2D, tid);
                         glUniform1i(uUntex, (chunk.untextured || tid == 0) ? 1 : 0);
                         glUniform4fv(uMatCol, 1, glm::value_ptr(chunk.matColor));
@@ -1086,6 +1118,31 @@ void main(){
                         DrawWorldLabel(fdl, mvp, go.position, winW, winH,
                                        go.label.c_str(), IM_COL32(120, 216, 255, 255));
                     }
+                }
+            }
+
+            if (state.showBoneOverlay) {
+                lineVerts.clear();
+                for (const auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+                    if (auto clump = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(obj)) {
+                        if (clump->skeleton.bones.empty() || clump->currentBoneMats.empty()) continue;
+                        const glm::mat4& clumpMat = clump->GetTransform();
+                        for (size_t b = 0; b < clump->skeleton.bones.size(); ++b) {
+                            glm::mat4 worldMat = clumpMat * clump->currentBoneMats[b];
+                            glm::vec3 pos = glm::vec3(worldMat[3]);
+                            AppendMarker(lineVerts, pos, worldMat, 0.02f, 0.05f);
+                            
+                            int parent = clump->skeleton.bones[b].parent;
+                            if (parent >= 0 && parent < (int)b) {
+                                glm::vec3 parentPos = glm::vec3(clumpMat * clump->currentBoneMats[parent][3]);
+                                lineVerts.push_back(parentPos);
+                                lineVerts.push_back(pos);
+                            }
+                        }
+                    }
+                }
+                if (!lineVerts.empty()) {
+                    drawBatch(lineVerts, 1.0f, 0.0f, 1.0f); // Magenta for bones
                 }
             }
         }
@@ -1416,7 +1473,8 @@ void main(){
         ImGui::Checkbox("Textures",  &state.showTextures);
         ImGui::Checkbox("Archive",   &state.showArc); ImGui::SameLine(128);
         ImGui::Checkbox("Manual",    &state.showManual);
-        ImGui::Checkbox("Audio",     &state.showAudioPlayer);
+        ImGui::Checkbox("Audio",     &state.showAudioPlayer); ImGui::SameLine(128);
+        ImGui::Checkbox("Animation", &state.showAnimPlayer);
 
         // Wii-only options; hidden when the loaded container has neither.
         {
@@ -1526,6 +1584,7 @@ void main(){
         }
         
         RenderAudioPlayer();
+        RenderAnimationPlayer();
 
         ImGui::End();
 

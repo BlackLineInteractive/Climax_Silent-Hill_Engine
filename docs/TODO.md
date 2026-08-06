@@ -96,16 +96,39 @@ remaining lead is disassembling the resource-request path in `main.dol`.
 
 ## Origins (PS2)
 
-### 1. UV tile offset — the biggest remaining defect
+### 1. Characters have no face
 
-Character parts address neighbouring atlas tiles, so `GL_REPEAT` folds them onto
-one quadrant and, for example, the face samples hair. Measured on
-`TravisWithAlessaAmbassador`: `Ambassador_1` V 0.004–1.996, `Ambassador_2` U and
-V both 1.0–2.0, `Burnt_Alessa_1` U 1.01–1.99, face 0–1.
+The face texture decodes correctly and the mesh is there (`Travis_Face2_NoHat`,
+242 tris), but the face does not appear.
 
-The source of the offset has **not** been found. Character materials do carry
-non-empty `0x0120` / `0x011F` extensions where level materials do not, which is
-the obvious place to look next.
+**The previous explanation was wrong and is retracted.** It said character parts
+address neighbouring atlas tiles (`Ambassador_2` U and V both 1.0-2.0) and that
+`GL_REPEAT` folds them onto one quadrant so the face samples hair. Under WRAP,
+a UV of 1.5 samples exactly the same texel as 0.5 — an offset of a whole unit
+changes nothing. And the addressing really is WRAP: every texture in
+`TravisAmbassador` and `TravisWithAlessaAmbassador` reads
+`filter=LINEAR U=WRAP V=WRAP`. So the UV range cannot be the cause.
+
+What was ruled out along the way:
+
+* **No MatFX.** librw's own table gives `0x0120 = ID_MATFX`, and character
+  materials carry no such chunk — only `0x0A01` (present on level materials too)
+  and `0x011F`. There is no UV transform, no bump map and no dual-texture blend
+  state in the asset.
+* **The PS2 geometry has one UV set.** All 104 packets of `CIGCCharacter.Alessa`
+  carry four streams at VU addresses 0-3, one of which is `V2-32` — a single
+  texture coordinate stream.
+
+What was found and is *not* yet used: material `0x011F` is Climax UserData with
+named fields `k0`, `l0`, `f0`, `t0`, `n0`, and some materials carry a second set
+`k1`..`n1`. `n0` is the base texture name; `n1`, where present, is a second
+texture — `Env02`, an environment map. `t0` is 3 everywhere, so it is not a tile
+index. Dual-textured materials therefore exist and the viewer draws only the
+base layer.
+
+The cause of the missing face is **not known**. The next thing worth checking is
+whether the face mesh is being drawn at all and simply comes out invisible, as
+opposed to being dropped during load — those two have never been told apart.
 
 ### 2. Animation
 

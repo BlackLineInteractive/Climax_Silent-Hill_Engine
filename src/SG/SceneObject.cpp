@@ -44,14 +44,14 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
     glUniformMatrix4fv(ctx.uModel, 1, GL_FALSE, glm::value_ptr(m_transform));
     
     bool hasSkin = false;
-    if (!skeleton.bones.empty() && animClip.duration > 0.0f) {
-        float t = fmod(animTime, animClip.duration);
+    if (!skeleton.bones.empty() && (state.animRestPose || animClip.duration > 0.0f)) {
+        float t = animClip.duration > 0.0f ? fmod(animTime, animClip.duration) : 0.0f;
         const size_t numBones = std::min(skeleton.bones.size(), (size_t)128);
         std::vector<glm::mat4> boneMats(numBones, glm::mat4(1.0f));
         
         for (size_t b = 0; b < numBones; ++b) {
             glm::mat4 local = skeleton.bones[b].restLocal;
-            if (b < animClip.tracks.size() && !animClip.tracks[b].times.empty()) {
+            if (!state.animRestPose && b < animClip.tracks.size() && !animClip.tracks[b].times.empty()) {
                 const auto& times = animClip.tracks[b].times;
                 const auto& poss  = animClip.tracks[b].pos;
                 const auto& rots  = animClip.tracks[b].rot;
@@ -84,6 +84,8 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
             }
         }
         
+        currentBoneMats = boneMats;
+        
         // Compute skinning matrices and upload to GPU
         std::vector<glm::mat4> shaderTransforms(numBones);
         for (size_t b = 0; b < numBones; ++b)
@@ -93,7 +95,7 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
             GLint prog = 0;
             glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
             if (prog) {
-                glUniformMatrix4fv(glGetUniformLocation(prog, "boneTransforms"),
+                glUniformMatrix4fv(glGetUniformLocation(prog, "boneMat"),
                     (GLsizei)shaderTransforms.size(), GL_FALSE,
                     glm::value_ptr(shaderTransforms[0]));
                 hasSkin = true;

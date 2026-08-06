@@ -81,6 +81,11 @@ struct MeshChunk {
   // nibble. On PS2 the blend function lives in the GS ALPHA register, which
   // the engine sets per draw. The naming convention is the only marker the
   // data carries.
+  // Blend mode from the material's own 0x0A01 extension: 0 standard alpha,
+  // 1 additive, 2 subtractive. This is the field the engine reads through
+  // ClimaxT1MaterialGetFrameBlendMode, and it replaces the guesswork the
+  // `additive` flag used to carry.
+  uint32_t blendMode = 0;
   bool additive = false;
   bool unlitGeometry = false; // vertex colours are all zero: no baked light
   bool untextured = false;
@@ -304,6 +309,12 @@ struct ViewerState {
   float audioProgress = 0.0f;     // 0..1 through the current clip
   int  audioSelected = -1;        // index into g_Sounds, -1 = the dropped file
   char audioFilter[64] = "";
+
+  // Animation player
+  bool showAnimPlayer = false;
+  float animSpeed = 1.0f;
+  bool showBoneOverlay = false;
+  bool animRestPose = false;
 
   // Wii: draw the frozen variant of any material that has one, and shade the
   // ice surfaces. Off by default -- both are approximations of engine state.

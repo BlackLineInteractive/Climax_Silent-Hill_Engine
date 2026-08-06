@@ -1183,3 +1183,76 @@ void RenderAudioPlayer() {
   }
   ImGui::End();
 }
+
+void RenderAnimationPlayer() {
+  if (!state.showAnimPlayer) return;
+
+  ImGui::SetNextWindowSize(ImVec2(420, 250), ImGuiCond_FirstUseEver);
+  if (ImGui::Begin("Animation Player", &state.showAnimPlayer)) {
+    // Find all CClumpObjects with skeletons
+    std::vector<std::shared_ptr<ClimaxEngine::SG::CClumpObject>> clumps;
+    for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
+      auto clump = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(obj);
+      if (clump && !clump->skeleton.bones.empty()) {
+        clumps.push_back(clump);
+      }
+    }
+
+    if (clumps.empty()) {
+      ImGui::TextDisabled("No animated objects found in the current level.");
+    } else {
+      static int selectedClump = 0;
+      if (selectedClump >= (int)clumps.size()) selectedClump = 0;
+
+      if (ImGui::BeginCombo("Target Object", clumps[selectedClump]->GetName().c_str())) {
+        for (int i = 0; i < (int)clumps.size(); i++) {
+          bool is_selected = (selectedClump == i);
+          if (ImGui::Selectable(clumps[i]->GetName().c_str(), is_selected)) {
+            selectedClump = i;
+          }
+          if (is_selected) ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+      }
+
+      auto clump = clumps[selectedClump];
+      
+      ImGui::Separator();
+      
+      if (clump->animClip.duration > 0.0f) {
+        ImGui::Text("Clip: %s", clump->animClip.name.c_str());
+        ImGui::Text("Duration: %.2f sec (%.1f fps)", clump->animClip.duration, clump->animClip.fps);
+        
+        ImGui::Spacing();
+        
+        // Transport
+        if (ImGui::Button(state.animSpeed > 0 ? "Pause" : "Play")) {
+           state.animSpeed = (state.animSpeed > 0) ? 0.0f : 1.0f;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Stop")) {
+           state.animSpeed = 0.0f;
+           clump->animTime = 0.0f;
+        }
+        ImGui::SameLine();
+        ImGui::Checkbox("Rest Pose", &state.animRestPose);
+
+        ImGui::Spacing();
+        
+        // Timeline scrubber
+        float t = clump->animTime;
+        if (ImGui::SliderFloat("Timeline", &t, 0.0f, clump->animClip.duration, "%.2f s")) {
+           clump->animTime = t;
+        }
+        
+        ImGui::SliderFloat("Speed", &state.animSpeed, 0.1f, 4.0f, "%.1fx");
+      } else {
+        ImGui::TextDisabled("No animation clip attached to this object.");
+      }
+
+      ImGui::Separator();
+      ImGui::Checkbox("Show Bone Overlay", &state.showBoneOverlay);
+    }
+  }
+  ImGui::End();
+}

@@ -23,6 +23,8 @@ struct RenderUniforms {
     int renderMode = 0; // 0=Textured 1=VertexColor 2=FlatShaded 3=Normals 4=Depth 5=Checker 6=Unlit
     glm::vec3 eyePos = glm::vec3(0.0f);
     float depthMax = 100.0f;
+    bool useSkinning = false;
+    std::vector<glm::mat4> boneMatrices;
 };
 
 class IRenderBackend {

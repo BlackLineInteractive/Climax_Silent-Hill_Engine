@@ -1,4 +1,5 @@
 #include "ClimaxEngine/Rendering/GLSLBackend.h"
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
 static const char* s_VS = R"(
@@ -6,6 +7,8 @@ static const char* s_VS = R"(
 layout(location=0) in vec3 P;
 layout(location=1) in vec2 T;
 layout(location=2) in vec4 C;
+layout(location=3) in vec4 boneWeights;
+layout(location=4) in vec4 boneIds;
 out vec2  TC;
 out vec4  VC;
 out vec3  fragWorldPos;
@@ -15,9 +18,21 @@ uniform bool  flipU;
 uniform bool  flipV;
 uniform vec2  uvOffset;
 uniform vec2  uvScale;
+uniform bool  useSkinning;
+uniform mat4  boneMat[64];
+
 void main(){
-    gl_Position  = m * vec4(P, 1.0);
-    fragWorldPos = vec3(model * vec4(P, 1.0));
+    mat4 skin = mat4(1.0);
+    if(useSkinning) {
+        ivec4 idx = ivec4(boneIds);
+        skin = boneMat[idx.x] * boneWeights.x
+             + boneMat[idx.y] * boneWeights.y
+             + boneMat[idx.z] * boneWeights.z
+             + boneMat[idx.w] * boneWeights.w;
+    }
+    
+    gl_Position  = m * skin * vec4(P, 1.0);
+    fragWorldPos = vec3(model * skin * vec4(P, 1.0));
     vec2 coord = T;
     if(flipU) coord.x = 1.0 - coord.x;
     if(flipV) coord.y = 1.0 - coord.y;
@@ -142,6 +157,8 @@ void GLSLBackend::CompileShaders() {
     m_LocEyePos          = glGetUniformLocation(m_Program, "eyePos");
     m_LocDepthMax        = glGetUniformLocation(m_Program, "depthMax");
     m_LocTexture         = glGetUniformLocation(m_Program, "t");
+    m_LocUseSkinning     = glGetUniformLocation(m_Program, "useSkinning");
+    m_LocBoneMat         = glGetUniformLocation(m_Program, "boneMat");
 }
 
 void GLSLBackend::BeginFrame(int width, int height, float clearR, float clearG, float clearB) {
@@ -169,6 +186,11 @@ void GLSLBackend::SetUniforms(const RenderUniforms& u) {
     glUniform3f(m_LocEyePos, u.eyePos.x, u.eyePos.y, u.eyePos.z);
     glUniform1f(m_LocDepthMax, u.depthMax);
     glUniform1i(m_LocTexture, 0);
+    
+    glUniform1i(m_LocUseSkinning, u.useSkinning ? 1 : 0);
+    if(u.useSkinning && !u.boneMatrices.empty()) {
+        glUniformMatrix4fv(m_LocBoneMat, (GLsizei)u.boneMatrices.size(), GL_FALSE, glm::value_ptr(u.boneMatrices[0]));
+    }
 }
 
 void GLSLBackend::BindTexture(uint32_t textureID) {

@@ -38,6 +38,8 @@ private:
     GLint m_LocEyePos = -1;
     GLint m_LocDepthMax = -1;
     GLint m_LocTexture = -1;
+    GLint m_LocUseSkinning = -1;
+    GLint m_LocBoneMat = -1;
 
     void CompileShaders();
 };

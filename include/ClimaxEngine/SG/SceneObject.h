@@ -65,6 +65,7 @@ public:
     Skeleton skeleton;
     AnimClip animClip;
     float animTime = 0.0f;
+    std::vector<glm::mat4> currentBoneMats;
     
     void SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* mesh) override;
 };

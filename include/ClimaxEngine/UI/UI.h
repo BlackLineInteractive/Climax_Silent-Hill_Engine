@@ -45,6 +45,7 @@ void RenderManualWindow();
 
 // Audio player panel. The controls live in main.cpp, next to the SDL device.
 void RenderAudioPlayer();
+void RenderAnimationPlayer();
 void ToggleAudioPlayback();
 void SetAudioProgress(float progress);
 void StopAudio();

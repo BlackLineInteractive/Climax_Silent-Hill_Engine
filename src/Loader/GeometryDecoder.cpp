@@ -241,9 +241,24 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
   // --- HELPER: parse material names from a MaterialList chunk at ml_pos ---
   // Returns a vector<string> with one name per material (or "NULL").
   std::vector<glm::vec4> matColors;
+  // Blend mode, straight out of the material's own 0x0A01 extension.
+  //
+  // This is the field ClimaxT1MaterialGetFrameBlendMode reads (plugin + 4 in
+  // the runtime material), and its values line up with the engine's named
+  // setters: 0 = STD, 1 = ADD, 2 = SUB. Measured over 11 507 materials in 140
+  // containers: 11 423 STD, 54 ADD (FX_light_beam2, FX_Candle_Glow,
+  // FX_Flare_01, skybox_light), 26 SUB (Blood_Pool_SUB, FX_Bloodstain,
+  // FX_Blood_Hit_Enemies_SUB -- two of which spell SUB in the texture name,
+  // which is what makes this certain rather than merely plausible).
+  //
+  // It replaces the hand-maintained additive name list entirely, and it is why
+  // the TV screen and the save point never looked right: both are STD, and no
+  // name rule could separate them from the glows.
+  std::vector<uint32_t> matBlend;
   auto parseMaterialList = [&](size_t ml_pos) -> std::vector<std::string> {
     std::vector<std::string> names;
     matColors.clear();
+    matBlend.clear();
     size_t mlDataOff = ml_pos + 12; // skip chunk header
     uint32_t fcType = ru32(mlDataOff);
     uint32_t fcSize = ru32(mlDataOff + 4);
@@ -264,6 +279,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       size_t child = curr + 12;
       std::string texName = "NULL";
       glm::vec4 matCol(1.0f);
+      uint32_t blend = 0;
       while (child + 12 < matEnd) {
         uint32_t cType = ru32(child);
         uint32_t cSize = ru32(child + 4);
@@ -279,6 +295,18 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
               ((rgba >> 0) & 0xFF) / 255.0f, ((rgba >> 8) & 0xFF) / 255.0f,
               ((rgba >> 16) & 0xFF) / 255.0f,
               std::min((((rgba >> 24) & 0xFF) * 2) / 255.0f, 1.0f));
+        }
+        if (cType == 0x03) { // Extension -> Climax material plugin
+          size_t x = child + 12;
+          const size_t xEnd = child + 12 + cSize;
+          while (x + 12 <= xEnd) {
+            const uint32_t xt = ru32(x), xs = ru32(x + 4);
+            if (xs == 0 || x + 12 + xs > xEnd)
+              break;
+            if (xt == 0x0A01 && xs >= 8)
+              blend = ru32(x + 12 + 4);
+            x += 12 + xs;
+          }
         }
         if (cType == 0x06) { // Texture chunk
           size_t texChild = child + 12;
@@ -301,6 +329,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       }
       names.push_back(texName);
       matColors.push_back(matCol);
+      matBlend.push_back(blend);
       curr = matEnd;
     }
     return names;
@@ -333,7 +362,52 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                               memcpy(&parentId, &payload[fb + 48], 4);
                               clumpObj->skeleton.bones[i].restLocal = m;
                               clumpObj->skeleton.bones[i].parent = parentId;
-                                                        }
+                          }
+                          
+                          // Now parse the extensions for bone names
+                          size_t extOff = st + 12 + ru32(st + 4);
+                          for (uint32_t i = 0; i < n; i++) {
+                              if (extOff + 12 > c + 12 + cs) break;
+                              uint32_t extType = ru32(extOff);
+                              uint32_t extSize = ru32(extOff + 4);
+                              if (extType != 0x03 || extOff + 12 + extSize > c + 12 + cs) break;
+                              
+                              size_t child = extOff + 12;
+                              size_t extEnd = extOff + 12 + extSize;
+                              while (child + 12 <= extEnd) {
+                                  uint32_t childType = ru32(child);
+                                  uint32_t childSize = ru32(child + 4);
+                                  if (childSize == 0 || child + 12 + childSize > extEnd) break;
+                                  
+                                  if (childType == 0x011F) { // UserData PLG (bone names)
+                                      size_t d = child + 12;
+                                      if (d + 4 <= extEnd) {
+                                          int32_t numSets = 0;
+                                          memcpy(&numSets, &payload[d], 4);
+                                          size_t setOff = d + 4;
+                                          for (int s = 0; s < numSets && setOff + 16 <= extEnd; ++s) {
+                                              int32_t typeNameLen = 0, nameLen = 0;
+                                              memcpy(&typeNameLen, &payload[setOff], 4);
+                                              setOff += 4 + typeNameLen + 8; // skip typeNameLen string + 2 unknowns
+                                              if (setOff + 4 <= extEnd) {
+                                                  memcpy(&nameLen, &payload[setOff], 4);
+                                                  setOff += 4;
+                                                  if (nameLen > 1 && setOff + nameLen <= extEnd) {
+                                                      clumpObj->skeleton.bones[i].name = std::string((const char*)&payload[setOff], nameLen - 1);
+                                                  }
+                                                  setOff += nameLen;
+                                              }
+                                          }
+                                      }
+                                  }
+                                  child += 12 + childSize;
+                              }
+                              
+                              if (clumpObj->skeleton.bones[i].name.empty()) {
+                                  clumpObj->skeleton.bones[i].name = (i == 0) ? "RootBone" : "Bone" + std::to_string(i);
+                              }
+                              extOff += 12 + extSize;
+                          }
                       }
                   }
                   break;
@@ -471,6 +545,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
   // texture.
   std::vector<std::vector<std::string>> sectionMats(1);
   std::vector<std::vector<glm::vec4>> sectionCols(1);
+  std::vector<std::vector<uint32_t>> sectionBlend(1);
   {
     size_t si = 0;
     const size_t secEnd = sz;
@@ -504,6 +579,8 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
             sectionMats[si].push_back(n);
           for (const auto &col : matColors)
             sectionCols[si].push_back(col);
+          for (const auto &b : matBlend)
+            sectionBlend[si].push_back(b);
         }
         c += 12 + cs;
       }
@@ -557,7 +634,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
   std::vector<Vertex> rawVerts, triVerts;
   std::vector<bool> adcFlags;
 
-  auto addChunk = [&](std::vector<Vertex> &verts, int matId, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols) {
+  auto addChunk = [&](std::vector<Vertex> &verts, int matId, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols, const std::vector<uint32_t> &localBlend) {
     if (verts.empty())
       return;
     MeshChunk m;
@@ -565,6 +642,8 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
     
     m.materialIndex = matId;
     m.texName = "NULL";
+    if (matId >= 0 && matId < (int)localBlend.size())
+      m.blendMode = localBlend[matId];
     if (matId >= 0 && matId < (int)localMats.size()) {
       m.texName = localMats[matId];
     }
@@ -627,7 +706,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
   };
 
   // Reads the BinMesh split table and the matching native VIF blocks.
-  auto buildFromExtension = [&](size_t extBegin, size_t extEnd, int sectionIdx, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols) {
+  auto buildFromExtension = [&](size_t extBegin, size_t extEnd, int sectionIdx, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols, const std::vector<uint32_t> &localBlend) {
     auto rf32 = [&](size_t off) -> float {
       float f;
       memcpy(&f, &payload[off], 4);
@@ -773,7 +852,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       }
       totalPackets += packets.size();
       totalSplits++;
-      addChunk(triVerts, matIds[i], localMats, localCols);
+      addChunk(triVerts, matIds[i], localMats, localCols, localBlend);
       p = blockEnd;
     }
   };
@@ -803,13 +882,13 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
     const size_t rootEnd = secEnd;
 
     // Finds the Extension of a chunk and hands it over.
-    auto handleOwner = [&](size_t a, size_t b, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols) {
+    auto handleOwner = [&](size_t a, size_t b, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols, const std::vector<uint32_t> &localBlend) {
       for (size_t c = a; c + 12 <= b;) {
         const uint32_t ct = ru32(c), cs = ru32(c + 4);
         if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)
           break;
         if (ct == 0x0003)
-          buildFromExtension(c + 12, c + 12 + cs, (int)si, localMats, localCols);
+          buildFromExtension(c + 12, c + 12 + cs, (int)si, localMats, localCols, localBlend);
         c += 12 + cs;
       }
     };
@@ -821,7 +900,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
           if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)
             break;
           if (ct == 0x0009)
-            handleOwner(c + 12, c + 12 + cs, sectionMats[si], sectionCols[si]);
+            handleOwner(c + 12, c + 12 + cs, sectionMats[si], sectionCols[si], sectionBlend[si]);
           else if (ct == 0x000A)
             walk(c + 12, c + 12 + cs);
           c += 12 + cs;
@@ -895,6 +974,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
             if (gt == 0x000F) {
               std::vector<std::string> geomMats;
               std::vector<glm::vec4> geomCols;
+              std::vector<uint32_t> geomBlend;
               for (size_t gc = g + 12; gc + 12 <= g + 12 + gs;) {
                 const uint32_t gct = ru32(gc), gcs = ru32(gc + 4);
                 if (ru32(gc + 8) != 0x1C020065 || gcs == 0 || gc + 12 + gcs > g + 12 + gs)
@@ -902,6 +982,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                 if (gct == 0x08) {
                   geomMats = parseMaterialList(gc);
                   geomCols = matColors; // parseMaterialList writes to this global
+                  geomBlend = matBlend;
                 }
                 gc += 12 + gcs;
               }
@@ -912,7 +993,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
               if (itF != geomFrame.end() && itF->second < frameWorld.size())
                 fm = frameWorld[itF->second];
               const size_t firstChunk = destObj->GetMeshes().size();
-              handleOwner(g + 12, g + 12 + gs, geomMats, geomCols);
+              handleOwner(g + 12, g + 12 + gs, geomMats, geomCols, geomBlend);
               if (fm != glm::mat4(1.0f)) {
                 auto meshes = destObj->GetMeshes();
                 for (size_t k = firstChunk; k < meshes.size(); k++) {
