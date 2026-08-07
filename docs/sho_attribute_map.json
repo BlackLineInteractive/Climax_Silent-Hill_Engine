@@ -1,0 +1,7870 @@
+{
+ "AccoladeData": {
+  "address": "0x001FC6D8",
+  "vtable": "0x006A37F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001FC758",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "AnatomyPuzzleTrigger": {
+  "address": "0x001729F0",
+  "vtable": "0x00695F10",
+  "count": 12,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00172A5C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00172A68",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00172A74",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x00172A80",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x00172A8C",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x00172A98",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x00172AB4",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00172ACC",
+    "stores": [
+     {
+      "offset": "0x98",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00172AE4",
+    "stores": [
+     {
+      "offset": "0x9c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x00172AFC",
+    "stores": [
+     {
+      "offset": "0xa0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x00172B14",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x00172B2C",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "AreaTrigger2DPoly": {
+  "address": "0x0016FE20",
+  "vtable": "0x00695730",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016FED4",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016FE98",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "AreaTriggerBattleManager": {
+  "address": "0x00170D58",
+  "vtable": "0x006959E8",
+  "count": 6,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00170DC4",
+    "stores": [
+     {
+      "offset": "0x120",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00170DD4",
+    "stores": [
+     {
+      "offset": "0x12c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00170DEC",
+    "stores": [
+     {
+      "offset": "0x130",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00170E04",
+    "stores": [
+     {
+      "offset": "0x134",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00170E1C",
+    "stores": [
+     {
+      "offset": "0x138",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00170E34",
+    "stores": [
+     {
+      "offset": "0x13c",
+      "type": "int"
+     },
+     {
+      "offset": "0x128",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "AreaTriggerBox": {
+  "address": "0x001712C8",
+  "vtable": "0x00695BF0",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00171334",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00171340",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0017135C",
+    "stores": [
+     {
+      "offset": "0x100",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00171374",
+    "stores": [
+     {
+      "offset": "0x104",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00171388",
+    "stores": [
+     {
+      "offset": "0x108",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001713A0",
+    "stores": [
+     {
+      "offset": "0x10c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x001713C0",
+    "stores": [
+     {
+      "offset": "0x110",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "AudioGlobalMixer": {
+  "address": "0x001FC6D8",
+  "vtable": "0x006A37F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001FC758",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "AudioGroup": {
+  "address": "0x001FC6D8",
+  "vtable": "0x006A37F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001FC758",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "AudioReverb": {
+  "address": "0x001FC6D8",
+  "vtable": "0x006A37F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001FC758",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "AudioSound3D": {
+  "address": "0x0019B538",
+  "vtable": "0x0069A708",
+  "count": 18,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0019B5A4",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0019B5C8",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0019B5D8",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0019B5E4",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0019B5FC",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0019B60C",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0019B61C",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x0019B64C",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x0019B63C",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x0019B668",
+    "stores": []
+   },
+   {
+    "index": 10,
+    "case": "0x0019B6CC",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x0019B710",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x0019B748",
+    "stores": []
+   },
+   {
+    "index": 13,
+    "case": "0x0019B828",
+    "stores": []
+   },
+   {
+    "index": 14,
+    "case": "0x0019B790",
+    "stores": []
+   },
+   {
+    "index": 15,
+    "case": "0x0019B7D0",
+    "stores": []
+   },
+   {
+    "index": 16,
+    "case": "0x0019B75C",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x0019B818",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "AudioStream": {
+  "address": "0x001FC6D8",
+  "vtable": "0x006A37F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001FC758",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "BackdropPropTrigger": {
+  "address": "0x00173008",
+  "vtable": "0x006960A0",
+  "count": 16,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00173074",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0017308C",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x001730A4",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001730BC",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x001730DC",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x001730E8",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x001730F4",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x00173100",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x0017310C",
+    "stores": []
+   },
+   {
+    "index": 9,
+    "case": "0x00173118",
+    "stores": []
+   },
+   {
+    "index": 10,
+    "case": "0x00173124",
+    "stores": []
+   },
+   {
+    "index": 11,
+    "case": "0x00173130",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x0017313C",
+    "stores": []
+   },
+   {
+    "index": 13,
+    "case": "0x00173148",
+    "stores": []
+   },
+   {
+    "index": 14,
+    "case": "0x00173154",
+    "stores": []
+   },
+   {
+    "index": 15,
+    "case": "0x00173170",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "ButtonBoxTrigger": {
+  "address": "0x00168E60",
+  "vtable": "0x00694790",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00168FEC",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00169078",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x001690E0",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x00168FF8",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00169094",
+    "stores": [
+     {
+      "offset": "0xf0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001690A8",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x001690C8",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "ButtonTrigger": {
+  "address": "0x001695D8",
+  "vtable": "0x006948D8",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00169764",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00169770",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0016978C",
+    "stores": [
+     {
+      "offset": "0xe0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001697A0",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x001697C0",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CAnimatedStaticObject": {
+  "address": "0x00101720",
+  "vtable": "0x006908C0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001018FC",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CAudioLocatorBehaviour": {
+  "address": "0x0010B100",
+  "vtable": "0x0068A268",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0010B1D0",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0010B194",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CAudioLocatorBehaviour2D": {
+  "address": "0x0010B550",
+  "vtable": "0x0068A368",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0010B5D4",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0010B5E4",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0010B5BC",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0010B604",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0010B614",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CAudioTransitions": {
+  "address": "0x0010F438",
+  "vtable": "0x0068A8B8",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0010F500",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0010F4B8",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CAudioUI": {
+  "address": "0x001109B8",
+  "vtable": "0x0068AC68",
+  "count": 31,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00110A34",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00110A4C",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00110A64",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00110A7C",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00110A94",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00110AAC",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00110AC4",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00110ADC",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00110AF4",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x00110B0C",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x00110B24",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x00110B3C",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x00110B54",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x00110B6C",
+    "stores": [
+     {
+      "offset": "0x84",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x00110B84",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 15,
+    "case": "0x00110B9C",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 16,
+    "case": "0x00110BCC",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x00110BE4",
+    "stores": [
+     {
+      "offset": "0x98",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 18,
+    "case": "0x00110BFC",
+    "stores": [
+     {
+      "offset": "0x9c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 19,
+    "case": "0x00110BB4",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 20,
+    "case": "0x00110C14",
+    "stores": [
+     {
+      "offset": "0xa0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 21,
+    "case": "0x00110C2C",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 22,
+    "case": "0x00110C44",
+    "stores": [
+     {
+      "offset": "0xa8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 23,
+    "case": "0x00110C5C",
+    "stores": [
+     {
+      "offset": "0xac",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 24,
+    "case": "0x00110C74",
+    "stores": [
+     {
+      "offset": "0xb0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 25,
+    "case": "0x00110C8C",
+    "stores": [
+     {
+      "offset": "0xb4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 26,
+    "case": "0x00110CA4",
+    "stores": [
+     {
+      "offset": "0xb8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 27,
+    "case": "0x00110CBC",
+    "stores": [
+     {
+      "offset": "0xbc",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 28,
+    "case": "0x00110CD4",
+    "stores": [
+     {
+      "offset": "0xc0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 29,
+    "case": "0x00110CEC",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 30,
+    "case": "0x00110D04",
+    "stores": [
+     {
+      "offset": "0xc4",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CBasicAnimatedObject": {
+  "address": "0x00103A00",
+  "vtable": "0x00689B58",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00103A74",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CBloomCfg": {
+  "address": "0x00160A88",
+  "vtable": "0x00693C68",
+  "count": 22,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00160AF4",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00160B10",
+    "stores": [
+     {
+      "offset": "0x48",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00160B20",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00160B30",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00160B40",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00160B50",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00160B60",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00160B70",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00160B80",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x00160B90",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x00160BA0",
+    "stores": []
+   },
+   {
+    "index": 11,
+    "case": "0x00160C1C",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x00160C2C",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x00160C3C",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "float"
+     },
+     {
+      "offset": "0x84",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x00160C54",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 15,
+    "case": "0x00160C64",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 16,
+    "case": "0x00160C74",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x00160C84",
+    "stores": [
+     {
+      "offset": "0xac",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 18,
+    "case": "0x00160CA4",
+    "stores": []
+   },
+   {
+    "index": 19,
+    "case": "0x00160CB4",
+    "stores": []
+   },
+   {
+    "index": 20,
+    "case": "0x00160CD4",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 21,
+    "case": "0x00160CE4",
+    "stores": [
+     {
+      "offset": "0xa8",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CCalibanBehaviour": {
+  "address": "0x0012BA50",
+  "vtable": "0x0068BC58",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0012BB1C",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CCollisionCapsule": {
+  "address": "0x001FC6D8",
+  "vtable": "0x006A37F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001FC758",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CColorLight": {
+  "address": "0x00140318",
+  "vtable": "0x00691058",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00140384",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x001404E8",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x001404A8",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x001404B8",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x001404C8",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table",
+  "inherited": true
+ },
+ "CConstraintCamera": {
+  "address": "0x00118AB8",
+  "vtable": "0x0068B2D0",
+  "count": 35,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00118C74",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00118C84",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00118CB4",
+    "stores": [
+     {
+      "offset": "0x21c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00118CC4",
+    "stores": [
+     {
+      "offset": "0x23c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00118CD4",
+    "stores": [
+     {
+      "offset": "0x240",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00118DF8",
+    "stores": [
+     {
+      "offset": "0x238",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00118E18",
+    "stores": [
+     {
+      "offset": "0x280",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00118E38",
+    "stores": [
+     {
+      "offset": "0x28c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00118E58",
+    "stores": [
+     {
+      "offset": "0x290",
+      "type": "float"
+     },
+     {
+      "offset": "0x290",
+      "type": "float"
+     },
+     {
+      "offset": "0x290",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x00118EAC",
+    "stores": [
+     {
+      "offset": "0x294",
+      "type": "float"
+     },
+     {
+      "offset": "0x298",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x00118CE4",
+    "stores": [
+     {
+      "offset": "0x244",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x00118CF4",
+    "stores": [
+     {
+      "offset": "0x248",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x00118D04",
+    "stores": [
+     {
+      "offset": "0x24c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x00118D14",
+    "stores": [
+     {
+      "offset": "0x220",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x00118D24",
+    "stores": [
+     {
+      "offset": "0x224",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 15,
+    "case": "0x00118D34",
+    "stores": [
+     {
+      "offset": "0x254",
+      "type": "float"
+     },
+     {
+      "offset": "0x250",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 16,
+    "case": "0x00118D48",
+    "stores": [
+     {
+      "offset": "0x258",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x00118D68",
+    "stores": [
+     {
+      "offset": "0x25c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 18,
+    "case": "0x00118D78",
+    "stores": [
+     {
+      "offset": "0x268",
+      "type": "float"
+     },
+     {
+      "offset": "0x264",
+      "type": "float"
+     },
+     {
+      "offset": "0x260",
+      "type": "float"
+     },
+     {
+      "offset": "0x26c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 19,
+    "case": "0x00118C94",
+    "stores": [
+     {
+      "offset": "0xcc",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 20,
+    "case": "0x00118CA4",
+    "stores": [
+     {
+      "offset": "0xd0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 21,
+    "case": "0x00118DE8",
+    "stores": [
+     {
+      "offset": "0x228",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 22,
+    "case": "0x00118DB8",
+    "stores": [
+     {
+      "offset": "0x1d0",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 23,
+    "case": "0x00118DC8",
+    "stores": [
+     {
+      "offset": "0x1d4",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 24,
+    "case": "0x00118DD8",
+    "stores": [
+     {
+      "offset": "0x1d8",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 25,
+    "case": "0x00118EE0",
+    "stores": [
+     {
+      "offset": "0x9c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 26,
+    "case": "0x00118EF0",
+    "stores": [
+     {
+      "offset": "0xa0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 27,
+    "case": "0x00118F10",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 28,
+    "case": "0x00118F20",
+    "stores": [
+     {
+      "offset": "0x2ac",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 29,
+    "case": "0x00118F30",
+    "stores": [
+     {
+      "offset": "0x2b0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 30,
+    "case": "0x00118F50",
+    "stores": [
+     {
+      "offset": "0x2b8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 31,
+    "case": "0x00118F70",
+    "stores": [
+     {
+      "offset": "0x2bc",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 32,
+    "case": "0x00118F84",
+    "stores": [
+     {
+      "offset": "0x2a4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 33,
+    "case": "0x00118FA4",
+    "stores": [
+     {
+      "offset": "0x29c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 34,
+    "case": "0x00118FB4",
+    "stores": [
+     {
+      "offset": "0x2a0",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CControllerCamera": {
+  "address": "0x00119B88",
+  "vtable": "0x0068B410",
+  "count": 8,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00119CBC",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00119CCC",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00119CDC",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00119C4C",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x00119C60",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x00119C74",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x00119C88",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x00119C9C",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CCounter": {
+  "address": "0x00169B48",
+  "vtable": "0x006949C8",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00169BB4",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00169BC4",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00169BE0",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x00169C00",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00169C10",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CDeathSpawnEffectManager": {
+  "address": "0x0015D180",
+  "vtable": "0x00693718",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015D30C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0015D320",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0015D334",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0015D348",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0015D35C",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CDistortionTrigger": {
+  "address": "0x0016A470",
+  "vtable": "0x00694B30",
+  "count": 3,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016A538",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016A4FC",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016A504",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CDynamicFire": {
+  "address": "0x0015A458",
+  "vtable": "0x00693260",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015A4EC",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CDynamicHealthItem": {
+  "address": "0x0018BA78",
+  "vtable": "0x006994F8",
+  "count": 3,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0018BB30",
+    "stores": [
+     {
+      "offset": "0xc4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0018BAF4",
+    "stores": [
+     {
+      "offset": "0x124",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0018BAFC",
+    "stores": [
+     {
+      "offset": "0x128",
+      "type": "int"
+     },
+     {
+      "offset": "0xc4",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CEndingMovieRelay": {
+  "address": "0x0016AAE0",
+  "vtable": "0x00694BF0",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016AB4C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016AB5C",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0016AB7C",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0016AB88",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0016AB94",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0016ABB0",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0016ABC0",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CEnemyBehaviour": {
+  "address": "0x0012BA50",
+  "vtable": "0x0068CFE8",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0012BB1C",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CEnemySpecificPlayerAnim": {
+  "address": "0x00106AF8",
+  "vtable": "0x00689ED8",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00106BC0",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x00106BFC",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CFMABorder": {
+  "address": "0x001525C8",
+  "vtable": "0x00692B20",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015265C",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CFMAController": {
+  "address": "0x0017D318",
+  "vtable": "0x00697A08",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0017D3D0",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0017D394",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CFMAPlayerAnim": {
+  "address": "0x0017D6B8",
+  "vtable": "0x00697AF0",
+  "count": 3,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0017D73C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0017D780",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0017D78C",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CFMAPlayerMover": {
+  "address": "0x0017DB70",
+  "vtable": "0x00697BA0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0017DC08",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CFRainDropManager": {
+  "address": "0x0015D6D0",
+  "vtable": "0x00693860",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015D75C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0015D76C",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0015D77C",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0015D78C",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0015D79C",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0015D7B0",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0015D7C0",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CFadeTrigger": {
+  "address": "0x0016B120",
+  "vtable": "0x00694C98",
+  "count": 6,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016B18C",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0016B19C",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016B1AC",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016B1BC",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0016B1DC",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0016B1F8",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CFastLightSource": {
+  "address": "0x00141480",
+  "vtable": "0x00691108",
+  "count": 10,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00141584",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00141594",
+    "stores": [
+     {
+      "offset": "0xa0",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x001415A4",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001415B4",
+    "stores": [
+     {
+      "offset": "0xa8",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x001415C4",
+    "stores": [
+     {
+      "offset": "0xd4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001415E4",
+    "stores": [
+     {
+      "offset": "0xd8",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00141634",
+    "stores": [
+     {
+      "offset": "0xd0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x001415F4",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x00141604",
+    "stores": []
+   },
+   {
+    "index": 9,
+    "case": "0x00141614",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CFlaurosBehaviour": {
+  "address": "0x0012BA50",
+  "vtable": "0x0068D5F8",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0012BB1C",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CFmaCamera": {
+  "address": "0x0011AF38",
+  "vtable": "0x0068B5B0",
+  "count": 11,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0011AFA4",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0011AFB8",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0011AFD8",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0011AFF8",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0011AFE8",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0011B008",
+    "stores": [
+     {
+      "offset": "0x110",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0011B018",
+    "stores": [
+     {
+      "offset": "0x114",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0011B028",
+    "stores": [
+     {
+      "offset": "0x118",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x0011B038",
+    "stores": [
+     {
+      "offset": "0x11c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x0011B048",
+    "stores": [
+     {
+      "offset": "0xf0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x0011B068",
+    "stores": [
+     {
+      "offset": "0xf4",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CFmaCameraNode": {
+  "address": "0x00119FB8",
+  "vtable": "0x0068B670",
+  "count": 6,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0011A024",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0011A048",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0011A05C",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0011A07C",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0011A08C",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0011A09C",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CFogConfig": {
+  "address": "0x0015F2B0",
+  "vtable": "0x00693AD0",
+  "count": 19,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015F31C",
+    "stores": [
+     {
+      "offset": "0x48",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0015F32C",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     },
+     {
+      "offset": "0x50",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0015F350",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0015F360",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0015F370",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0015F380",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0015F390",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0015F3A0",
+    "stores": [
+     {
+      "offset": "0xb4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x0015F3B0",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x0015F3C0",
+    "stores": [
+     {
+      "offset": "0xac",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x0015F3D0",
+    "stores": [
+     {
+      "offset": "0x9c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x0015F3E0",
+    "stores": [
+     {
+      "offset": "0xa0",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x0015F3F0",
+    "stores": [
+     {
+      "offset": "0x98",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x0015F400",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     },
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x0015F424",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 15,
+    "case": "0x0015F434",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 16,
+    "case": "0x0015F444",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x0015F454",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 18,
+    "case": "0x0015F464",
+    "stores": [
+     {
+      "offset": "0x84",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CFollowCamera": {
+  "address": "0x0011BEF0",
+  "vtable": "0x0068B710",
+  "count": 4,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0011BFC0",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0011BF7C",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0011BF84",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0011BF8C",
+    "stores": [
+     {
+      "offset": "0x98",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CForceItemTrigger": {
+  "address": "0x0018BF50",
+  "vtable": "0x006995F8",
+  "count": 3,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0018C014",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0018BFD8",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0018BFE0",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CFullScreenRain": {
+  "address": "0x001626E0",
+  "vtable": "0x00694148",
+  "count": 11,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00162754",
+    "stores": [
+     {
+      "offset": "0x1d08",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00162764",
+    "stores": [
+     {
+      "offset": "0x1d0c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00162774",
+    "stores": [
+     {
+      "offset": "0x1d10",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00162784",
+    "stores": [
+     {
+      "offset": "0x1d14",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00162794",
+    "stores": [
+     {
+      "offset": "0x1d18",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001627A4",
+    "stores": [
+     {
+      "offset": "0x1d1c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x001627B4",
+    "stores": [
+     {
+      "offset": "0x1d20",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x001627C4",
+    "stores": [
+     {
+      "offset": "0x1d24",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x001627D4",
+    "stores": [
+     {
+      "offset": "0x1d28",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x001627F4",
+    "stores": []
+   },
+   {
+    "index": 10,
+    "case": "0x00162814",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CGenericSpawner": {
+  "address": "0x00149A78",
+  "vtable": "0x00691F00",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00149B10",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CHitEffectManager": {
+  "address": "0x00161CD0",
+  "vtable": "0x00693DD0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00161E84",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CIGCCamera": {
+  "address": "0x001838D0",
+  "vtable": "0x00698570",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0018395C",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CIGCCharacter": {
+  "address": "0x00126010",
+  "vtable": "0x006986F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00126084",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CIGCTrigger": {
+  "address": "0x00187AD8",
+  "vtable": "0x00698EB0",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00187CB8",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00187BE4",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00187BFC",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00187C08",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "int"
+     },
+     {
+      "offset": "0x58",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00187C1C",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     },
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00187C30",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     },
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00187C44",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "int"
+     },
+     {
+      "offset": "0x74",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CInventoryItemDef": {
+  "address": "0x0018C300",
+  "vtable": "0x00699788",
+  "count": 37,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0018C374",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0018C384",
+    "stores": [
+     {
+      "offset": "0x48",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0018C394",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0018C3A4",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0018C3B4",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0018C3C4",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0018C3D4",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0018C3E4",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x0018C404",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x0018C424",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x0018C444",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x0018C464",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x0018C484",
+    "stores": [
+     {
+      "offset": "0x84",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x0018C494",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x0018C4A4",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 15,
+    "case": "0x0018C4B4",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 16,
+    "case": "0x0018C4C4",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "int"
+     },
+     {
+      "offset": "0x94",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x0018C658",
+    "stores": [
+     {
+      "offset": "0x98",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 18,
+    "case": "0x0018C668",
+    "stores": [
+     {
+      "offset": "0x9c",
+      "type": "int"
+     },
+     {
+      "offset": "0x9c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 19,
+    "case": "0x0018C688",
+    "stores": [
+     {
+      "offset": "0xa0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 20,
+    "case": "0x0018C6B8",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 21,
+    "case": "0x0018C698",
+    "stores": [
+     {
+      "offset": "0xe4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 22,
+    "case": "0x0018C534",
+    "stores": [
+     {
+      "offset": "0xc8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 23,
+    "case": "0x0018C544",
+    "stores": []
+   },
+   {
+    "index": 24,
+    "case": "0x0018C4E4",
+    "stores": [
+     {
+      "offset": "0xb4",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 25,
+    "case": "0x0018C4F4",
+    "stores": [
+     {
+      "offset": "0xb8",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 26,
+    "case": "0x0018C504",
+    "stores": [
+     {
+      "offset": "0xc4",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 27,
+    "case": "0x0018C514",
+    "stores": [
+     {
+      "offset": "0xbc",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 28,
+    "case": "0x0018C524",
+    "stores": [
+     {
+      "offset": "0xc0",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 29,
+    "case": "0x0018C6C8",
+    "stores": [
+     {
+      "offset": "0xa8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 30,
+    "case": "0x0018C6D8",
+    "stores": [
+     {
+      "offset": "0xac",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 31,
+    "case": "0x0018C6E8",
+    "stores": [
+     {
+      "offset": "0xb0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 32,
+    "case": "0x0018C6F8",
+    "stores": [
+     {
+      "offset": "0xcc",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 33,
+    "case": "0x0018C708",
+    "stores": [
+     {
+      "offset": "0xd0",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 34,
+    "case": "0x0018C718",
+    "stores": [
+     {
+      "offset": "0xe8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 35,
+    "case": "0x0018C744",
+    "stores": []
+   },
+   {
+    "index": 36,
+    "case": "0x0018C738",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CMapAnchorPoint": {
+  "address": "0x001896E0",
+  "vtable": "0x00699228",
+  "count": 4,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00189844",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0018977C",
+    "stores": [
+     {
+      "offset": "0x48",
+      "type": "int"
+     },
+     {
+      "offset": "0x48",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0018979C",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001897DC",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CMapItem": {
+  "address": "0x00189A90",
+  "vtable": "0x006992B8",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00189AFC",
+    "stores": [
+     {
+      "offset": "0xd8",
+      "type": "int"
+     },
+     {
+      "offset": "0xd8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00189B28",
+    "stores": [
+     {
+      "offset": "0xc0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00189B50",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x00189B70",
+    "stores": [
+     {
+      "offset": "0xcc",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00189B98",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CMessageRelay": {
+  "address": "0x0016CBC8",
+  "vtable": "0x00695158",
+  "count": 22,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016CC94",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016CCB4",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0016CCC0",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0016CCCC",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0016CCD8",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0016CCE4",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0016CCF0",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x0016CCFC",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x0016CD08",
+    "stores": []
+   },
+   {
+    "index": 9,
+    "case": "0x0016CD14",
+    "stores": []
+   },
+   {
+    "index": 10,
+    "case": "0x0016CD20",
+    "stores": []
+   },
+   {
+    "index": 11,
+    "case": "0x0016CC34",
+    "stores": [
+     {
+      "offset": "0xc8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x0016CC4C",
+    "stores": [
+     {
+      "offset": "0xcc",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x0016CC60",
+    "stores": [
+     {
+      "offset": "0xb4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x0016CC74",
+    "stores": []
+   },
+   {
+    "index": 15,
+    "case": "0x0016CC84",
+    "stores": []
+   },
+   {
+    "index": 16,
+    "case": "0x0016CD3C",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x0016CD4C",
+    "stores": [
+     {
+      "offset": "0xa0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 18,
+    "case": "0x0016CD5C",
+    "stores": [
+     {
+      "offset": "0xb0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 19,
+    "case": "0x0016CD6C",
+    "stores": [
+     {
+      "offset": "0xd0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 20,
+    "case": "0x0016CD84",
+    "stores": [
+     {
+      "offset": "0xd4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 21,
+    "case": "0x0016CDA4",
+    "stores": [
+     {
+      "offset": "0xd8",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CMotionBlurCfg": {
+  "address": "0x00160D68",
+  "vtable": "0x00693C00",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00160DD4",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00160DE4",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00160E04",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x00160E44",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00160E14",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x00160E54",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00160E34",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CMoverNode": {
+  "address": "0x001474E0",
+  "vtable": "0x00691668",
+  "count": 6,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0014754C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00147570",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00147590",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001475B0",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x001475C0",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001475D0",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPSX2StndController": {
+  "address": "0x00193B30",
+  "vtable": "0x00699E60",
+  "count": 28,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00193B9C",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00193BAC",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00193BE0",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00193BBC",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x00193BF8",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x00193C1C",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x00193C40",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x00193C64",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x00193C88",
+    "stores": []
+   },
+   {
+    "index": 9,
+    "case": "0x00193CAC",
+    "stores": []
+   },
+   {
+    "index": 10,
+    "case": "0x00193CD0",
+    "stores": []
+   },
+   {
+    "index": 11,
+    "case": "0x00193CF4",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x00193D18",
+    "stores": []
+   },
+   {
+    "index": 13,
+    "case": "0x00193D3C",
+    "stores": []
+   },
+   {
+    "index": 14,
+    "case": "0x00193D60",
+    "stores": []
+   },
+   {
+    "index": 15,
+    "case": "0x00193DCC",
+    "stores": []
+   },
+   {
+    "index": 16,
+    "case": "0x00193DF0",
+    "stores": []
+   },
+   {
+    "index": 17,
+    "case": "0x00193E14",
+    "stores": []
+   },
+   {
+    "index": 18,
+    "case": "0x00193E38",
+    "stores": []
+   },
+   {
+    "index": 19,
+    "case": "0x00193D84",
+    "stores": []
+   },
+   {
+    "index": 20,
+    "case": "0x00193DA8",
+    "stores": []
+   },
+   {
+    "index": 21,
+    "case": "0x00193E5C",
+    "stores": []
+   },
+   {
+    "index": 22,
+    "case": "0x00193E80",
+    "stores": []
+   },
+   {
+    "index": 23,
+    "case": "0x00193EA4",
+    "stores": []
+   },
+   {
+    "index": 24,
+    "case": "0x00193EC8",
+    "stores": []
+   },
+   {
+    "index": 25,
+    "case": "0x00193EEC",
+    "stores": []
+   },
+   {
+    "index": 26,
+    "case": "0x00193F10",
+    "stores": []
+   },
+   {
+    "index": 27,
+    "case": "0x00193F34",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPadRumbleTrigger": {
+  "address": "0x0016D7F8",
+  "vtable": "0x006952A8",
+  "count": 6,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016D864",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016D884",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016D894",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016D8A4",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0016D8B4",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0016D8C4",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPathFollower": {
+  "address": "0x00147A60",
+  "vtable": "0x00691928",
+  "count": 10,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00147C5C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00147C70",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00147C84",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x00147C94",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x00147CB4",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x00147CC8",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x00147CDC",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x00147CFC",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x00147D1C",
+    "stores": []
+   },
+   {
+    "index": 9,
+    "case": "0x00147D3C",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPeepholeCamera": {
+  "address": "0x0011C3C8",
+  "vtable": "0x0068B870",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0011C43C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0011C450",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0011C464",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0011C484",
+    "stores": [
+     {
+      "offset": "0xf0",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0011C494",
+    "stores": [
+     {
+      "offset": "0xf4",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0011C4A4",
+    "stores": [
+     {
+      "offset": "0x100",
+      "type": "float"
+     },
+     {
+      "offset": "0x104",
+      "type": "float"
+     },
+     {
+      "offset": "0x10c",
+      "type": "float"
+     },
+     {
+      "offset": "0x108",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0011C4E8",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPhysicsObject": {
+  "address": "0x0013CFB0",
+  "vtable": "0x0068FEB0",
+  "count": 11,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0013D01C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0013D02C",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0013D04C",
+    "stores": [
+     {
+      "offset": "0xec",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0013D06C",
+    "stores": [
+     {
+      "offset": "0x140",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0013D07C",
+    "stores": [
+     {
+      "offset": "0x16c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0013D08C",
+    "stores": [
+     {
+      "offset": "0x170",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0013D09C",
+    "stores": [
+     {
+      "offset": "0x174",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0013D0AC",
+    "stores": [
+     {
+      "offset": "0x178",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x0013D0CC",
+    "stores": [
+     {
+      "offset": "0x17c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x0013D0EC",
+    "stores": [
+     {
+      "offset": "0x180",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x0013D10C",
+    "stores": [
+     {
+      "offset": "0x190",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPickupItem": {
+  "address": "0x001916F0",
+  "vtable": "0x00699B88",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0019175C",
+    "stores": [
+     {
+      "offset": "0xc0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0019176C",
+    "stores": [
+     {
+      "offset": "0xc4",
+      "type": "int"
+     },
+     {
+      "offset": "0xc4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00191790",
+    "stores": [
+     {
+      "offset": "0xe0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001917B0",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x001917D0",
+    "stores": [
+     {
+      "offset": "0x110",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPlaceHolderMsgTrigger": {
+  "address": "0x0016DC60",
+  "vtable": "0x00695340",
+  "count": 3,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016DD3C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016DCEC",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0016DD00",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CPlayerBehaviour": {
+  "address": "0x00137210",
+  "vtable": "0x0068E588",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00137288",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CPlayerCheckpoint": {
+  "address": "0x00149FD8",
+  "vtable": "0x00691FF0",
+  "count": 8,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0014A044",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0014A054",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0014A064",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0014A084",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0014A0A0",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0014A0B4",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0014A0C8",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0014A0D8",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPlayerLight": {
+  "address": "0x00140318",
+  "vtable": "0x00691058",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00140384",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x001404E8",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x001404A8",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x001404B8",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x001404C8",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table",
+  "inherited": true
+ },
+ "CPlayerReflector": {
+  "address": "0x0013A238",
+  "vtable": "0x0068F210",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0013A2C8",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CPlayerSpawner": {
+  "address": "0x0014A888",
+  "vtable": "0x006921A8",
+  "count": 6,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0014A8F4",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0014A904",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0014A91C",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0014A92C",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0014A94C",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0014A96C",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CPointTrigger": {
+  "address": "0x00188DF8",
+  "vtable": "0x00699188",
+  "count": 11,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00188E74",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00188E80",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00188E8C",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x00188EA8",
+    "stores": [
+     {
+      "offset": "0xb0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00188EC0",
+    "stores": [
+     {
+      "offset": "0xb4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00188EE0",
+    "stores": [
+     {
+      "offset": "0x9c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00188EF8",
+    "stores": [
+     {
+      "offset": "0xa0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00188F18",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00188F38",
+    "stores": [
+     {
+      "offset": "0xa8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x00188F50",
+    "stores": [
+     {
+      "offset": "0xac",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x00188F70",
+    "stores": [
+     {
+      "offset": "0xb8",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CRecyclerSpawner": {
+  "address": "0x0014B3B8",
+  "vtable": "0x006922B0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0014B440",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CRotator": {
+  "address": "0x00148FB0",
+  "vtable": "0x00691BA0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001491A8",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CSadDaddyBehaviour": {
+  "address": "0x0012BA50",
+  "vtable": "0x0068F4A8",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0012BB1C",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CSceneObject": {
+  "address": "0x0013D888",
+  "vtable": "0x0068FFB0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0013D8E8",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CScreenShakeTrigger": {
+  "address": "0x0016EA78",
+  "vtable": "0x006954F8",
+  "count": 6,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016EAE4",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016EB04",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016EB14",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016EB24",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0016EB34",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0016EB44",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CSequenceObject": {
+  "address": "0x0013DB48",
+  "vtable": "0x00690370",
+  "count": 8,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0013DBB4",
+    "stores": [
+     {
+      "offset": "0xd8",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0013DBC4",
+    "stores": [
+     {
+      "offset": "0xdc",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0013DBD4",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0013DBE4",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0013DBF4",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0013DC04",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0013DC14",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x0013DC34",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CSettingsManager": {
+  "address": "0x0017FD18",
+  "vtable": "0x006982F8",
+  "count": 14,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0017FD7C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0017FD90",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0017FDA4",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0017FDB8",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0017FDE0",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0017FDF4",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0017FE08",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x0017FE1C",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x0017FDCC",
+    "stores": []
+   },
+   {
+    "index": 9,
+    "case": "0x0017FE30",
+    "stores": []
+   },
+   {
+    "index": 10,
+    "case": "0x0017FE44",
+    "stores": []
+   },
+   {
+    "index": 11,
+    "case": "0x0017FE7C",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x0017FE58",
+    "stores": []
+   },
+   {
+    "index": 13,
+    "case": "0x0017FE90",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CSkyDome": {
+  "address": "0x0017D298",
+  "vtable": "0x00697958",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0017D3D0",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0017D394",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CSlowMoTrigger": {
+  "address": "0x0016ED70",
+  "vtable": "0x006955A0",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016EDDC",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016EDEC",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0016EE0C",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016EE1C",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0016EE2C",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0016EE3C",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0016EE4C",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CSmashableObject": {
+  "address": "0x0013E930",
+  "vtable": "0x00690420",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0013E9A8",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CSolidObject": {
+  "address": "0x0013F610",
+  "vtable": "0x006906A8",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0013F6E8",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CSpotLight": {
+  "address": "0x001429C0",
+  "vtable": "0x00691500",
+  "count": 16,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00142A2C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00142C18",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00142A50",
+    "stores": [
+     {
+      "offset": "0x170",
+      "type": "float"
+     },
+     {
+      "offset": "0x174",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00142C18",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x00142C18",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x00142AA8",
+    "stores": [
+     {
+      "offset": "0x104",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00142BDC",
+    "stores": [
+     {
+      "offset": "0x1ac",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00142B3C",
+    "stores": [
+     {
+      "offset": "0x184",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00142B8C",
+    "stores": [
+     {
+      "offset": "0x100",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x00142B4C",
+    "stores": []
+   },
+   {
+    "index": 10,
+    "case": "0x00142B5C",
+    "stores": []
+   },
+   {
+    "index": 11,
+    "case": "0x00142B6C",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x00142C18",
+    "stores": []
+   },
+   {
+    "index": 13,
+    "case": "0x00142BEC",
+    "stores": [
+     {
+      "offset": "0x1b0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x00142C0C",
+    "stores": [
+     {
+      "offset": "0x178",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 15,
+    "case": "0x00142BFC",
+    "stores": [
+     {
+      "offset": "0x1b4",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CSpotLightSurface": {
+  "address": "0x001462E8",
+  "vtable": "0x00691468",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0014636C",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CStaticCamera": {
+  "address": "0x0011D4D8",
+  "vtable": "0x0068B9A8",
+  "count": 9,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0011D64C",
+    "stores": [
+     {
+      "offset": "0x110",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0011D6A0",
+    "stores": [
+     {
+      "offset": "0x120",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0011D6B0",
+    "stores": [
+     {
+      "offset": "0x124",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0011D65C",
+    "stores": [
+     {
+      "offset": "0x114",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0011D66C",
+    "stores": [
+     {
+      "offset": "0x118",
+      "type": "float"
+     },
+     {
+      "offset": "0x11c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0011D6C0",
+    "stores": [
+     {
+      "offset": "0x138",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0011D6D0",
+    "stores": [
+     {
+      "offset": "0x13c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0011D6FC",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x0011D6F0",
+    "stores": [
+     {
+      "offset": "0x144",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CStaticInit": {
+  "address": "0x0016F240",
+  "vtable": "0x00695620",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016F2D8",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CStaticObject": {
+  "address": "0x00101720",
+  "vtable": "0x00690AF8",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001018FC",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CStyledSceneObject": {
+  "address": "0x00101720",
+  "vtable": "0x00690D68",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001018FC",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CSwirlTrigger": {
+  "address": "0x0016F680",
+  "vtable": "0x00695698",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016F738",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016F6FC",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CThreatConfig": {
+  "address": "0x001674D0",
+  "vtable": "0x00694588",
+  "count": 12,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016753C",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0016754C",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016755C",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016756C",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0016757C",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0016758C",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0016759C",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x001675AC",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x001675BC",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x001675CC",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x001675DC",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x001675EC",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CTnfCamera": {
+  "address": "0x0011EB10",
+  "vtable": "0x0068BAE8",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0011EB98",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CVirtualController": {
+  "address": "0x001FC6D8",
+  "vtable": "0x006A37F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001FC758",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "CZone": {
+  "address": "0x00176EC8",
+  "vtable": "0x00696F68",
+  "count": 27,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00176F44",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00176F5C",
+    "stores": [
+     {
+      "offset": "0x98",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00176F74",
+    "stores": [
+     {
+      "offset": "0x9c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00176F8C",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00176FB0",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00176FD0",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x001770F0",
+    "stores": [
+     {
+      "offset": "0xfc",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00177100",
+    "stores": [
+     {
+      "offset": "0x104",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00177110",
+    "stores": [
+     {
+      "offset": "0x100",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x00177120",
+    "stores": [
+     {
+      "offset": "0xc0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x00177134",
+    "stores": [
+     {
+      "offset": "0xc4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x00177154",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x00177198",
+    "stores": [
+     {
+      "offset": "0xc8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x001771B8",
+    "stores": [
+     {
+      "offset": "0xcc",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x001771CC",
+    "stores": [
+     {
+      "offset": "0xd0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 15,
+    "case": "0x001771E0",
+    "stores": [
+     {
+      "offset": "0xd4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 16,
+    "case": "0x00177200",
+    "stores": [
+     {
+      "offset": "0xd8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x00177220",
+    "stores": [
+     {
+      "offset": "0xdc",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 18,
+    "case": "0x00177234",
+    "stores": [
+     {
+      "offset": "0xe0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 19,
+    "case": "0x00177258",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 20,
+    "case": "0x00177270",
+    "stores": [
+     {
+      "offset": "0x130",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 21,
+    "case": "0x00177280",
+    "stores": [
+     {
+      "offset": "0x134",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 22,
+    "case": "0x00177290",
+    "stores": [
+     {
+      "offset": "0x138",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 23,
+    "case": "0x001772A0",
+    "stores": [
+     {
+      "offset": "0x13c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 24,
+    "case": "0x001772B0",
+    "stores": [
+     {
+      "offset": "0x140",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 25,
+    "case": "0x001772C0",
+    "stores": []
+   },
+   {
+    "index": 26,
+    "case": "0x00177378",
+    "stores": [
+     {
+      "offset": "0x10c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CZoneCollision": {
+  "address": "0x0013BF68",
+  "vtable": "0x00696EE8",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0013C084",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CalenderTrigger": {
+  "address": "0x001735A0",
+  "vtable": "0x00696168",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00173650",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00173614",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "CameraPair": {
+  "address": "0x001147C0",
+  "vtable": "0x0068B128",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00114924",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00114938",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00114958",
+    "stores": [
+     {
+      "offset": "0xe8",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00114968",
+    "stores": [
+     {
+      "offset": "0xec",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00114988",
+    "stores": [
+     {
+      "offset": "0xf4",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "CircuitBreakerTrigger": {
+  "address": "0x00173940",
+  "vtable": "0x00696228",
+  "count": 4,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00173A30",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x001739D4",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x001739E4",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001739F4",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "DataTrigger": {
+  "address": "0x0016A088",
+  "vtable": "0x00694AD8",
+  "count": 4,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016A178",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016A11C",
+    "stores": [
+     {
+      "offset": "0x48",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016A128",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0016A140",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "FMVTrigger": {
+  "address": "0x0016B608",
+  "vtable": "0x00694DA0",
+  "count": 11,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016B674",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016B694",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0016B6B0",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016B744",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "int"
+     },
+     {
+      "offset": "0x80",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0016B6C8",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0016B6D8",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0016B744",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "int"
+     },
+     {
+      "offset": "0x80",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0016B6E8",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x0016B6F8",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x0016B708",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x0016B728",
+    "stores": [
+     {
+      "offset": "0x84",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "FlaurosTrigger": {
+  "address": "0x00173D28",
+  "vtable": "0x00696358",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00173DAC",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00173DC4",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00173DDC",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00173DF4",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00173E0C",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "GameMessage": {
+  "address": "0x001534C0",
+  "vtable": "0x00692C58",
+  "count": 10,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015352C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0015354C",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00153558",
+    "stores": [
+     {
+      "offset": "0x84",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00153570",
+    "stores": [
+     {
+      "offset": "0x48",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00153580",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00153590",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0015359C",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x001535B8",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x001535C8",
+    "stores": [
+     {
+      "offset": "0xa8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x001535D8",
+    "stores": [
+     {
+      "offset": "0xbc",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "HospitalLiftTrigger": {
+  "address": "0x00174400",
+  "vtable": "0x00696410",
+  "count": 8,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0017446C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0017448C",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00174498",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x001744A4",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x001744C0",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001744D8",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x001744F0",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x00174508",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "IGCBorder": {
+  "address": "0x001830A0",
+  "vtable": "0x00698448",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0018315C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0018311C",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "IronLungTrigger": {
+  "address": "0x00174AF0",
+  "vtable": "0x00696508",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00174B5C",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00174B74",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00174B8C",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00174BA4",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00174BBC",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x00174BD4",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00174BEC",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "LaundryTrigger": {
+  "address": "0x00175068",
+  "vtable": "0x006965F8",
+  "count": 9,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001750D4",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x001750EC",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00175104",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0017511C",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00175134",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0017514C",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x00175164",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0017517C",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x00175194",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "LifeBox": {
+  "address": "0x00172290",
+  "vtable": "0x00695E00",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001723C4",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "MapTrigger": {
+  "address": "0x0016BE60",
+  "vtable": "0x00694E78",
+  "count": 3,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016BF30",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016BEEC",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016BEFC",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "MaterialMap": {
+  "address": "0x0010ED48",
+  "vtable": "0x0068A7E0",
+  "count": 17,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0010EDBC",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0010EDC4",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0010EDCC",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0010EDD4",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0010EDDC",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0010EDE4",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0010EDEC",
+    "stores": []
+   },
+   {
+    "index": 7,
+    "case": "0x0010EDF4",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x0010EDFC",
+    "stores": []
+   },
+   {
+    "index": 9,
+    "case": "0x0010EE04",
+    "stores": []
+   },
+   {
+    "index": 10,
+    "case": "0x0010EE0C",
+    "stores": []
+   },
+   {
+    "index": 11,
+    "case": "0x0010EE14",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x0010EE1C",
+    "stores": []
+   },
+   {
+    "index": 13,
+    "case": "0x0010EE24",
+    "stores": []
+   },
+   {
+    "index": 14,
+    "case": "0x0010EE2C",
+    "stores": []
+   },
+   {
+    "index": 15,
+    "case": "0x0010EE34",
+    "stores": []
+   },
+   {
+    "index": 16,
+    "case": "0x0010EE3C",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "MessageBoxTrigger": {
+  "address": "0x0016C398",
+  "vtable": "0x00694FA8",
+  "count": 9,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016C524",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016C5B4",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0016C5D0",
+    "stores": [
+     {
+      "offset": "0xf0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016C5E4",
+    "stores": [
+     {
+      "offset": "0xf4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0016C644",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0016C534",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0016C5F8",
+    "stores": [
+     {
+      "offset": "0xf8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0016C60C",
+    "stores": []
+   },
+   {
+    "index": 8,
+    "case": "0x0016C62C",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "MusicTrigger": {
+  "address": "0x0016D310",
+  "vtable": "0x00695230",
+  "count": 2,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016D3C4",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x0016D384",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "OrganBoxTrigger": {
+  "address": "0x00175638",
+  "vtable": "0x006966D8",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001756A4",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x001756BC",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x001756D4",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001756EC",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00175704",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "PillDollTrigger": {
+  "address": "0x00175A30",
+  "vtable": "0x006967B8",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00175A9C",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00175AB4",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x00175ACC",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x00175AE4",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x00175AFC",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "PlaneTrigger": {
+  "address": "0x0016E3B0",
+  "vtable": "0x00695450",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016E5BC",
+    "stores": [
+     {
+      "offset": "0xcc",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0016E5D0",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x0016E5E0",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0016E694",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0016E6B0",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0016E6C4",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0016E600",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "PuzzleTrigger": {
+  "address": "0x00175E28",
+  "vtable": "0x00696850",
+  "count": 3,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00175F04",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x00175EB4",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x00175EC8",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "SavePoint": {
+  "address": "0x001D6748",
+  "vtable": "0x006A18D0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001D67EC",
+    "stores": [
+     {
+      "offset": "0x0",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "ScreenText": {
+  "address": "0x001B2CF8",
+  "vtable": "0x0069C758",
+  "count": 13,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001B2D7C",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x001B2D8C",
+    "stores": []
+   },
+   {
+    "index": 2,
+    "case": "0x001B2D9C",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x001B2DBC",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x001B2DD4",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001B2DE8",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x001B2DFC",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x001B2E10",
+    "stores": [
+     {
+      "offset": "0x6c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x001B2E24",
+    "stores": [
+     {
+      "offset": "0x70",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x001B2E34",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x001B2E44",
+    "stores": []
+   },
+   {
+    "index": 11,
+    "case": "0x001B2E50",
+    "stores": []
+   },
+   {
+    "index": 12,
+    "case": "0x001B2E5C",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "float"
+     },
+     {
+      "offset": "0x84",
+      "type": "float"
+     },
+     {
+      "offset": "0x80",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "TillTrigger": {
+  "address": "0x00176238",
+  "vtable": "0x00696910",
+  "count": 4,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00176328",
+    "stores": []
+   },
+   {
+    "index": 1,
+    "case": "0x001762CC",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x001762DC",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001762EC",
+    "stores": [
+     {
+      "offset": "0x68",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "TimerHUD": {
+  "address": "0x001544A0",
+  "vtable": "0x00692D70",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x00154808",
+    "stores": [
+     {
+      "offset": "0xa4",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "compare chain"
+ },
+ "UnlockableData": {
+  "address": "0x001FC6D8",
+  "vtable": "0x006A37F0",
+  "count": 1,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001FC758",
+    "stores": []
+   }
+  ],
+  "dispatch": "compare chain",
+  "inherited": true
+ },
+ "Waypoint": {
+  "address": "0x001A50D0",
+  "vtable": "0x0069B7C8",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x001A513C",
+    "stores": [
+     {
+      "offset": "0x44",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x001A5168",
+    "stores": [
+     {
+      "offset": "0x48",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x001A5194",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001A51C0",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x001A51D0",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "WeaponHUD": {
+  "address": "0x00155800",
+  "vtable": "0x00692F18",
+  "count": 5,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015586C",
+    "stores": [
+     {
+      "offset": "0xf8",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x00155884",
+    "stores": [
+     {
+      "offset": "0xfc",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0015589C",
+    "stores": [
+     {
+      "offset": "0xb0",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x001558AC",
+    "stores": [
+     {
+      "offset": "0x100",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x001558C4",
+    "stores": [
+     {
+      "offset": "0x104",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "ZoneTrigger": {
+  "address": "0x0017BF80",
+  "vtable": "0x00697558",
+  "count": 17,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0017BFEC",
+    "stores": [
+     {
+      "offset": "0xf0",
+      "type": "int"
+     },
+     {
+      "offset": "0xf0",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0017C010",
+    "stores": [
+     {
+      "offset": "0xf4",
+      "type": "int"
+     },
+     {
+      "offset": "0xf4",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0017C034",
+    "stores": []
+   },
+   {
+    "index": 3,
+    "case": "0x0017C044",
+    "stores": []
+   },
+   {
+    "index": 4,
+    "case": "0x0017C064",
+    "stores": []
+   },
+   {
+    "index": 5,
+    "case": "0x0017C080",
+    "stores": [
+     {
+      "offset": "0x11c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x0017C090",
+    "stores": [
+     {
+      "offset": "0x110",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0017C0A4",
+    "stores": [
+     {
+      "offset": "0x150",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x0017C0B4",
+    "stores": [
+     {
+      "offset": "0x154",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x0017C0C4",
+    "stores": [
+     {
+      "offset": "0x13c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x0017C0D4",
+    "stores": [
+     {
+      "offset": "0x140",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x0017C0E4",
+    "stores": [
+     {
+      "offset": "0x160",
+      "type": "int"
+     },
+     {
+      "offset": "0x160",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x0017C108",
+    "stores": [
+     {
+      "offset": "0x164",
+      "type": "int"
+     },
+     {
+      "offset": "0x164",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x0017C12C",
+    "stores": [
+     {
+      "offset": "0x168",
+      "type": "int"
+     },
+     {
+      "offset": "0x168",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 14,
+    "case": "0x0017C180",
+    "stores": [
+     {
+      "offset": "0x114",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 15,
+    "case": "0x0017C150",
+    "stores": [
+     {
+      "offset": "0x16c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 16,
+    "case": "0x0017C160",
+    "stores": [
+     {
+      "offset": "0x148",
+      "type": "int"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "cBlackOutFSE": {
+  "address": "0x001567E8",
+  "vtable": "0x00693048",
+  "count": 18,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015686C",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0015687C",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0015688C",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0015689C",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x001568AC",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001568BC",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x001568CC",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x001568DC",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x001568EC",
+    "stores": [
+     {
+      "offset": "0x94",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x001568FC",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x0015690C",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x0015691C",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x0015692C",
+    "stores": [
+     {
+      "offset": "0x84",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x00156854",
+    "stores": []
+   },
+   {
+    "index": 14,
+    "case": "0x0015695C",
+    "stores": []
+   },
+   {
+    "index": 15,
+    "case": "0x0015697C",
+    "stores": []
+   },
+   {
+    "index": 16,
+    "case": "0x0015693C",
+    "stores": [
+     {
+      "offset": "0x98",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 17,
+    "case": "0x0015694C",
+    "stores": [
+     {
+      "offset": "0x9c",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "cFlexFilter": {
+  "address": "0x0015E6C0",
+  "vtable": "0x006939A0",
+  "count": 14,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0015E780",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0015E790",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0015E7A0",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0015E7B0",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0015E7C0",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0015E7D0",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0015E8E0",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x0015E8F0",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x0015E900",
+    "stores": [
+     {
+      "offset": "0x84",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x0015E910",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x0015E920",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "float"
+     },
+     {
+      "offset": "0x7c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x0015E72C",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x0015E750",
+    "stores": []
+   },
+   {
+    "index": 13,
+    "case": "0x0015E760",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "cPenanceFSE": {
+  "address": "0x001620E0",
+  "vtable": "0x00693E88",
+  "count": 14,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016214C",
+    "stores": [
+     {
+      "offset": "0x4c",
+      "type": "int"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0016216C",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016217C",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016218C",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x0016219C",
+    "stores": [
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x001621AC",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 6,
+    "case": "0x001621BC",
+    "stores": [
+     {
+      "offset": "0x84",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 7,
+    "case": "0x001621CC",
+    "stores": [
+     {
+      "offset": "0x88",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 8,
+    "case": "0x001621DC",
+    "stores": [
+     {
+      "offset": "0x8c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 9,
+    "case": "0x001621EC",
+    "stores": [
+     {
+      "offset": "0x90",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 10,
+    "case": "0x001621FC",
+    "stores": [
+     {
+      "offset": "0x74",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 11,
+    "case": "0x0016220C",
+    "stores": [
+     {
+      "offset": "0x78",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 12,
+    "case": "0x0016221C",
+    "stores": [
+     {
+      "offset": "0x7c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 13,
+    "case": "0x0016222C",
+    "stores": [
+     {
+      "offset": "0x80",
+      "type": "float"
+     }
+    ]
+   }
+  ],
+  "dispatch": "jump table"
+ },
+ "cThreatController": {
+  "address": "0x00168470",
+  "vtable": "0x00694620",
+  "count": 7,
+  "properties": [
+   {
+    "index": 0,
+    "case": "0x0016853C",
+    "stores": [
+     {
+      "offset": "0x54",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 1,
+    "case": "0x0016854C",
+    "stores": [
+     {
+      "offset": "0x58",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 2,
+    "case": "0x0016855C",
+    "stores": [
+     {
+      "offset": "0x60",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 3,
+    "case": "0x0016856C",
+    "stores": [
+     {
+      "offset": "0x64",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 4,
+    "case": "0x001684DC",
+    "stores": [
+     {
+      "offset": "0x50",
+      "type": "int"
+     },
+     {
+      "offset": "0x5c",
+      "type": "float"
+     }
+    ]
+   },
+   {
+    "index": 5,
+    "case": "0x0016850C",
+    "stores": []
+   },
+   {
+    "index": 6,
+    "case": "0x0016851C",
+    "stores": []
+   }
+  ],
+  "dispatch": "jump table"
+ }
+}
