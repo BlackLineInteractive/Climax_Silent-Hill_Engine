@@ -321,10 +321,27 @@ dict and later components overwrote earlier ones, so what looked like
 same near-constant on every object because it is a base class most cameras
 never touch.
 
-Once components are kept separate, `CStaticCamera` index 4 across 473 objects
-in the archive gives: 420 at the 90 degree default, and a real spread of
-authored values -- 20, 30, 38, 45, 50, 60, 75, 85. That is field of view in
-degrees, confirmed by variance, not by a single decode.
+Once components are kept separate the values stop being constant -- but the
+first candidate found this way, `CStaticCamera` index 4, was **not** the field
+of view. It sits at 90.0 on 420 of 473 objects, and Ghost Rider settles what
+actually is:
+
+    Camera::CBaseCamera::HandleAttributes
+        beql $v0, $s2, 0x00114a18      ; $s2 = 2
+        ...
+      0x00114a18: jal SetFOV__Q26Camera11CBaseCameraf
+
+So **field of view is `CBaseCamera` property 2**, on the base class every
+camera derives from, which is why constraint and cutscene cameras carry it too.
+The values look like something a designer picked -- 18 distinct across the
+archive (55, 60, 50, 52, 46, ...), including fractional ones like 56.52 and
+66.96 within a single level.
+
+That dispatch was invisible at first because the case is reached through a
+*branch-likely* instruction, and `tools/mips.py` did not decode the `beql` /
+`bnel` / `blezl` / `bgtzl` family at all -- it rendered them as `op0x14.…`.
+Fixed; worth remembering that an undecoded opcode hides control flow silently
+rather than loudly.
 
 **There are seven camera classes, not one**, and only the fixed ones are
 handled so far:

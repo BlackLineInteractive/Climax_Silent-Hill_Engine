@@ -66,13 +66,17 @@ def decode(w, pc):
         return f'{I_OPS[op]:<7s} ${R[rt]}, ${R[rs]}, {v:#x}', 'imm', (rt, rs, v)
     if op in M_OPS:
         return f'{M_OPS[op]:<7s} ${R[rt]}, {s:#x}(${R[rs]})', 'mem', (rt, rs, s)
-    if op in (0x04, 0x05):
+    if op in (0x04, 0x05, 0x14, 0x15):
+        # 0x14/0x15 are the "likely" forms. Leaving them undecoded hid a whole
+        # attribute dispatch in Camera::CBaseCamera::HandleAttributes, where the
+        # property index is tested with BEQL and the FOV case is only reachable
+        # through one of them.
         t = pc + 4 + s * 4
-        n = 'beq' if op == 0x04 else 'bne'
+        n = {0x04: 'beq', 0x05: 'bne', 0x14: 'beql', 0x15: 'bnel'}[op]
         return f'{n:<7s} ${R[rs]}, ${R[rt]}, 0x{t:08x}', 'branch', t
-    if op in (0x06, 0x07):
+    if op in (0x06, 0x07, 0x16, 0x17):
         t = pc + 4 + s * 4
-        n = 'blez' if op == 0x06 else 'bgtz'
+        n = {0x06: 'blez', 0x07: 'bgtz', 0x16: 'blezl', 0x17: 'bgtzl'}[op]
         return f'{n:<7s} ${R[rs]}, 0x{t:08x}', 'branch', t
     if op == 0x01:
         t = pc + 4 + s * 4

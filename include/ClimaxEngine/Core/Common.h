@@ -237,11 +237,9 @@ struct GameObject {
   float lightAngle = 45.0f; // >180 means omnidirectional
   int lightType = 0;
 
-  // CStaticCamera property 4 -- field of view in degrees. Confirmed against
-  // the real data: 473 cameras in the archive, 420 at the 90-degree default
-  // and a real authored spread (20, 30, 38, 45, 50, 60, 75, 85), which is what
-  // ruled out it being a fixed constant. -1 means not present (object is not
-  // a camera, or the record is missing).
+  // Field of view in degrees, from CBaseCamera property 2 -- the property the
+  // engine feeds to Camera::CBaseCamera::SetFOV. Shared by every camera class,
+  // so constraint and cutscene cameras carry it too. -1 means not present.
   float fovDeg = -1.0f;
 
   // Animation playback state

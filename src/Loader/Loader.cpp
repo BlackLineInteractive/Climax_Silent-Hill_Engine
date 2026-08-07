@@ -673,13 +673,18 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
       // two 64-byte properties are exactly (CSystemCommands, CZone) pairs.
       memcpy(&go.volume[0][0], &data[payOff], 64);
       go.haveVolume = true;
-    } else if (kind == 0x00 && idx == 4 && payLen == 4 &&
-               (component == "CStaticCamera" || component == "CTnfCamera" ||
-                component == "CPeepholeCamera")) {
-      // Field of view in degrees. See GameObject::fovDeg for how this was
-      // confirmed -- it is not the same index CBaseCamera or CBaseBehaviour
-      // use, and those two overwriting it in an earlier, component-blind scan
-      // is what made every camera look like it carried the same fixed value.
+    } else if (kind == 0x00 && idx == 2 && payLen == 4 &&
+               component == "CBaseCamera") {
+      // Field of view in degrees. Every camera class derives from
+      // Camera::CBaseCamera, and its HandleAttributes dispatches property 2
+      // straight into SetFOV__Q26Camera11CBaseCameraf -- the case is reached
+      // through a branch-likely (`beql $v0, $s2, ...` with $s2 = 2), which is
+      // why it stayed invisible until the disassembler learned that form.
+      //
+      // Reading it off the derived class instead was wrong: CStaticCamera's
+      // own property 4 is 90.0 on 420 of 473 objects, while CBaseCamera
+      // property 2 carries the values a level designer would actually pick --
+      // 46, 50, 52, 55, 60 and so on, 18 distinct across the archive.
       memcpy(&go.fovDeg, &data[payOff], 4);
     } else if (kind == 0x00 && idx == 1 && payLen == 64 &&
                component == "CSystemCommands" && !haveXform) {
