@@ -53,5 +53,15 @@ float RayDown(const CollisionMesh &world, const glm::vec3 &origin,
 // when the level has none, which is true of several test containers.
 bool FindPlayerSpawn(const std::vector<GameObject> &objects, glm::vec3 &out);
 
+// True when nothing in the collision mesh sits between the two points.
+//
+// Which camera a plane hands over to is a choice between two names, and which
+// name belongs to which side is not stated anywhere -- it was a guess. This
+// makes the choice checkable instead: a camera that cannot see the player is
+// the wrong one, whatever the naming says, and these cameras are placed inside
+// walls looking in, so the wall is exactly what the test finds.
+bool HasLineOfSight(const CollisionMesh &world, const glm::vec3 &from,
+                    const glm::vec3 &to);
+
 } // namespace Game
 } // namespace ClimaxEngine

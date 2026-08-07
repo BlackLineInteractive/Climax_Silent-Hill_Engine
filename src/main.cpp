@@ -909,6 +909,34 @@ void main(){
                     const int cut = switcher.Update(body.position);
                     if (cut >= 0 && cut < (int)g_Cameras.size())
                         state.activeCamera = cut;
+
+                    // Which of a plane's two names belongs to which side was a
+                    // guess, and a wrong guess puts the view behind a wall.
+                    // Rather than guess again, keep the choice honest: if the
+                    // active camera cannot see the player, take the nearest one
+                    // that can. Cameras sit inside walls looking in, so the wall
+                    // between them and the player is exactly what this finds.
+                    const glm::vec3 head(body.position.x,
+                                         body.position.y + state.eyeHeight * 0.6f,
+                                         body.position.z);
+                    const bool blocked =
+                        state.activeCamera < 0 ||
+                        state.activeCamera >= (int)g_Cameras.size() ||
+                        !ClimaxEngine::Game::HasLineOfSight(
+                            g_Collision, g_Cameras[(size_t)state.activeCamera].position,
+                            head);
+                    if (blocked) {
+                        int best = -1;
+                        float bestDist = 1e9f;
+                        for (size_t k = 0; k < g_Cameras.size(); ++k) {
+                            if (!ClimaxEngine::Game::HasLineOfSight(
+                                    g_Collision, g_Cameras[k].position, head))
+                                continue;
+                            const float dd = glm::length(g_Cameras[k].position - head);
+                            if (dd < bestDist) { bestDist = dd; best = (int)k; }
+                        }
+                        if (best >= 0) state.activeCamera = best;
+                    }
                 }
 
                 if (state.autoCameras && state.activeCamera >= 0 &&
@@ -921,9 +949,37 @@ void main(){
                     state.camPosY = lc.position.y;
                     state.camPosZ = lc.position.z;
                     state.camFovDeg = lc.fovDeg;
-                    const glm::vec3 back = -lc.forward;
-                    state.camPitch = glm::degrees(asinf(glm::clamp(back.y, -1.0f, 1.0f)));
-                    state.camYaw   = glm::degrees(atan2f(back.x, back.z));
+
+                    // Aim at the player rather than at the camera's own matrix.
+                    //
+                    // Those matrices carry no orientation: measured across every
+                    // camera in HO_1_Hallway1, all four are orthonormal with
+                    // column 2 exactly (0, 0, -1). The aim lives elsewhere --
+                    // the decompiled CStaticCamera::HandleAttributes shows
+                    // property 1 copying a matrix out of an object referenced
+                    // through field 0x40, so a camera is pointed by a node it
+                    // names rather than by its own record. Which node that is
+                    // has not been identified yet.
+                    //
+                    // Tracking the player is the honest approximation until it
+                    // is: the position and field of view are the game's, and a
+                    // fixed camera in this game does frame the player.
+                    const glm::vec3 eye(lc.position);
+                    const glm::vec3 at(body.position.x,
+                                       body.position.y + state.eyeHeight * 0.6f,
+                                       body.position.z);
+                    // The subject, kept current so the near-plane clip below
+                    // measures against the player and not a stale orbit pivot.
+                    state.camTargetX = at.x;
+                    state.camTargetY = at.y;
+                    state.camTargetZ = at.z;
+                    glm::vec3 look = at - eye;
+                    if (glm::length(look) > 1e-4f) {
+                        look = glm::normalize(look);
+                        const glm::vec3 back = -look;
+                        state.camPitch = glm::degrees(asinf(glm::clamp(back.y, -1.0f, 1.0f)));
+                        state.camYaw   = glm::degrees(atan2f(back.x, back.z));
+                    }
                 } else {
                     state.camPosX = body.position.x;
                     state.camPosY = body.position.y + state.eyeHeight;
@@ -957,7 +1013,22 @@ void main(){
         // Build matrices
         glm::vec3 eye;
         glm::mat4 view = BuildView(eye);
-        glm::mat4 proj = glm::perspective(glm::radians(state.camFovDeg), aspect, 0.1f, 2000.0f);
+        // Fixed cameras are routinely placed inside or behind a wall -- in
+        // HO_1_Hallway1 camEntrance sits at z = 3.20 while the floor ends at
+        // z = 2.0 -- and the game keeps the shot clean by clipping whatever is
+        // between the camera and its subject. With a 0.1 near plane that wall
+        // fills the screen instead, which is what "the camera goes outside the
+        // level" looks like. Pushing the near plane out in proportion to how
+        // far away the subject is reproduces the effect without needing to know
+        // which surfaces to hide.
+        float nearPlane = 0.1f;
+        if (state.playMode && state.autoCameras && state.activeCamera >= 0 &&
+            state.activeCamera < (int)g_Cameras.size()) {
+            const glm::vec3 d = eye - glm::vec3(state.camTargetX, state.camTargetY,
+                                                state.camTargetZ);
+            nearPlane = glm::clamp(glm::length(d) * 0.25f, 0.1f, 3.0f);
+        }
+        glm::mat4 proj = glm::perspective(glm::radians(state.camFovDeg), aspect, nearPlane, 2000.0f);
         glm::mat4 mvp  = proj * view;
 
         // --- Render 3-D scene ---
