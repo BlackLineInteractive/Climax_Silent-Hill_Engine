@@ -1289,16 +1289,29 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
                 x = y = z = 0.0f;
               g_Collision.verts.push_back({x, y, z});
             }
-            // Triangle indices (u8 packed: a,b,c,flags) after vert+node data
-            size_t faceOff = vbase + numVerts * 16 + numNodes * 8;
-            size_t faceEnd = co + 12 + cs;
+            // The face list follows the vertices directly.
+            //
+            // Ghost Rider's CollisionBSP::DebugRenderFace settles the layout:
+            // it takes `this->field_04` -- the second array the stream reader
+            // fills -- indexes it by faceIndex * 8, and reads three u16 that it
+            // scales by 16 to reach the vertex array. So a face is three vertex
+            // indices and a flags word, and the array that was being treated as
+            // BSP nodes is the face list itself.
+            //
+            // Reading indices as u8 triples further along landed inside the
+            // plane array instead, which is why the overlay drew a fan of
+            // spikes: those were plane floats read as vertex numbers.
+            size_t faceOff = vbase + numVerts * 16;
+            size_t faceEnd = faceOff + (size_t)numNodes * 8;
             // Bounds are checked against this block's own vertex count, not
             // the running total, so a stray index cannot silently alias onto an
             // earlier block's geometry.
-            while (faceOff + 4 <= faceEnd) {
-              uint8_t a = data[faceOff], b = data[faceOff + 1],
-                      c = data[faceOff + 2];
-              faceOff += 4;
+            while (faceOff + 8 <= faceEnd) {
+              uint16_t a, b, c;
+              memcpy(&a, &data[faceOff], 2);
+              memcpy(&b, &data[faceOff + 2], 2);
+              memcpy(&c, &data[faceOff + 4], 2);
+              faceOff += 8;
               if (a < numVerts && b < numVerts && c < numVerts && a != b &&
                   b != c && a != c) {
                 g_Collision.indices.push_back(vertBase + a);
