@@ -442,18 +442,6 @@ void LoadLevelData(const std::string &displayName,
           std::cout << "         " << sw[k].nameA << " (" << sw[k].cameraA << ")  ->  "
                     << sw[k].nameB << " (" << sw[k].cameraB << ")\n";
       }
-      if (!g_Collision.indices.empty()) {
-        double maxEdge = 0.0, sum = 0.0; size_t tris = g_Collision.indices.size()/3;
-        for (size_t k = 0; k + 2 < g_Collision.indices.size(); k += 3) {
-          const glm::vec3 &A = g_Collision.verts[g_Collision.indices[k]];
-          const glm::vec3 &B = g_Collision.verts[g_Collision.indices[k+1]];
-          const glm::vec3 &C = g_Collision.verts[g_Collision.indices[k+2]];
-          double e = std::max({glm::length(B-A), glm::length(C-B), glm::length(A-C)});
-          maxEdge = std::max(maxEdge, e); sum += e;
-        }
-        std::cout << "[coll] verts=" << g_Collision.verts.size() << " tris=" << tris
-                  << " meanEdge=" << (sum/tris) << " maxEdge=" << maxEdge << "\n";
-      }
       std::cout << "[scene] blend modes:";
       for (auto &kv : bm)
         std::cout << " " << kv.first << "=" << kv.second
@@ -1603,6 +1591,20 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   }
 
   // ── 3. Upload collision mesh to GPU ───────────────────────────
+  std::cout << "[coll] verts=" << g_Collision.verts.size()
+            << " idx=" << g_Collision.indices.size() << "\n";
+  if (!g_Collision.indices.empty()) {
+    double maxEdge = 0.0, sum = 0.0; size_t tris = g_Collision.indices.size()/3;
+    for (size_t k = 0; k + 2 < g_Collision.indices.size(); k += 3) {
+      const glm::vec3 &A = g_Collision.verts[g_Collision.indices[k]];
+      const glm::vec3 &B = g_Collision.verts[g_Collision.indices[k+1]];
+      const glm::vec3 &C = g_Collision.verts[g_Collision.indices[k+2]];
+      double e = std::max({glm::length(B-A), glm::length(C-B), glm::length(A-C)});
+      maxEdge = std::max(maxEdge, e); sum += e;
+    }
+    std::cout << "[coll] verts=" << g_Collision.verts.size() << " tris=" << tris
+      << " meanEdge=" << (sum/tris) << " maxEdge=" << maxEdge << "\n";
+  }
   if (!g_Collision.verts.empty())
     g_Collision.Upload();
 
