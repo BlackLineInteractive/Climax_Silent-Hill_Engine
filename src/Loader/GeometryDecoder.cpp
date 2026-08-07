@@ -985,7 +985,128 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
     const size_t rootEnd = secEnd;
 
     // Finds the Extension of a chunk and hands it over.
+    // Ordinary (non-native) RenderWare geometry. The Struct child holds, in
+    // order: flags / triangle count / vertex count / morph-target count, then
+    // the optional prelit colours and texture coordinates, then the triangle
+    // list, then one morph target carrying the positions and normals.
+    //
+    //   triangle = { u16 vertex2; u16 vertex1; u16 materialId; u16 vertex3; }
+    //
+    // Note the order: the material id sits between the vertices, and vertex 3
+    // comes last. Reading it as three consecutive indices produces a mesh that
+    // looks almost right and is wrong everywhere.
+    auto BuildPlainGeometry = [&](size_t a, size_t b,
+                                  const std::vector<std::string> &localMats,
+                                  const std::vector<glm::vec4> &localCols,
+                                  const std::vector<uint32_t> &localBlend) {
+      size_t st = 0, stEnd = 0;
+      for (size_t c = a; c + 12 <= b;) {
+        const uint32_t ct = ru32(c), cs = ru32(c + 4);
+        if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)
+          break;
+        if (ct == 0x0001) { st = c + 12; stEnd = c + 12 + cs; break; }
+        c += 12 + cs;
+      }
+      if (!st || st + 16 > stEnd)
+        return;
+
+      const uint32_t flags = ru32(st);
+      const uint32_t numTri = ru32(st + 4);
+      const uint32_t numVert = ru32(st + 8);
+      const uint32_t numMorph = ru32(st + 12);
+      if (!numTri || !numVert || numVert > 200000 || numTri > 200000)
+        return;
+
+      size_t p = st + 16;
+      const bool prelit = (flags & 0x08) != 0;
+      const uint32_t texSets = (flags & 0x80) ? ((flags >> 16) & 0xFF)
+                                             : ((flags & 0x04) ? 1u : 0u);
+
+      const size_t colOff = p;
+      if (prelit) p += (size_t)numVert * 4;
+      const size_t uvOff = p;
+      p += (size_t)texSets * numVert * 8;
+      const size_t triOff = p;
+      p += (size_t)numTri * 8;
+
+      // One morph target: bounding sphere, then two presence flags.
+      if (p + 24 > stEnd || numMorph == 0)
+        return;
+      const uint32_t hasVerts = ru32(p + 16);
+      const uint32_t hasNorms = ru32(p + 20);
+      p += 24;
+      if (!hasVerts)
+        return;
+      const size_t posOff = p;
+      p += (size_t)numVert * 12;
+      if (hasNorms) p += (size_t)numVert * 12;
+      if (p > stEnd)
+        return;
+
+      std::vector<Vertex> verts((size_t)numVert);
+      for (uint32_t i = 0; i < numVert; i++) {
+        Vertex &v = verts[i];
+        memcpy(&v.pos, &payload[posOff + (size_t)i * 12], 12);
+        if (texSets)
+          memcpy(&v.uv, &payload[uvOff + (size_t)i * 8], 8);
+        if (prelit) {
+          const uint8_t *c8 = &payload[colOff + (size_t)i * 4];
+          v.color = glm::vec4(c8[0] / 255.0f, c8[1] / 255.0f, c8[2] / 255.0f,
+                              c8[3] / 255.0f);
+        }
+      }
+
+      // Group by material so each chunk binds one texture, matching what the
+      // native path produces.
+      std::map<uint32_t, std::vector<Vertex>> byMat;
+      for (uint32_t t = 0; t < numTri; t++) {
+        const size_t o = triOff + (size_t)t * 8;
+        uint16_t v2, v1, mat, v3;
+        memcpy(&v2, &payload[o], 2);
+        memcpy(&v1, &payload[o + 2], 2);
+        memcpy(&mat, &payload[o + 4], 2);
+        memcpy(&v3, &payload[o + 6], 2);
+        if (v1 >= numVert || v2 >= numVert || v3 >= numVert)
+          continue;
+        auto &dst = byMat[mat];
+        dst.push_back(verts[v1]);
+        dst.push_back(verts[v2]);
+        dst.push_back(verts[v3]);
+      }
+      for (auto &kv : byMat)
+        addChunk(kv.second, (int)kv.first, localMats, localCols, localBlend);
+    };
+
     auto handleOwner = [&](size_t a, size_t b, const std::vector<std::string> &localMats, const std::vector<glm::vec4> &localCols, const std::vector<uint32_t> &localBlend) {
+      // A geometry either carries a NativeDataPLG -- display lists, handled by
+      // buildFromExtension -- or it does not, in which case it is ordinary
+      // RenderWare: plain arrays of positions, colours, UVs and triangle
+      // indices sitting in the geometry's own Struct. The 2006 PSP prototype is
+      // built entirely the second way (its geometry flags have the native bit
+      // clear), so without this branch those levels parsed every section,
+      // material and clump and still produced zero meshes.
+      bool sawNative = false;
+      for (size_t c = a; c + 12 <= b;) {
+        const uint32_t ct = ru32(c), cs = ru32(c + 4);
+        if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)
+          break;
+        if (ct == 0x0003) {
+          for (size_t x = c + 12; x + 12 <= c + 12 + cs;) {
+            const uint32_t xt = ru32(x), xs = ru32(x + 4);
+            if (xs == 0 || x + 12 + xs > c + 12 + cs)
+              break;
+            if (xt == 0x0510)
+              sawNative = true;
+            x += 12 + xs;
+          }
+        }
+        c += 12 + cs;
+      }
+
+      if (!sawNative) {
+        BuildPlainGeometry(a, b, localMats, localCols, localBlend);
+        return;
+      }
       for (size_t c = a; c + 12 <= b;) {
         const uint32_t ct = ru32(c), cs = ru32(c + 4);
         if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > b)

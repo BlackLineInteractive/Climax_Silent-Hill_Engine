@@ -2,62 +2,105 @@
 
 The August 7, 2006 PSP prototype uses an early Climax Engine data architecture directly inherited from *Ghost Rider*. The `GR.ARC` format used here is an early iteration of what would eventually become the `A2.0` and `0x0000FA10` (Shattered Memories) formats.
 
-## 1. The Global Archive Header
-The `GR.ARC` starts with a 16-byte header defining the TOC layout. Unlike the final `A2.0` format, this header has no string magic bytes.
+## 1. The archive header
+
+`GR.ARC` opens with a 16-byte header. There is no magic string, unlike the
+final `A2.0` format.
 
 ```c
 struct PrototypeArcHeader {
-    u32 fileCount;       // Number of entries in the TOC. e.g. 61
-    u32 tocSize;         // Byte offset to the end of the TOC (includes this header). e.g. 992
-    u32 archiveSize;     // Total size of the GR.ARC file in bytes.
-    u32 totalNodes;      // e.g. 1488. Likely the total number of chunks/objects across all files.
+    u32 fileCount;        // 61
+    u32 dataBase;         // 992 -- where entry offsets are measured from
+    u32 nameTableOffset;  // 42058144
+    u32 nameTableSize;    // 1488
 };
 ```
 
-## 2. Table of Contents (TOC)
-Immediately following the header at offset `0x10` is an array of `fileCount` entries.
-Each entry is 16 bytes.
+`nameTableOffset + nameTableSize` equals the file size exactly (42059632),
+which is what identifies those two fields: the name table is the last thing in
+the archive. `dataBase` is also exactly where the table of contents ends --
+16 + 61 * 16 = 992 -- so the payloads begin immediately after the TOC.
+
+## 2. Table of contents
+
+An array of `fileCount` 16-byte entries at offset `0x10`.
 
 ```c
 struct PrototypeArcEntry {
-    u32 nodeIndex;       // A monotonically increasing index linking this archive bundle to the metadata block.
-    u32 offset;          // Absolute byte offset within GR.ARC where the file begins.
-    u32 size;            // Size of the extracted file bundle in bytes.
-    u32 padding;         // Always 0.
+    u32 nameOffset;       // byte offset into the name table
+    u32 offset;           // relative to dataBase, NOT absolute
+    u32 size;             // stored size
+    u32 uncompressedSize; // 0 throughout: nothing in this build is compressed
 };
 ```
 
-**Crucial Differences from Final Game:**
-1. The TOC entries do **not** have string names or hashes. The engine maps these bundles strictly by their `nodeIndex`.
-2. The TOC does not end with a string table. It ends exactly at `tocSize`.
+**The entries do carry names.** Field 0 indexes a string table at the end of
+the archive, exactly as the retail `A2.0` format does -- the two formats are
+closer than they look. Field 1 is relative: reading at `dataBase + offset`
+lands on a valid `0x071C` chunk with version `0x1C020065`, and reading at the
+raw offset does not.
 
-## 3. The Metadata Block (File 0)
-The very first entry in the TOC (`nodeIndex = 0`) defines a massive 2 MB "Metadata Block".
-This block contains the entire Scene Graph and Object Definitions for the prototype!
+The fourth field follows the same convention as retail: zero means the payload
+is stored as-is. Every entry in this build is zero, so **nothing is compressed
+or encrypted** -- containers can be read straight out of the archive.
 
-```c
-// The metadata block heavily utilizes the Ghost Rider 0x071C container.
-u32 magic; // 0x0000071C
-u32 size;  
-u32 version; 
-u32 numEntries;
+## 3. Contents
 
-for (u32 i = 0; i < numEntries; ++i) {
-    char name[];      // Null-terminated string (e.g. "CZone", "CStaticCamera")
-    align(4);
-    u32 count;        // Number of instances of this class
-}
-```
+61 entries. The build is a vertical slice with a very different level layout
+from the retail game:
 
-This block embeds raw string paths corresponding to the original Climax LA environment builds:
-* `z:\SilentHill\Design\Work\StudioProjects\Zones\1_Asylum\1st_Floor\Asylum_1flr_z1\Build Output\Playstation Portable\Target Resources\{4B68B47F-19A8-4BFD-991D-90932351E742}.bsp`
-* `FrontDesk`, `OldComputer`, `chairDesk02_mp`
+| Group | Entries |
+|-------|---------|
+| Levels | `Asylum_1flr_z1`, `Asylum_2flr_z2`, `Asylum_2flr_z7`, `SilentHill`, plus `.txd` and `.log` companions |
+| Zone pairs | `Asylum_1flr_z1-Asylum_2flr_z2`, `Asylum_2flr_z7-SilentHill`, `Hotel_1flr_z1-SilentHill`, `MP_Shopfront-SilentHill` |
+| Characters | `CPlayerBehaviour.TravisGrady`, `CEnemyBehaviour.Butcher`, `CEnemyBehaviour.StraightJacket`, `CEnemyBehaviour.AffectedStage1` / `AffectedStage1Alt` |
+| Loading art | 13 JPEGs: `ASYLUM_*`, `BUTCHER_*`, `CITY_*` |
+| Other | `bootup.dff`, `GlobalStream`, `mainmenu.stream`, `start.stream`, `String.db`, `loading_screen.jpg` |
 
-## 4. Asset Bundles (Files 1..N)
-The subsequent files (1 through 60) are the actual levels and assets.
-Unlike the final game, where `.arc` files are cleanly separated, the prototype appears to encrypt or compress the downstream asset bundles using a proprietary scheme (no standard Zlib `78 DA` headers are visible).
+Notable against the retail game:
 
-However, the internal payloads extracted via `attrmap.py` demonstrate that the raw geometry chunks inside these bundles rely on a twisted RenderWare header structure, frequently storing chunks as `[Size][Version][Type]` rather than `[Type][Size][Version]`.
+* There is a **`SilentHill` level** -- a town space, referenced by four
+  different zone-pair bundles, so streaming between the town and the interiors
+  already worked.
+* The Asylum is split into numbered floor zones (`1flr_z1`, `2flr_z2`,
+  `2flr_z7`, `2flr_z8`, `2flr_z3`); none of this survives into retail.
+* Travis is `TravisGrady`, his full name, rather than retail's `Travis`.
+* `AffectedStage1` is an enemy class that does not exist in the final game.
+  `Butcher` and `StraightJacket` do.
+* The zone-pair naming (`A-B.txd`) is the same convention retail uses for
+  shared texture dictionaries, so that streaming design was settled early.
+* The loading-screen filenames preserve working titles and two slips:
+  `ASYLUM_ELECTRO_Fpsd.jpg` kept a Photoshop suffix, and `CITY_MIANSTREET_F.jpg`
+  misspells "main".
+
+## 4. Container format
+
+The containers are ordinary RenderWare 3.7.0.2. `Asylum_1flr_z1` and
+`SilentHill` both open with a `0x071C` chunk carrying version `0x1C020065`,
+the same type directory and the same version word the retail PS2 game uses,
+and `SilentHill.txd` opens with `0x0016` (texture dictionary). A scan of the
+`SilentHill` payload finds 2246 chunks carrying `0x1C020065` and no other
+version word.
+
+This means the prototype's containers are readable with the same parser as
+retail; only the archive header differs. **Implemented** -- `CArchive` now
+recognises the format as `ArcFormat::GR_PROTO`, detected by arithmetic rather
+than a magic word (the name table must end at EOF *and* the payloads must start
+exactly where the table of contents ends). Mounting `GR.ARC` lists all 61
+entries, and the loader pairs each level with its texture dictionaries
+automatically.
+
+**But the platform data inside is not PS2.** Loading `SilentHill` registers 12
+objects and finds 524 material names, yet produces **zero meshes and zero
+textures**: the section walk, the object graph and the material lists all
+decode, and then the native geometry and raster blocks do not, because they are
+not the formats the toolkit knows.
+
+The texture dictionary says so outright -- its device id is **9**, against **6**
+in the retail PS2 build. So the prototype's rasters and display lists are in the
+PSP's own native form, and reading them needs a third decoder alongside the
+existing PS2 (VIF) and Wii (GX) paths. Everything above the platform layer is
+already shared.
 
 ## 5. Game Executable (`EBOOT.BIN`)
 The game engine logic is contained entirely within `/PSP_GAME/SYSDIR/EBOOT.BIN`. As is standard for PSP games, this file is an encrypted PRX/ELF, but remarkably, the prototype's `EBOOT.BIN` is a **raw, unencrypted ELF** (`\x7FELF`).

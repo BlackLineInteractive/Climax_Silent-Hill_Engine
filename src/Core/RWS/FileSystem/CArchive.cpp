@@ -47,6 +47,22 @@ void CArchive::Close() {
     m_open = false;
 }
 
+// The prototype header carries no magic, so it is recognised by its own
+// arithmetic: the name table ends exactly at EOF, and the payloads start
+// exactly where the table of contents does. Both have to hold, which is
+// specific enough that no A2.0 or Shattered Memories archive can match.
+static bool LooksLikeProto(uint64_t fileSize, const uint8_t* hdr) {
+    const uint32_t count    = ru32(hdr);
+    const uint32_t dataBase = ru32(hdr + 4);
+    const uint32_t nameOff  = ru32(hdr + 8);
+    const uint32_t nameSize = ru32(hdr + 12);
+    if (count == 0 || count > 100000)
+        return false;
+    if ((uint64_t)nameOff + nameSize != fileSize)
+        return false;
+    return dataBase == 16 + (uint64_t)count * 16;
+}
+
 bool CArchive::Open(const std::string& path) {
     Close();
 
@@ -67,8 +83,12 @@ bool CArchive::Open(const std::string& path) {
     } else if (ru32(hdr) == kShsmMagic) {
         m_format = ArcFormat::SHSM;
         ok = OpenShsm(fileSize);
+    } else if (LooksLikeProto(fileSize, hdr)) {
+        m_format = ArcFormat::GR_PROTO;
+        ok = OpenProto(fileSize, hdr);
     } else {
-        m_error = "not a Climax archive (expected \"A2.0\" or 0x0000FA10)";
+        m_error = "not a Climax archive (expected \"A2.0\", 0x0000FA10, or a "
+                  "2006 prototype header)";
     }
 
     if (!ok) {
@@ -82,6 +102,53 @@ bool CArchive::Open(const std::string& path) {
     m_path = path;
     m_open = true;
     if (m_format == ArcFormat::SHSM) BuildNameCatalogue();
+    return true;
+}
+
+// Same shape as A2.0 -- a fixed header, 16-byte entries, a name table closing
+// the file -- with two differences: there is no magic, and entry offsets are
+// measured from the end of the table of contents rather than from the start of
+// the file. Reading at the raw offset lands in the middle of the header.
+bool CArchive::OpenProto(uint64_t fileSize, const uint8_t* hdr) {
+    const uint32_t count    = ru32(hdr);
+    const uint32_t dataBase = ru32(hdr + 4);
+    const uint32_t nameOff  = ru32(hdr + 8);
+    const uint32_t nameSize = ru32(hdr + 12);
+
+    std::vector<uint8_t> table((size_t)count * 16);
+    m_file.seekg(16);
+    if (!m_file.read((char*)table.data(), (std::streamsize)table.size())) {
+        m_error = "truncated entry table";
+        return false;
+    }
+
+    std::vector<char> names(nameSize);
+    m_file.seekg(nameOff);
+    if (nameSize && !m_file.read(names.data(), (std::streamsize)nameSize)) {
+        m_error = "truncated name table";
+        return false;
+    }
+
+    m_entries.reserve(count);
+    for (uint32_t i = 0; i < count; i++) {
+        const uint8_t* e = table.data() + (size_t)i * 16;
+        ArcEntry en;
+        const uint32_t no   = ru32(e);
+        en.offset           = dataBase + ru32(e + 4);
+        en.compressedSize   = ru32(e + 8);
+        en.uncompressedSize = ru32(e + 12);
+
+        if ((uint64_t)en.offset + en.compressedSize > fileSize) {
+            m_error = "entry " + std::to_string(i) + " points past EOF";
+            return false;
+        }
+        if (no < nameSize) {
+            size_t end = no;
+            while (end < nameSize && names[end] != '\0') ++end;
+            en.name.assign(names.data() + no, end - no);
+        }
+        m_entries.push_back(std::move(en));
+    }
     return true;
 }
 

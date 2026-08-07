@@ -8,7 +8,10 @@ namespace ClimaxEngine {
 namespace RWS {
 namespace FileSystem {
 
-enum class ArcFormat { A2_0, SHSM };
+// GR_PROTO is the August 2006 PSP prototype's GR.ARC -- an early form of A2.0
+// with no magic, a 16-byte header, and entry offsets relative to the end of the
+// table of contents rather than to the file.
+enum class ArcFormat { A2_0, SHSM, GR_PROTO };
 
 struct ArcEntry {
     std::string name;
@@ -43,6 +46,7 @@ public:
 
 private:
     bool OpenA2(uint64_t fileSize, const uint8_t* hdr);
+    bool OpenProto(uint64_t fileSize, const uint8_t* hdr);
     bool OpenShsm(uint64_t fileSize);
     void BuildNameCatalogue();
 
