@@ -95,6 +95,7 @@ include_directories(
     ${imgui_SOURCE_DIR}
     ${imgui_SOURCE_DIR}/backends
     ${IMGUIZMO_DIR}
+    ${CMAKE_SOURCE_DIR}/src/UI/ImAnim
 )
 if(ENABLE_LIBRW)
     include_directories(${librw_SOURCE_DIR}/src)
@@ -138,9 +139,13 @@ set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
 
-# ── ImGuizmo sources (fetched) ────────────────────────────────────────────────
+# ── ImGuizmo & ImAnim sources (fetched) ────────────────────────────────────────────────
 set(IMGUIZMO_SOURCES
     ${IMGUIZMO_DIR}/ImGuizmo.cpp
+)
+
+set(IMANIM_SOURCES
+    ${CMAKE_SOURCE_DIR}/src/UI/ImAnim/im_anim.cpp
 )
 
 # ── Target ────────────────────────────────────────────────────────────────────
@@ -148,6 +153,7 @@ add_executable(ClimaxGameEngineToolkit MACOSX_BUNDLE
     ${APP_SOURCES}
     ${IMGUI_SOURCES}
     ${IMGUIZMO_SOURCES}
+    ${IMANIM_SOURCES}
 )
 
 if(MSVC)

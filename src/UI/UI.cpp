@@ -5,9 +5,12 @@
 #include "ClimaxEngine/SG/SceneObject.h"
 #include "imgui.h"
 #include <algorithm>
+#include "im_anim.h"
+#include <string>
+#include <map>
+#include <algorithm>
 #include <cstring>
 #include <iostream>
-#include <string>
 
 // Defined in main.cpp — persists the last-opened arc path to disk.
 extern void SaveArcPref(const std::string &arcPath);
@@ -480,12 +483,20 @@ void RenderArcWindow() {
     const bool audio = isAudioEntry(n);
     const bool current = (g_CurrentMeshContainer == n);
     ImGui::PushID((int)i);
+    
+    float target_indent = current ? 15.0f : 0.0f;
+    float indent = iam_tween_float(ImGui::GetID("arc_item"), ImGui::GetID("indent_channel"), target_indent, 0.3f, iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, ImGui::GetIO().DeltaTime);
+    
+    if (indent > 0.1f) ImGui::Indent(indent);
+
     if (ImGui::Selectable(n.c_str(), current)) {
       if (audio)
         pendingPlay = (int)i;
       else
         pendingLoad = (int)i;
     }
+    
+    if (indent > 0.1f) ImGui::Unindent(indent);
     if (ImGui::IsItemHovered()) {
       const size_t nTxd =
           ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance()

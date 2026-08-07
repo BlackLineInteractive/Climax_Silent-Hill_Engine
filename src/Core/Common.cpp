@@ -12,6 +12,9 @@ std::map<std::string, bool>             g_TexOpaque;
 std::vector<ContainerChunkInfo>         g_ContainerChunks;
 std::map<std::string, std::vector<MeshChunk*>> g_MeshTexMap;
 
+std::map<std::string, UVAnimClip> g_UVAnims;
+std::map<std::string, std::string> g_MatUVAnim;
+
 std::vector<ShoTypeEntry>  g_ShoTypes;
 std::vector<ShoSection>    g_ShoSections;
 CollisionMesh              g_Collision;

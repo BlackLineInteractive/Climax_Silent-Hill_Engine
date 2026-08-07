@@ -752,9 +752,110 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
   g_GameObjects.push_back(std::move(go));
 }
 
+// Reads the container's UV animations out of its 0x2B sections.
+//
+// 0x2B is an RWS section type, not a RenderWare chunk id -- Ghost Rider names
+// it outright, `CUVAnimationStreamLoader::GetTypeID` returns 0x2B. Inside sits
+// a Struct holding the animation count, then one 0x1B chunk per animation whose
+// payload is 88 bytes of header (the standard RtAnimAnimation fields, a 32-byte
+// name, and a block of saved runtime pointers) followed by the keyframes.
+//
+// A keyframe is 32 bytes on disk; the 0x18 that `ClimaxT1KeyFrameStreamGetSizeCB`
+// returns is the size it occupies in memory, which is smaller. The last word is
+// the index of the previous keyframe, and following those links splits the
+// frames into one chain per texture layer.
+static void ParseUVAnimations(const std::vector<uint8_t> &data) {
+  const uint32_t RW_VER = 0x1c020065;
+  const size_t sz = data.size();
+  auto ru32 = [&](size_t o) -> uint32_t {
+    uint32_t v = 0;
+    if (o + 4 <= sz) memcpy(&v, &data[o], 4);
+    return v;
+  };
+  auto rf32 = [&](size_t o) -> float {
+    float v = 0.0f;
+    if (o + 4 <= sz) memcpy(&v, &data[o], 4);
+    return v;
+  };
+
+  size_t o = 0;
+  while (o + 12 <= sz) {
+    const uint32_t t = ru32(o), s = ru32(o + 4), v = ru32(o + 8);
+    if (v != RW_VER || s == 0 || o + 12 + s > sz) { o += 4; continue; }
+    if (t != 0x2B) { o += 12 + s; continue; }
+
+    // Struct chunk carrying the animation count, then the animations.
+    size_t p = o + 12;
+    const uint32_t hdrSize = ru32(p + 4);
+    p += 12 + hdrSize;
+
+    while (p + 12 <= o + 12 + s) {
+      const uint32_t at = ru32(p), as = ru32(p + 4);
+      if (at != 0x1B || as == 0 || p + 12 + as > o + 12 + s) break;
+      const size_t h = p + 12;
+
+      const uint32_t numFrames = ru32(h + 8);
+      const float duration = rf32(h + 16);
+      std::string name;
+      for (size_t k = 0; k < 32 && data[h + 24 + k]; k++) name += (char)data[h + 24 + k];
+
+      const size_t keys = h + 88;
+      if (numFrames && numFrames < 4096 && keys + numFrames * 32 <= h + as) {
+        UVAnimClip clip;
+        clip.duration = duration;
+        std::vector<UVAnimKey> flat(numFrames);
+        std::vector<uint32_t> prev(numFrames);
+        for (uint32_t k = 0; k < numFrames; k++) {
+          const size_t q = keys + k * 32;
+          flat[k].time   = rf32(q);
+          flat[k].uScale = rf32(q + 8);
+          flat[k].vScale = rf32(q + 12);
+          flat[k].uOff   = rf32(q + 20);
+          flat[k].vOff   = rf32(q + 24);
+          prev[k]        = ru32(q + 28);
+        }
+        // A frame whose previous index is not a real frame starts a new chain,
+        // and every other frame joins the chain its predecessor is in.
+        std::vector<int> layerOf(numFrames, -1);
+        for (uint32_t k = 0; k < numFrames; k++) {
+          if (prev[k] < numFrames && prev[k] != k && layerOf[prev[k]] >= 0)
+            layerOf[k] = layerOf[prev[k]];
+          else if (prev[k] >= numFrames) {
+            layerOf[k] = (int)clip.layers.size();
+            clip.layers.emplace_back();
+          }
+        }
+        for (uint32_t k = 0; k < numFrames; k++)
+          if (layerOf[k] >= 0) clip.layers[layerOf[k]].push_back(flat[k]);
+
+        if (!clip.layers.empty() && !name.empty()) {
+          for (auto &lay : clip.layers)
+            std::sort(lay.begin(), lay.end(),
+                      [](const UVAnimKey &a, const UVAnimKey &b) { return a.time < b.time; });
+          g_UVAnims[name] = std::move(clip);
+        }
+      }
+      p += 12 + as;
+    }
+    o += 12 + s;
+  }
+
+  if (!g_UVAnims.empty()) {
+    std::cout << "[uvanim] " << g_UVAnims.size() << " clips";
+    int shown = 0;
+    for (auto &kv : g_UVAnims) {
+      if (shown++ >= 2) break;
+      std::cout << "  " << kv.first << " (" << kv.second.layers.size()
+                << " layers, " << kv.second.duration << "s)";
+    }
+    std::cout << "\n";
+  }
+}
+
 void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   g_ContainerChunks.clear();
   g_ShoTypes.clear();
+  g_UVAnims.clear();
   g_ShoSections.clear();
   g_Clumps.clear();
   g_GameObjects.clear();
@@ -768,6 +869,8 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   // New StreamLoader API
   ClimaxEngine::RWS::RwMemoryStream memStream(data);
   ClimaxEngine::ResourceLoader::CResourceHandler::GetInstance().ProcessStream("Container", &memStream, sz);
+
+  ParseUVAnimations(data);
 
 
   const uint32_t RW_VER = 0x1c020065;

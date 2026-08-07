@@ -280,6 +280,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       std::string texName = "NULL";
       glm::vec4 matCol(1.0f);
       uint32_t blend = 0;
+      std::string uvAnim;
       while (child + 12 < matEnd) {
         uint32_t cType = ru32(child);
         uint32_t cSize = ru32(child + 4);
@@ -305,6 +306,13 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
               break;
             if (xt == 0x0A01 && xs >= 8)
               blend = ru32(x + 12 + 4);
+            // UV animation: an inner Struct holding a slot mask, then the name
+            // of a clip in the container's 0x2B section.
+            if (xt == 0x0135 && xs >= 48) {
+              const size_t nm = x + 12 + 16;
+              for (size_t k = 0; k < 32 && nm + k < xEnd && payload[nm + k]; k++)
+                uvAnim += (char)payload[nm + k];
+            }
             x += 12 + xs;
           }
         }
@@ -333,6 +341,8 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       names.push_back(texName);
       matColors.push_back(matCol);
       matBlend.push_back(blend);
+      if (!uvAnim.empty() && texName != "NULL")
+        g_MatUVAnim[texName] = uvAnim;
       curr = matEnd;
     }
     return names;
@@ -652,6 +662,11 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       m.blendMode = localBlend[matId];
     if (matId >= 0 && matId < (int)localMats.size()) {
       m.texName = localMats[matId];
+    }
+    {
+      auto itUV = g_MatUVAnim.find(m.texName);
+      if (itUV != g_MatUVAnim.end())
+        m.uvAnimName = itUV->second;
     }
     // "GreyAlpha_<base>" is not a colour map: it is the alpha pass of a two-pass
     // transparency setup, a white-on-black mask drawn over the same geometry as

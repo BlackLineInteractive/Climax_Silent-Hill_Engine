@@ -14,6 +14,7 @@
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_opengl3.h"
 #include "ImGuizmo.h"
+#include "im_anim.h"
 
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
@@ -297,6 +298,27 @@ static GLuint MakeProgram(const char* name, const char* vsSrc, const char* fsSrc
     glDetachShader(prog, vs); glDeleteShader(vs);
     glDetachShader(prog, fs); glDeleteShader(fs);
     return prog;
+}
+
+// Samples a UV animation layer, returning (uScale, vScale, uOffset, vOffset).
+// Linear between keyframes, which is the blend `ClimaxT1KeyFrameBlend` does.
+static glm::vec4 EvalUVAnim(const UVAnimClip& clip, size_t layer, float t) {
+    if (layer >= clip.layers.size()) return glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
+    const auto& k = clip.layers[layer];
+    if (k.empty()) return glm::vec4(1.0f, 1.0f, 0.0f, 0.0f);
+    if (k.size() == 1) return glm::vec4(k[0].uScale, k[0].vScale, k[0].uOff, k[0].vOff);
+
+    const float dur = clip.duration > 0.0f ? clip.duration : k.back().time;
+    const float tt = dur > 0.0f ? std::fmod(t, dur) : 0.0f;
+    size_t i = 0;
+    while (i + 1 < k.size() && k[i + 1].time <= tt) i++;
+    const size_t j = std::min(i + 1, k.size() - 1);
+    const float span = k[j].time - k[i].time;
+    const float a = span > 1e-6f ? (tt - k[i].time) / span : 0.0f;
+    return glm::vec4(glm::mix(k[i].uScale, k[j].uScale, a),
+                     glm::mix(k[i].vScale, k[j].vScale, a),
+                     glm::mix(k[i].uOff,   k[j].uOff,   a),
+                     glm::mix(k[i].vOff,   k[j].vOff,   a));
 }
 
 int main(int argc, char* argv[]) {
@@ -832,6 +854,8 @@ void main(){
 
         ImGui_ImplOpenGL3_NewFrame(); ImGui_ImplSDL2_NewFrame(); ImGui::NewFrame();
         ImGuizmo::BeginFrame();
+        iam_update_begin_frame();
+        iam_clip_update(io.DeltaTime);
 
         // Key 1 → reset camera, F1 → hide/show the whole interface
         if (!io.WantCaptureKeyboard && ImGui::IsKeyPressed(ImGuiKey_1, false)) {
@@ -935,6 +959,8 @@ void main(){
         const GLint uUntex  = glGetUniformLocation(p, "untextured");
         const GLint uAdd    = glGetUniformLocation(p, "additive");
         const GLint uUnlit  = glGetUniformLocation(p, "unlitGeometry");
+        const GLint uUvOff  = glGetUniformLocation(p, "uvOffset");
+        const GLint uUvScl  = glGetUniformLocation(p, "uvScale");
         const GLint uMatCol = glGetUniformLocation(p, "matColor");
         const GLint uIce    = glGetUniformLocation(p, "iceEffect");
             const glm::mat4 identity(1.0f);
@@ -1049,6 +1075,22 @@ void main(){
                             glBlendEquation(GL_FUNC_ADD);
                             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                             glDepthMask(pass == 0 ? GL_TRUE : GL_FALSE);
+                        }
+
+                        // UV animation. The clip's offsets run to whole texture
+                        // units over its duration (-28.0 after 28 s), so with
+                        // WRAP addressing the end of the loop samples exactly
+                        // what the start does and the cycle is seamless.
+                        {
+                            glm::vec4 uv(state.uvScaleX, state.uvScaleY,
+                                         state.uvOffsetX, state.uvOffsetY);
+                            if (!chunk.uvAnimName.empty()) {
+                                auto itA = g_UVAnims.find(chunk.uvAnimName);
+                                if (itA != g_UVAnims.end())
+                                    uv = EvalUVAnim(itA->second, 0, (float)ImGui::GetTime());
+                            }
+                            glUniform2f(uUvScl, uv.x, uv.y);
+                            glUniform2f(uUvOff, uv.z, uv.w);
                         }
 
                         glBindTexture(GL_TEXTURE_2D, tid);

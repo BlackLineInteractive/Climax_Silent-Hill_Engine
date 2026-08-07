@@ -82,6 +82,11 @@ struct MeshChunk {
   // ClimaxT1MaterialGetFrameBlendMode, and it replaces the guesswork the
   // `additive` flag used to carry.
   uint32_t blendMode = 0;
+  // Name of the UV animation this material's 0x0135 extension points at, and
+  // the second texture layer its 0x011F UserData names (`n1`). Empty when the
+  // material has neither.
+  std::string uvAnimName;
+  std::string layer2Tex;
   bool additive = false;
   bool unlitGeometry = false; // vertex colours are all zero: no baked light
   bool untextured = false;
@@ -330,6 +335,26 @@ extern std::map<std::string, bool> g_TexGradient;
 extern std::map<std::string, bool> g_TexOpaque;
 extern std::vector<ContainerChunkInfo> g_ContainerChunks;
 extern std::map<std::string, std::vector<MeshChunk*>> g_MeshTexMap;
+
+// UV animation, from the container's 0x2B sections. A material names one of
+// these in its 0x0135 extension, and the clip scrolls and scales the material's
+// texture coordinates over time — this is what makes fire move.
+//
+// Keyframes are chained by a previous-frame index, and a clip carries one chain
+// per texture layer: the torch clip has two, one for each of the two flame
+// sheets the material lists, scrolling at different speeds.
+struct UVAnimKey {
+  float time = 0.0f;
+  float uScale = 1.0f, vScale = 1.0f;
+  float uOff = 0.0f, vOff = 0.0f;
+};
+struct UVAnimClip {
+  float duration = 0.0f;
+  std::vector<std::vector<UVAnimKey>> layers; // one keyframe chain per layer
+};
+extern std::map<std::string, UVAnimClip> g_UVAnims;
+// texture name -> the clip its material names, filled while materials are read
+extern std::map<std::string, std::string> g_MatUVAnim;
 
 // SHO container meta
 extern std::vector<ShoTypeEntry> g_ShoTypes;  // from file header type table
