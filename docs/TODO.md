@@ -130,6 +130,27 @@ The cause of the missing face is **not known**. The next thing worth checking is
 whether the face mesh is being drawn at all and simply comes out invisible, as
 opposed to being dropped during load — those two have never been told apart.
 
+There is now one concrete lead. Sweeping the blend-mode field of every material
+in the archive turns up a third value besides 0/1/2: **`0x00010003`**, and the
+textures carrying it are almost entirely characters —
+
+    Ariel_head_cm, nurse_head, Nurse_body, Nurse san_body, Travis_Stalker_Body,
+    Travis_Stalker_Trousers, SHO_PS2_Burnt_Alessa_1/2, SHO_PS2_Travis_Saviour_1/2,
+    SHO_PS2_Flauros_1/2, SHO_PS2_Carrion_Large1/2_cm, T_Butcher_01/03/04,
+    StraightJacket_*, PS2_sad_dady_01/02/04, SD_Tongue, Ambassador_1/2
+
+plus the weapons (AK47, Magnum, Shotgun, HuntingRifle, PS2_M1911) and the
+pickups (Aid_Ampoule_2, Aid_Drink_2, Energy_Drink_2). Nothing else in the game
+uses it. The viewer masks the field to 16 bits, reads mode 3, matches none of
+the three known modes and silently falls back to standard alpha — so whatever
+the high word `0x0001` selects, we are not doing it.
+
+That the value lands on heads and bodies and on nothing else makes it the first
+real candidate for the missing faces. What it means is still unknown: the low
+word may be a fourth blend mode, or the field may be two `u16` and the high word
+a separate flag. Reading `ClimaxT1MaterialGetFrameBlendMode` in the executable
+would settle it.
+
 ### 2. Animation
 
 Specified in [ANIMATION_SPEC.md](ANIMATION_SPEC.md) and not implemented. The

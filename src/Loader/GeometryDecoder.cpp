@@ -343,9 +343,11 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       SG::CClumpObject* clumpObj = dynamic_cast<SG::CClumpObject*>(destObj);
       if (clumpObj) {
           // Find FrameList
-          for (size_t c = 12; c + 12 <= length;) {
-              const uint32_t ct = ru32(c), cs = ru32(c + 4);
-              if (ru32(c + 8) != 0x1C020065 || cs == 0 || c + 12 + cs > length) break;
+          std::cout << "[scene] Parsing Clump payload, length=" << length << "\n";
+          for (size_t c = 0; c + 12 <= length;) {
+              const uint32_t ct = ru32(c), cs = ru32(c + 4), ver = ru32(c + 8);
+              std::cout << "[scene] Clump Chunk Type: 0x" << std::hex << ct << " size: " << std::dec << cs << " ver: 0x" << std::hex << ver << std::dec << "\n";
+              if (ver != 0x1C020065 || c + 12 + cs > length) break;
               if (ct == 0x000E) { // FrameList
                   const size_t st = c + 12;
                   if (ru32(st) == 0x01 && ru32(st + 8) == 0x1C020065) {
@@ -369,6 +371,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                           
                           // Now parse the extensions for bone names
                           size_t extOff = st + 12 + ru32(st + 4);
+                          std::cout << "[scene] Clump " << destObj->GetName() << " got skeleton with " << n << " bones!\n";
                           for (uint32_t i = 0; i < n; i++) {
                               if (extOff + 12 > c + 12 + cs) break;
                               uint32_t extType = ru32(extOff);

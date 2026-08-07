@@ -956,10 +956,26 @@ void main(){
                         if (chunk.alphaPass) continue;
                         
                         // Effect sheets must never occlude each other.
+                        //
+                        // Which pass a mesh belongs in is decided by the blend
+                        // mode the material itself declares, not by how its
+                        // texture happens to be named. An additive or
+                        // subtractive sheet is authored so that black drops
+                        // out, so it carries no transparent texels at all --
+                        // FX_fire_Dahlia is 99% opaque. Both the FX_ prefix and
+                        // the measured alpha gradient therefore miss it, and it
+                        // lands in the opaque pass and draws as a solid
+                        // rectangle. Blood_Pool_SUB and 42 other textures fail
+                        // the name test the same way.
+                        //
+                        // The name and gradient tests stay as a fallback for
+                        // materials that declare mode 0 but still need sorting.
                         auto itG0 = g_TexGradient.find(chunk.texName);
                         const bool isFx = chunk.texName.size() > 3 &&
                             sho_strnicmp(chunk.texName.c_str(), "FX_", 3) == 0;
-                        const bool blended = isFx || chunk.additive ||
+                        const uint32_t declared = chunk.blendMode & 0xFFFF;
+                        const bool blended = declared == 1 || declared == 2 ||
+                            isFx || chunk.additive ||
                             (itG0 != g_TexGradient.end() && itG0->second);
                         if ((pass == 0) == blended) continue;
                         
