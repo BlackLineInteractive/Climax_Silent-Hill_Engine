@@ -112,6 +112,12 @@ def demangle_setter(sym: str) -> str:
 DECOMPILED: dict = {}
 
 try:
+    with open('docs/sho_behaviour.json') as _f:
+        BEHAVIOUR = json.load(_f)
+except Exception:
+    BEHAVIOUR = {}
+
+try:
     with open('docs/property_observations.json') as _f:
         OBSERVATIONS = json.load(_f)
 except Exception:
@@ -390,7 +396,30 @@ def emit_source(cls: ClassInfo, factory_info: dict, out_dir: Path):
     lines += [
         f'    void* mem = CMemory::Alloc({cls.size});',
         f'    if (!mem) return nullptr;',
-        f'    return new (mem) {cls.name}();',
+        f'    auto* obj = new (mem) {cls.name}();',
+    ]
+
+    # Defaults the original constructor writes before any property is applied.
+    # Recovered by tools/sho_behaviour.py; without them an object starts at zero
+    # rather than at whatever the engine considered sensible, which is a
+    # difference that compiles cleanly and behaves wrongly.
+    beh = BEHAVIOUR.get(cls.name, {})
+    defaults = beh.get('defaults') or []
+    known = {s.offset for p in cls.properties for s in p.stores if s.offset}
+    applied = [d for d in defaults if d['offset'] in known]
+    if applied:
+        lines.append(f'    // Constructor defaults from {beh.get("constructor", "?")}')
+        for d in applied:
+            off_int = int(d['offset'], 16)
+            val = (f"{d['value']}f" if d['type'] == 'float' else str(d['value']))
+            lines.append(f'    obj->field_{off_int:04X} = {val};')
+    skipped = len(defaults) - len(applied)
+    if skipped:
+        lines.append(f'    // {skipped} more defaults land on fields no property'
+                     f' writes, so they have no member yet')
+
+    lines += [
+        f'    return obj;',
         '}',
         '',
         f'void {cls.name}::Register() {{',

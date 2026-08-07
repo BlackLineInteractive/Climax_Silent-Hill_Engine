@@ -101,6 +101,14 @@ def decode(w, pc):
             return f'{SPECIAL[fn]:<7s} ${R[rd]}, ${R[rs]}, ${R[rt]}', 'reg', (rd, rs, rt)
         return f'special.{fn:#04x}', 'other', None
     if op == 0x11:
+        # COP1. The moves matter: a float constant is built in a GPR and handed
+        # to a coprocessor register with mtc1, so rendering the whole of COP1 as
+        # an opaque `cop1.0x04` loses which register received the value -- and
+        # with it every constructor default.
+        if rs == 0x00:
+            return f'mfc1   ${R[rt]}, $f{rd}', 'fpmove', (rt, rd)
+        if rs == 0x04:
+            return f'mtc1   ${R[rt]}, $f{rd}', 'mtc1', (rd, rt)
         return f'cop1.{rs:#04x}', 'other', None
     if op in (0x31, 0x39):
         n = 'lwc1' if op == 0x31 else 'swc1'

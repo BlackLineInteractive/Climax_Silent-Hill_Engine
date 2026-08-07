@@ -1,0 +1,4878 @@
+{
+ "AccoladeData": {
+  "constructor": "0x0017E2D0",
+  "vtable": "0x006A37F0",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": []
+ },
+ "AnatomyPuzzleTrigger": {
+  "constructor": "0x00172C48",
+  "vtable": "0x00695F10",
+  "overrides": {
+   "3": "0x00172668",
+   "7": "0x001729F0",
+   "17": "0x00172D68",
+   "19": "0x00172D98",
+   "21": "0x00172DC8"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "AreaTrigger2DPoly": {
+  "constructor": "0x0016FFB0",
+  "vtable": "0x00695730",
+  "overrides": {
+   "3": "0x00170030",
+   "7": "0x0016FE20",
+   "17": "0x001700D0",
+   "19": "0x001701C0",
+   "21": "0x001702E0",
+   "23": "0x00170300",
+   "25": "0x00170348"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "AreaTriggerBattleManager": {
+  "constructor": "0x001710B0",
+  "vtable": "0x006959E8",
+  "overrides": {
+   "3": "0x00171128",
+   "7": "0x00170D58",
+   "23": "0x00171218",
+   "25": "0x00171250"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x128",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x120",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x124",
+    "type": "int",
+    "value": 4294967295
+   }
+  ]
+ },
+ "AreaTriggerBox": {
+  "constructor": "0x00171988",
+  "vtable": "0x00695BF0",
+  "overrides": {
+   "3": "0x001719E8",
+   "7": "0x001712C8",
+   "23": "0x00171420",
+   "25": "0x001715A8",
+   "31": "0x00171AD8",
+   "33": "0x00170500",
+   "39": "0x00171AD8"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x100",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x108",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x10c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x110",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "AudioGlobalMixer": {
+  "constructor": "0x00199860",
+  "vtable": "0x006A37F0",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": [
+   {
+    "offset": "0x4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x24",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x40",
+    "type": "float",
+    "value": 30.0
+   },
+   {
+    "offset": "0x4c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x44",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x48",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x38",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "float",
+    "value": 0.03
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "AudioGroup": {
+  "constructor": "0x0019A048",
+  "vtable": "0x006A37F0",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": [
+   {
+    "offset": "0x4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x24",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x40",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x38",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "AudioReverb": {
+  "constructor": "0x0019A6D8",
+  "vtable": "0x006A37F0",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": [
+   {
+    "offset": "0x4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x24",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x40",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x74",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x38",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x8c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x90",
+    "type": "int",
+    "value": 10
+   },
+   {
+    "offset": "0xa4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x48",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "float",
+    "value": 0.5
+   },
+   {
+    "offset": "0x50",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x68",
+    "type": "float",
+    "value": 100.0
+   },
+   {
+    "offset": "0x70",
+    "type": "float",
+    "value": 5000.0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 1000
+   },
+   {
+    "offset": "0x5c",
+    "type": "float",
+    "value": 0.02
+   },
+   {
+    "offset": "0x64",
+    "type": "float",
+    "value": 0.04
+   },
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 4294957296
+   },
+   {
+    "offset": "0x6c",
+    "type": "float",
+    "value": 100.0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 4294957296
+   }
+  ]
+ },
+ "AudioSound3D": {
+  "constructor": "0x0019B188",
+  "vtable": "0x0069A708",
+  "overrides": {
+   "3": "0x0019B348",
+   "7": "0x0019B538",
+   "29": "0x0019C110",
+   "33": "0x0019C040"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "AudioStream": {
+  "constructor": "0x0019C418",
+  "vtable": "0x006A37F0",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": [
+   {
+    "offset": "0x4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x24",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x38",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "BackdropPropTrigger": {
+  "constructor": "0x00173288",
+  "vtable": "0x006960A0",
+  "overrides": {
+   "3": "0x00172E98",
+   "7": "0x00173008",
+   "21": "0x001733B8"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "ButtonBoxTrigger": {
+  "constructor": "0x00169228",
+  "vtable": "0x00694790",
+  "overrides": {
+   "3": "0x001692D0",
+   "7": "0x00168E60",
+   "17": "0x00169220"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "ButtonTrigger": {
+  "constructor": "0x001698F0",
+  "vtable": "0x006948D8",
+  "overrides": {
+   "3": "0x001699C8",
+   "7": "0x001695D8",
+   "17": "0x001698E8",
+   "27": "0x00169BC4",
+   "29": "0x00169C00"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CAnimatedStaticObject": {
+  "constructor": "0x0013F878",
+  "vtable": "0x006908C0",
+  "overrides": {
+   "3": "0x0013F8D0"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CAudioLocatorBehaviour": {
+  "constructor": "0x0010B3B0",
+  "vtable": "0x0068A268",
+  "overrides": {
+   "3": "0x0010B450",
+   "7": "0x0010B100"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CAudioLocatorBehaviour2D": {
+  "constructor": "0x0010B9B0",
+  "vtable": "0x0068A368",
+  "overrides": {
+   "3": "0x0010BA70",
+   "7": "0x0010B550"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CAudioTransitions": {
+  "constructor": "0x0010FA88",
+  "vtable": "0x0068A8B8",
+  "overrides": {
+   "3": "0x0010FBA8",
+   "7": "0x0010F438"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x48",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CAudioUI": {
+  "constructor": "0x0010FD58",
+  "vtable": "0x0068AC68",
+  "overrides": {
+   "3": "0x001104F8",
+   "7": "0x001109B8"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CBasicAnimatedObject": {
+  "constructor": "0x00104218",
+  "vtable": "0x00689B58",
+  "overrides": {
+   "3": "0x00103E60",
+   "5": "0x00103CB8",
+   "7": "0x00103A00",
+   "19": "0x00103A00"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0xfc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x100",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x110",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x114",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x10c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x104",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x108",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "CBloomCfg": {
+  "constructor": "0x00160948",
+  "vtable": "0x00693C68",
+  "overrides": {
+   "3": "0x00161490",
+   "7": "0x00160A88"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x5c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x6c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x70",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x74",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x78",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x88",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x48",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x7c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x8c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x44",
+    "type": "float",
+    "value": 50.0
+   },
+   {
+    "offset": "0x50",
+    "type": "float",
+    "value": 0.4
+   },
+   {
+    "offset": "0x58",
+    "type": "float",
+    "value": 6.0
+   },
+   {
+    "offset": "0x60",
+    "type": "float",
+    "value": 1.5
+   },
+   {
+    "offset": "0x80",
+    "type": "float",
+    "value": 2.0
+   },
+   {
+    "offset": "0x84",
+    "type": "float",
+    "value": 4.0
+   },
+   {
+    "offset": "0x90",
+    "type": "float",
+    "value": 40.0
+   },
+   {
+    "offset": "0x4c",
+    "type": "float",
+    "value": 0.4
+   },
+   {
+    "offset": "0xa8",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xac",
+    "type": "int",
+    "value": 2
+   },
+   {
+    "offset": "0xa4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb4",
+    "type": "int",
+    "value": 2
+   }
+  ]
+ },
+ "CCalibanBehaviour": {
+  "constructor": "0x0011F2E0",
+  "vtable": "0x0068BC58",
+  "overrides": {
+   "3": "0x0011F368"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x2d9c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2da0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2da4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2d90",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2d94",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2dac",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CCollisionCapsule": {
+  "constructor": "0x00146F58",
+  "vtable": "0x006A37F0",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": [
+   {
+    "offset": "0x4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x24",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x4c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x48",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x38",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x40",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "CColorLight": {
+  "constructor": "0x00140630",
+  "vtable": "0x00691058",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": []
+ },
+ "CConstraintCamera": {
+  "constructor": "0x00114E10",
+  "vtable": "0x0068B2D0",
+  "overrides": {
+   "3": "0x00119128",
+   "5": "0x001194D8",
+   "7": "0x00118AB8",
+   "17": "0x001177D8",
+   "19": "0x00117448",
+   "21": "0x001191B8",
+   "23": "0x001192E0",
+   "31": "0x00119510",
+   "33": "0x001195E8",
+   "35": "0x00119620"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x1e4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x208",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x20c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x2b4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1d0",
+    "type": "float",
+    "value": 10.0
+   },
+   {
+    "offset": "0x1d4",
+    "type": "float",
+    "value": 20.0
+   },
+   {
+    "offset": "0x1d8",
+    "type": "float",
+    "value": 15.0
+   },
+   {
+    "offset": "0x9c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xa4",
+    "type": "float",
+    "value": 0.5
+   },
+   {
+    "offset": "0x290",
+    "type": "float",
+    "value": 0.75
+   },
+   {
+    "offset": "0x29c",
+    "type": "float",
+    "value": 4.0
+   },
+   {
+    "offset": "0x2ac",
+    "type": "float",
+    "value": 1.5
+   },
+   {
+    "offset": "0x2a8",
+    "type": "float",
+    "value": 0.261799
+   },
+   {
+    "offset": "0x2b0",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x2bc",
+    "type": "float",
+    "value": 36.0
+   },
+   {
+    "offset": "0xf8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xfc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x100",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x10c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1dc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1e0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa0",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x280",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x284",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x288",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x28c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2a0",
+    "type": "float",
+    "value": 1.5
+   },
+   {
+    "offset": "0x2a4",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x2b8",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CControllerCamera": {
+  "constructor": "0x00119DF0",
+  "vtable": "0x0068B410",
+  "overrides": {
+   "3": "0x00119E78",
+   "7": "0x00119B88",
+   "17": "0x00119788",
+   "21": "0x00119F68"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x8c",
+    "type": "float",
+    "value": 60.0
+   },
+   {
+    "offset": "0x94",
+    "type": "float",
+    "value": 10.0
+   },
+   {
+    "offset": "0x90",
+    "type": "float",
+    "value": 10.0
+   }
+  ]
+ },
+ "CCounter": {
+  "constructor": "0x00169D20",
+  "vtable": "0x006949C8",
+  "overrides": {
+   "3": "0x00169D90",
+   "7": "0x00169B48",
+   "21": "0x00169D90",
+   "23": "0x00169E68"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 2
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CDeathSpawnEffectManager": {
+  "constructor": "0x0015D4B0",
+  "vtable": "0x00693718",
+  "overrides": {
+   "3": "0x0015D598",
+   "7": "0x0015D180"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CDistortionTrigger": {
+  "constructor": "0x0016A610",
+  "vtable": "0x00694B30",
+  "overrides": {
+   "3": "0x0016A678",
+   "7": "0x0016A470",
+   "21": "0x0016A678",
+   "23": "0x0016A728"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x4c",
+    "type": "float",
+    "value": 4.0
+   },
+   {
+    "offset": "0x50",
+    "type": "float",
+    "value": 2.0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CDynamicFire": {
+  "constructor": "0x001590A0",
+  "vtable": "0x00693260",
+  "overrides": {
+   "3": "0x001595A8",
+   "5": "0x00159828",
+   "7": "0x0015A458",
+   "19": "0x0015A458"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CDynamicHealthItem": {
+  "constructor": "0x0018BDE0",
+  "vtable": "0x006994F8",
+  "overrides": {
+   "3": "0x0018BE48",
+   "7": "0x0018BA78",
+   "21": "0x0018BE48",
+   "25": "0x0018BA78",
+   "39": "0x0018BB50"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x120",
+    "type": "int",
+    "value": 50
+   },
+   {
+    "offset": "0x124",
+    "type": "int",
+    "value": 150
+   },
+   {
+    "offset": "0x128",
+    "type": "int",
+    "value": 250
+   }
+  ]
+ },
+ "CEndingMovieRelay": {
+  "constructor": "0x0016ACD8",
+  "vtable": "0x00694BF0",
+  "overrides": {
+   "3": "0x0016AD50",
+   "7": "0x0016AAE0",
+   "21": "0x0016AD50",
+   "23": "0x0016A870",
+   "37": "0x0016B19C",
+   "39": "0x0016B1BC"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x74",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CEnemyBehaviour": {
+  "constructor": "0x00127718",
+  "vtable": "0x0068CFE8",
+  "overrides": {
+   "3": "0x00127D80"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CEnemySpecificPlayerAnim": {
+  "constructor": "0x00106D10",
+  "vtable": "0x00689ED8",
+  "overrides": {
+   "3": "0x00106D88",
+   "7": "0x00106AF8",
+   "29": "0x00106F80"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CFMABorder": {
+  "constructor": "0x00152330",
+  "vtable": "0x00692B20",
+  "overrides": {
+   "3": "0x00152A08",
+   "7": "0x001525C8"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CFMAController": {
+  "constructor": "0x0017D4E0",
+  "vtable": "0x00697A08",
+  "overrides": {
+   "3": "0x0017D568",
+   "7": "0x0017D318"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CFMAPlayerAnim": {
+  "constructor": "0x0017D930",
+  "vtable": "0x00697AF0",
+  "overrides": {
+   "3": "0x0017D9B0",
+   "7": "0x0017D6B8",
+   "25": "0x00106F80",
+   "39": "0x0017DD40"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CFMAPlayerMover": {
+  "constructor": "0x0017DCD8",
+  "vtable": "0x00697BA0",
+  "overrides": {
+   "3": "0x0017DD40",
+   "7": "0x0017DB70"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CFRainDropManager": {
+  "constructor": "0x0015E238",
+  "vtable": "0x00693860",
+  "overrides": {
+   "3": "0x0015E370",
+   "7": "0x0015D6D0"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CFadeTrigger": {
+  "constructor": "0x0016B308",
+  "vtable": "0x00694C98",
+  "overrides": {
+   "3": "0x0016B360",
+   "7": "0x0016B120",
+   "21": "0x0016B360",
+   "23": "0x0016AED0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "CFastLightSource": {
+  "constructor": "0x001411F0",
+  "vtable": "0x00691108",
+  "overrides": {
+   "3": "0x00141328",
+   "7": "0x00141480",
+   "21": "0x00141328",
+   "23": "0x00141790"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "float",
+    "value": 5.0
+   },
+   {
+    "offset": "0x48",
+    "type": "float",
+    "value": 25.0
+   },
+   {
+    "offset": "0xd0",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xa0",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xa4",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xa8",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xd4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xdc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xac",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xb0",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x60",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x64",
+    "type": "float",
+    "value": 5.0
+   },
+   {
+    "offset": "0x78",
+    "type": "float",
+    "value": 5.0
+   },
+   {
+    "offset": "0x90",
+    "type": "float",
+    "value": 5.0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xb4",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "CFlaurosBehaviour": {
+  "constructor": "0x0012BF50",
+  "vtable": "0x0068D5F8",
+  "overrides": {
+   "3": "0x0012BFC0"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CFmaCamera": {
+  "constructor": "0x0011BAB0",
+  "vtable": "0x0068B5B0",
+  "overrides": {
+   "3": "0x0011BBC8",
+   "7": "0x0011AF38",
+   "17": "0x0011A530",
+   "25": "0x0011B280",
+   "37": "0x0011B8D8"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x94",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x8c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x90",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xa8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xac",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xc0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xc4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xe8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xec",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xbc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xc8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xcc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xdc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xe0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xe4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x110",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x118",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x11c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x114",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xf0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf4",
+    "type": "float",
+    "value": 0.2
+   }
+  ]
+ },
+ "CFmaCameraNode": {
+  "constructor": "0x0011B8E8",
+  "vtable": "0x0068B670",
+  "overrides": {
+   "3": "0x0011B9B0",
+   "7": "0x00119FB8",
+   "35": "0x0011C0E8",
+   "37": "0x00111A68"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x74",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x7c",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CFogConfig": {
+  "constructor": "0x0015F148",
+  "vtable": "0x00693AD0",
+  "overrides": {
+   "3": "0x001607B8",
+   "5": "0x001608D0",
+   "7": "0x0015F2B0",
+   "29": "0x00160B10",
+   "31": "0x00160B30",
+   "33": "0x00160B50",
+   "35": "0x00160B70",
+   "37": "0x00160B90",
+   "39": "0x00160C1C"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x88",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x8c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x94",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x98",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 1500
+   },
+   {
+    "offset": "0x58",
+    "type": "float",
+    "value": 13.0
+   },
+   {
+    "offset": "0x5c",
+    "type": "float",
+    "value": 3.0
+   },
+   {
+    "offset": "0x64",
+    "type": "float",
+    "value": 0.3
+   },
+   {
+    "offset": "0x60",
+    "type": "float",
+    "value": 25.0
+   },
+   {
+    "offset": "0x9c",
+    "type": "float",
+    "value": 0.65
+   },
+   {
+    "offset": "0xa0",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xa4",
+    "type": "float",
+    "value": 0.7
+   },
+   {
+    "offset": "0xa8",
+    "type": "float",
+    "value": 0.23
+   },
+   {
+    "offset": "0xac",
+    "type": "float",
+    "value": 0.37
+   },
+   {
+    "offset": "0x68",
+    "type": "float",
+    "value": 0.75
+   },
+   {
+    "offset": "0x74",
+    "type": "float",
+    "value": 4.0
+   },
+   {
+    "offset": "0x78",
+    "type": "float",
+    "value": 2.2
+   },
+   {
+    "offset": "0x7c",
+    "type": "float",
+    "value": 20.0
+   },
+   {
+    "offset": "0x80",
+    "type": "float",
+    "value": 0.2
+   },
+   {
+    "offset": "0x84",
+    "type": "float",
+    "value": 0.5
+   },
+   {
+    "offset": "0x90",
+    "type": "float",
+    "value": 1.0
+   }
+  ]
+ },
+ "CFollowCamera": {
+  "constructor": "0x0011C0A0",
+  "vtable": "0x0068B710",
+  "overrides": {
+   "3": "0x0011C0E8",
+   "7": "0x0011BEF0",
+   "17": "0x0011BC98",
+   "21": "0x0011C118"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CForceItemTrigger": {
+  "constructor": "0x0018C0F0",
+  "vtable": "0x006995F8",
+  "overrides": {
+   "3": "0x0018C160",
+   "7": "0x0018BF50",
+   "21": "0x0018C160",
+   "23": "0x0018C218"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CFullScreenRain": {
+  "constructor": "0x00162500",
+  "vtable": "0x00694148",
+  "overrides": {
+   "3": "0x00162B60",
+   "5": "0x00162CB8",
+   "7": "0x001626E0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x1d08",
+    "type": "float",
+    "value": 0.5
+   },
+   {
+    "offset": "0x1d0c",
+    "type": "float",
+    "value": 1.6
+   },
+   {
+    "offset": "0x1d10",
+    "type": "float",
+    "value": 20.0
+   },
+   {
+    "offset": "0x1d14",
+    "type": "float",
+    "value": 10.0
+   },
+   {
+    "offset": "0x1d18",
+    "type": "float",
+    "value": 0.6
+   },
+   {
+    "offset": "0x1d1c",
+    "type": "float",
+    "value": 0.15
+   },
+   {
+    "offset": "0x1d20",
+    "type": "float",
+    "value": 30.0
+   },
+   {
+    "offset": "0x1d24",
+    "type": "float",
+    "value": 0.4
+   },
+   {
+    "offset": "0x1d3c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1d4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1d50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1d54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1da0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1da4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1da8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1d04",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1d94",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1d9c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1d98",
+    "type": "float",
+    "value": -1.0
+   },
+   {
+    "offset": "0x1d28",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "CGenericSpawner": {
+  "constructor": "0x00149960",
+  "vtable": "0x00691F00",
+  "overrides": {
+   "3": "0x00149BE8",
+   "7": "0x00149A78",
+   "17": "0x00149D08"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CHitEffectManager": {
+  "constructor": "0x00161F78",
+  "vtable": "0x00693DD0",
+  "overrides": {
+   "3": "0x00162010",
+   "7": "0x00161CD0",
+   "25": "0x0016216C",
+   "27": "0x0016218C",
+   "29": "0x001621AC",
+   "31": "0x001621CC",
+   "33": "0x001621EC",
+   "35": "0x0016220C",
+   "37": "0x0016222C"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CIGCCamera": {
+  "constructor": "0x00183D28",
+  "vtable": "0x00698570",
+  "overrides": {
+   "3": "0x001836B8",
+   "5": "0x001839E0",
+   "7": "0x001838D0",
+   "17": "0x00183FE0"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CIGCCharacter": {
+  "constructor": "0x00184738",
+  "vtable": "0x006986F0",
+  "overrides": {
+   "3": "0x001847D0",
+   "5": "0x00123028",
+   "7": "0x00126010"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x14c0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14c4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14c8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14cc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14d0",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "CIGCTrigger": {
+  "constructor": "0x00187578",
+  "vtable": "0x00698EB0",
+  "overrides": {
+   "3": "0x00187D98",
+   "7": "0x00187AD8",
+   "21": "0x00187D98",
+   "23": "0x00187708"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x74",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x7c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x94",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x88",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x8c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x90",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CInventoryItemDef": {
+  "constructor": "0x0018C8F8",
+  "vtable": "0x00699788",
+  "overrides": {
+   "3": "0x0018CA18",
+   "5": "0x0018CA50",
+   "7": "0x0018C300"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x74",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x7c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x80",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xac",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xc4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xcc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xe8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x48",
+    "type": "int",
+    "value": 18
+   },
+   {
+    "offset": "0xb4",
+    "type": "float",
+    "value": 10.0
+   },
+   {
+    "offset": "0xc0",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xe4",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xb8",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xbc",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 6
+   }
+  ]
+ },
+ "CMapAnchorPoint": {
+  "constructor": "0x00189928",
+  "vtable": "0x00699228",
+  "overrides": {
+   "3": "0x00189978",
+   "7": "0x001896E0",
+   "23": "0x00189B28",
+   "25": "0x00189B70",
+   "31": "0x00189D48",
+   "33": "0x00189E10",
+   "39": "0x00189D48"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x48",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CMapItem": {
+  "constructor": "0x00189CB0",
+  "vtable": "0x006992B8",
+  "overrides": {
+   "3": "0x00189D48",
+   "7": "0x00189A90",
+   "21": "0x00189D48",
+   "23": "0x001883C0",
+   "25": "0x00189A90",
+   "27": "0x00189EB8"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0xdc",
+    "type": "int",
+    "value": 4294967295
+   },
+   {
+    "offset": "0xd8",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CMessageRelay": {
+  "constructor": "0x0016CEC8",
+  "vtable": "0x00695158",
+  "overrides": {
+   "3": "0x0016C938",
+   "7": "0x0016CBC8",
+   "21": "0x0016C938",
+   "23": "0x0016CAA8"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x9c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xac",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd8",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xc8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd4",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CMotionBlurCfg": {
+  "constructor": "0x001616D0",
+  "vtable": "0x00693C00",
+  "overrides": {
+   "3": "0x00161788",
+   "7": "0x00160D68",
+   "21": "0x00161490",
+   "23": "0x00161588",
+   "29": "0x00161490",
+   "33": "0x00160A88"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 2
+   },
+   {
+    "offset": "0x60",
+    "type": "float",
+    "value": 2.5
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CMoverNode": {
+  "constructor": "0x001476E0",
+  "vtable": "0x00691668",
+  "overrides": {
+   "3": "0x00147740",
+   "7": "0x001474E0",
+   "25": "0x001479E8",
+   "27": "0x00147850",
+   "29": "0x00147998",
+   "31": "0x00107A50",
+   "33": "0x00107A58",
+   "35": "0x00107A60"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CPSX2StndController": {
+  "constructor": "0x00192970",
+  "vtable": "0x00699E60",
+  "overrides": {
+   "3": "0x00192DD8",
+   "7": "0x00193B30",
+   "21": "0x00192DD8",
+   "23": "0x00193330"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CPadRumbleTrigger": {
+  "constructor": "0x0016D9D0",
+  "vtable": "0x006952A8",
+  "overrides": {
+   "3": "0x0016DA48",
+   "7": "0x0016D7F8",
+   "21": "0x0016DA48",
+   "23": "0x0016D648"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CPathFollower": {
+  "constructor": "0x001481E8",
+  "vtable": "0x00691928",
+  "overrides": {
+   "3": "0x001482B0",
+   "5": "0x00147BF0",
+   "7": "0x00147A60",
+   "19": "0x00147A60"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x120",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x138",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x124",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x128",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x12c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x130",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x134",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x13c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x140",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x144",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CPeepholeCamera": {
+  "constructor": "0x0011C8A0",
+  "vtable": "0x0068B870",
+  "overrides": {
+   "3": "0x0011C968",
+   "7": "0x0011C3C8",
+   "17": "0x0011C170",
+   "21": "0x0011CA68",
+   "23": "0x0011CA50",
+   "25": "0x0011CA60",
+   "27": "0x0011C898"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0xf0",
+    "type": "float",
+    "value": 5.0
+   },
+   {
+    "offset": "0xf4",
+    "type": "float",
+    "value": 10.0
+   },
+   {
+    "offset": "0xf8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xfc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x100",
+    "type": "float",
+    "value": 0.6
+   },
+   {
+    "offset": "0x110",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x104",
+    "type": "float",
+    "value": 5.0
+   },
+   {
+    "offset": "0x10c",
+    "type": "float",
+    "value": 10.0
+   }
+  ]
+ },
+ "CPhysicsObject": {
+  "constructor": "0x0013C610",
+  "vtable": "0x0068FEB0",
+  "overrides": {
+   "3": "0x0013C758",
+   "5": "0x0013D4F8",
+   "7": "0x0013CFB0",
+   "17": "0x0013D168",
+   "27": "0x0013D5B8",
+   "29": "0x0013D658",
+   "37": "0x0013CCD0",
+   "39": "0x0013CFB0"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CPickupItem": {
+  "constructor": "0x00192050",
+  "vtable": "0x00699B88",
+  "overrides": {
+   "3": "0x00191518",
+   "7": "0x001916F0",
+   "21": "0x00191518",
+   "25": "0x001916F0",
+   "39": "0x00191C50"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0xc0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xc4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xc8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xcc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xdc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xe0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xec",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xfc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x100",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x104",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x108",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x10c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x110",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CPlaceHolderMsgTrigger": {
+  "constructor": "0x0016DE18",
+  "vtable": "0x00695340",
+  "overrides": {
+   "3": "0x0016DE78",
+   "7": "0x0016DC60",
+   "21": "0x0016DE78",
+   "23": "0x0016DB28"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CPlayerBehaviour": {
+  "constructor": "0x0012C3B0",
+  "vtable": "0x0068E588",
+  "overrides": {
+   "3": "0x0012D250",
+   "5": "0x00137230",
+   "7": "0x00137210",
+   "19": "0x00136D18"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CPlayerCheckpoint": {
+  "constructor": "0x0014A310",
+  "vtable": "0x00691FF0",
+  "overrides": {
+   "3": "0x00149D78",
+   "5": "0x0014A3F8",
+   "7": "0x00149FD8",
+   "21": "0x00149D78",
+   "23": "0x00149ED0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x74",
+    "type": "int",
+    "value": 4294967295
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "CPlayerLight": {
+  "constructor": "0x00141D00",
+  "vtable": "0x00691058",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": [
+   {
+    "offset": "0x98",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x9c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x80",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x88",
+    "type": "float",
+    "value": 0.1
+   },
+   {
+    "offset": "0x84",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CPlayerReflector": {
+  "constructor": "0x00139350",
+  "vtable": "0x0068F210",
+  "overrides": {
+   "3": "0x001394C0",
+   "7": "0x0013A238"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CPlayerSpawner": {
+  "constructor": "0x0014AD30",
+  "vtable": "0x006921A8",
+  "overrides": {
+   "3": "0x0014ADC0",
+   "5": "0x0014A468",
+   "7": "0x0014A888"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CPointTrigger": {
+  "constructor": "0x001891B8",
+  "vtable": "0x00699188",
+  "overrides": {
+   "3": "0x00189308",
+   "5": "0x001883C0",
+   "7": "0x00188DF8",
+   "9": "0x001893E8",
+   "11": "0x00189490",
+   "13": "0x00189500",
+   "15": "0x00189448",
+   "17": "0x00189198",
+   "35": "0x00189978",
+   "37": "0x0013C2F0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x9c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb4",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xa0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa4",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xa8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xac",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xb0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x0",
+    "type": "int",
+    "value": 17
+   }
+  ]
+ },
+ "CRecyclerSpawner": {
+  "constructor": "0x0014B040",
+  "vtable": "0x006922B0",
+  "overrides": {
+   "3": "0x0014B520",
+   "7": "0x0014B3B8",
+   "17": "0x0014B770"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CRotator": {
+  "constructor": "0x00148EE8",
+  "vtable": "0x00691BA0",
+  "overrides": {
+   "3": "0x001490F0",
+   "5": "0x001486C8",
+   "7": "0x00148FB0",
+   "19": "0x00148FB0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x120",
+    "type": "float",
+    "value": 0.1
+   },
+   {
+    "offset": "0x184",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x108",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x10c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x110",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x114",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x118",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x11c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x124",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x134",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x180",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x188",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CSadDaddyBehaviour": {
+  "constructor": "0x0013B090",
+  "vtable": "0x0068F4A8",
+  "overrides": {
+   "3": "0x0013B140"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x2d5c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x2d94",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2d98",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2d9c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2da4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2da8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2dac",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2db8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2db0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2dc0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x2dbc",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CSceneObject": {
+  "constructor": "0x0013D808",
+  "vtable": "0x0068FFB0",
+  "overrides": {
+   "3": "0x0013D908",
+   "5": "0x0013B438",
+   "7": "0x0013D888",
+   "19": "0x0013D888"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CScreenShakeTrigger": {
+  "constructor": "0x0016EC58",
+  "vtable": "0x006954F8",
+  "overrides": {
+   "3": "0x0016ECB0",
+   "7": "0x0016EA78",
+   "21": "0x0016ECB0",
+   "23": "0x0016E9B0",
+   "35": "0x0016EDEC",
+   "37": "0x0016EE1C",
+   "39": "0x0016EE3C"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CSequenceObject": {
+  "constructor": "0x0013DFC0",
+  "vtable": "0x00690370",
+  "overrides": {
+   "3": "0x0013D9B0",
+   "5": "0x0013B928",
+   "7": "0x0013DB48",
+   "17": "0x0013B510",
+   "27": "0x0013B698",
+   "29": "0x0013B6A0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0xe4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xe0",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CSettingsManager": {
+  "constructor": "0x0017F8B0",
+  "vtable": "0x006982F8",
+  "overrides": {
+   "3": "0x0017FB68",
+   "7": "0x0017FD18"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CSkyDome": {
+  "constructor": "0x0017D0F8",
+  "vtable": "0x00697958",
+  "overrides": {
+   "3": "0x0017D1B0",
+   "7": "0x0017D298",
+   "27": "0x002A7261",
+   "39": "0x0017D568"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x80",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CSlowMoTrigger": {
+  "constructor": "0x0016EF58",
+  "vtable": "0x006955A0",
+  "overrides": {
+   "3": "0x0016EFC8",
+   "7": "0x0016ED70",
+   "21": "0x0016EFC8",
+   "23": "0x0016F090",
+   "35": "0x0016F408",
+   "37": "0x001FC6D0",
+   "39": "0x0016F240"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CSmashableObject": {
+  "constructor": "0x0013E850",
+  "vtable": "0x00690420",
+  "overrides": {
+   "3": "0x0013EA28",
+   "5": "0x0013E0C0",
+   "7": "0x0013E930",
+   "9": "0x0013EAA8",
+   "11": "0x0013EAE8",
+   "13": "0x0013EB18",
+   "19": "0x0013E930",
+   "21": "0x0013EBD8",
+   "23": "0x0013EBD0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0xdc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xec",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x150",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x154",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x158",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1c4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1c8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 4
+   }
+  ]
+ },
+ "CSolidObject": {
+  "constructor": "0x0013F368",
+  "vtable": "0x006906A8",
+  "overrides": {
+   "3": "0x0013F420",
+   "5": "0x0013F618",
+   "7": "0x0013F610"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x310",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x320",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x324",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x328",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x32c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x380",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CSpotLight": {
+  "constructor": "0x00142130",
+  "vtable": "0x00691500",
+  "overrides": {
+   "3": "0x001424B0",
+   "5": "0x00142D58",
+   "7": "0x001429C0",
+   "35": "0x00147050",
+   "37": "0x00147100"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x100",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x17c",
+    "type": "float",
+    "value": 0.25
+   },
+   {
+    "offset": "0x180",
+    "type": "float",
+    "value": 0.25
+   },
+   {
+    "offset": "0x170",
+    "type": "float",
+    "value": 45.0
+   },
+   {
+    "offset": "0x174",
+    "type": "float",
+    "value": 0.785398
+   },
+   {
+    "offset": "0x178",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x184",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1c4",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xf4",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xf0",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x108",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1ac",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1b0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1b4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1b8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1bc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1c0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xe8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x18c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x190",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1a0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x1a4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x10c",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CSpotLightSurface": {
+  "constructor": "0x00146A60",
+  "vtable": "0x00691468",
+  "overrides": {
+   "3": "0x00146B10",
+   "5": "0x00146B98",
+   "7": "0x001462E8",
+   "21": "0x00146BC8",
+   "27": "0x00144738",
+   "33": "0x001424B0",
+   "35": "0x001426C8"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CStaticCamera": {
+  "constructor": "0x0011D820",
+  "vtable": "0x0068B9A8",
+  "overrides": {
+   "3": "0x0011D898",
+   "7": "0x0011D4D8",
+   "17": "0x0011CAC8",
+   "21": "0x0011D8C8",
+   "31": "0x0011D808",
+   "33": "0x0011D810",
+   "35": "0x0011D818"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x138",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x13c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x140",
+    "type": "float",
+    "value": 0.5
+   },
+   {
+    "offset": "0x144",
+    "type": "float",
+    "value": 1.5
+   },
+   {
+    "offset": "0x134",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "CStaticInit": {
+  "constructor": "0x0016F3A8",
+  "vtable": "0x00695620",
+  "overrides": {
+   "3": "0x0016F408",
+   "7": "0x0016F240",
+   "21": "0x0016F408",
+   "23": "0x0016F488",
+   "33": "0x0016F860",
+   "37": "0x0016F680"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CStaticObject": {
+  "constructor": "0x0013F768",
+  "vtable": "0x00690AF8",
+  "overrides": {
+   "3": "0x0013F7C0"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CStyledSceneObject": {
+  "constructor": "0x0013FBD0",
+  "vtable": "0x00690D68",
+  "overrides": {
+   "3": "0x0013FC30"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CSwirlTrigger": {
+  "constructor": "0x0016F810",
+  "vtable": "0x00695698",
+  "overrides": {
+   "3": "0x0016F860",
+   "7": "0x0016F680",
+   "21": "0x0016F860",
+   "23": "0x0016F548",
+   "33": "0x00170030",
+   "35": "0x00170500"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CThreatConfig": {
+  "constructor": "0x001681F0",
+  "vtable": "0x00694588",
+  "overrides": {
+   "3": "0x00168308",
+   "5": "0x001683C8",
+   "7": "0x001674D0",
+   "23": "0x0016854C",
+   "25": "0x0016856C",
+   "27": "0x0016850C",
+   "33": "0x00168778",
+   "35": "0x00168890"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x48",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x7c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "float",
+    "value": 10.0
+   },
+   {
+    "offset": "0x54",
+    "type": "float",
+    "value": 24.0
+   },
+   {
+    "offset": "0x58",
+    "type": "float",
+    "value": 0.25
+   },
+   {
+    "offset": "0x5c",
+    "type": "float",
+    "value": 5.0
+   },
+   {
+    "offset": "0x60",
+    "type": "float",
+    "value": 128.0
+   },
+   {
+    "offset": "0x64",
+    "type": "float",
+    "value": 33.0
+   },
+   {
+    "offset": "0x68",
+    "type": "float",
+    "value": 8.0
+   },
+   {
+    "offset": "0x6c",
+    "type": "float",
+    "value": 11.0
+   },
+   {
+    "offset": "0x70",
+    "type": "float",
+    "value": 93.0
+   },
+   {
+    "offset": "0x74",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x4c",
+    "type": "float",
+    "value": 0.25
+   }
+  ]
+ },
+ "CTnfCamera": {
+  "constructor": "0x0011D9D8",
+  "vtable": "0x0068BAE8",
+  "overrides": {
+   "3": "0x0011EA48",
+   "7": "0x0011EB10",
+   "17": "0x0011DAD0",
+   "21": "0x0011ED08",
+   "23": "0x0011EBA8",
+   "25": "0x0011EBB8",
+   "27": "0x0011EA40"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0xd8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xd4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xdc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x118",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x11c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x128",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CVirtualController": {
+  "constructor": "0x00194668",
+  "vtable": "0x006A37F0",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": []
+ },
+ "CZone": {
+  "constructor": "0x00176620",
+  "vtable": "0x00696F68",
+  "overrides": {
+   "3": "0x00176AF8",
+   "5": "0x00176D30",
+   "7": "0x00176EC8",
+   "21": "0x00178870",
+   "27": "0x00178718"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CZoneCollision": {
+  "constructor": "0x00177DD0",
+  "vtable": "0x00696EE8",
+  "overrides": {
+   "3": "0x00178E20",
+   "5": "0x00178E88",
+   "7": "0x0013BF68",
+   "21": "0x00176AF8",
+   "27": "0x00176AF8",
+   "29": "0x00177598",
+   "35": "0x00176AF8",
+   "37": "0x00176D30",
+   "39": "0x00176EC8"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CalenderTrigger": {
+  "constructor": "0x00173728",
+  "vtable": "0x00696168",
+  "overrides": {
+   "3": "0x00173788",
+   "7": "0x001735A0",
+   "21": "0x00173870"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "CameraPair": {
+  "constructor": "0x00114AB8",
+  "vtable": "0x0068B128",
+  "overrides": {
+   "3": "0x00114B60",
+   "7": "0x001147C0",
+   "17": "0x00114098",
+   "19": "0x00114CB0",
+   "21": "0x00114BF0",
+   "23": "0x00114718",
+   "29": "0x00114D30"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0xec",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xe8",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0xf0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xfc",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "CircuitBreakerTrigger": {
+  "constructor": "0x00173B10",
+  "vtable": "0x00696228",
+  "overrides": {
+   "3": "0x00173B70",
+   "7": "0x00173940",
+   "21": "0x00173C58"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "DataTrigger": {
+  "constructor": "0x0016A258",
+  "vtable": "0x00694AD8",
+  "overrides": {
+   "3": "0x0016A2A8",
+   "7": "0x0016A088",
+   "25": "0x0016A678",
+   "27": "0x001FC6D0",
+   "29": "0x0016A470",
+   "31": "0x001FC6E0",
+   "33": "0x001FC6F0",
+   "35": "0x001FC710",
+   "37": "0x0013C488"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "FMVTrigger": {
+  "constructor": "0x0016B978",
+  "vtable": "0x00694DA0",
+  "overrides": {
+   "3": "0x0016BA10",
+   "7": "0x0016B608"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x84",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x7c",
+    "type": "float",
+    "value": 1.5
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x74",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "float",
+    "value": 1.5
+   },
+   {
+    "offset": "0x80",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x88",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x8c",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "FlaurosTrigger": {
+  "constructor": "0x00174030",
+  "vtable": "0x00696358",
+  "overrides": {
+   "3": "0x00174190",
+   "7": "0x00173D28",
+   "21": "0x00174278",
+   "31": "0x0017448C",
+   "33": "0x001744A4",
+   "35": "0x001744D8",
+   "37": "0x00174508"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "GameMessage": {
+  "constructor": "0x00153770",
+  "vtable": "0x00692C58",
+  "overrides": {
+   "3": "0x00153840",
+   "7": "0x001534C0"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "HospitalLiftTrigger": {
+  "constructor": "0x00174620",
+  "vtable": "0x00696410",
+  "overrides": {
+   "3": "0x001746A0",
+   "7": "0x00174400"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "IGCBorder": {
+  "constructor": "0x001834D8",
+  "vtable": "0x00698448",
+  "overrides": {
+   "3": "0x00183548",
+   "7": "0x001830A0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "IronLungTrigger": {
+  "constructor": "0x00174D00",
+  "vtable": "0x00696508",
+  "overrides": {
+   "3": "0x00174DB0",
+   "7": "0x00174AF0",
+   "21": "0x00174ED0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x7c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x80",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "LaundryTrigger": {
+  "constructor": "0x001753F8",
+  "vtable": "0x006965F8",
+  "overrides": {
+   "3": "0x00175458",
+   "7": "0x00175068",
+   "21": "0x001751E8",
+   "23": "0x00175540"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "LifeBox": {
+  "constructor": "0x001724A0",
+  "vtable": "0x00695E00",
+  "overrides": {
+   "3": "0x00172538",
+   "7": "0x00172290",
+   "17": "0x00172588"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x50",
+    "type": "float",
+    "value": 1.0
+   }
+  ]
+ },
+ "MapTrigger": {
+  "constructor": "0x0016C010",
+  "vtable": "0x00694E78",
+  "overrides": {
+   "3": "0x0016C068",
+   "7": "0x0016BE60"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "MaterialMap": {
+  "constructor": "0x0010EF78",
+  "vtable": "0x0068A7E0",
+  "overrides": {
+   "3": "0x0010F030",
+   "7": "0x0010ED48",
+   "31": "0x0010F158"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "MessageBoxTrigger": {
+  "constructor": "0x0016C760",
+  "vtable": "0x00694FA8",
+  "overrides": {
+   "3": "0x0016C7D0",
+   "7": "0x0016C398",
+   "17": "0x0016C758"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf4",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0xf0",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "MusicTrigger": {
+  "constructor": "0x0016D498",
+  "vtable": "0x00695230",
+  "overrides": {
+   "3": "0x0016D4E8",
+   "7": "0x0016D310",
+   "25": "0x0016D884",
+   "27": "0x0016D8A4",
+   "29": "0x0016D8C4",
+   "33": "0x0016DA48",
+   "37": "0x0016D7F8"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "OrganBoxTrigger": {
+  "constructor": "0x00175818",
+  "vtable": "0x006966D8",
+  "overrides": {
+   "3": "0x00175878",
+   "7": "0x00175638",
+   "21": "0x00175960"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "PillDollTrigger": {
+  "constructor": "0x00175C10",
+  "vtable": "0x006967B8",
+  "overrides": {
+   "3": "0x00175C70",
+   "7": "0x00175A30",
+   "21": "0x00175D58",
+   "33": "0x00176048",
+   "35": "0x00176108"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "PlaneTrigger": {
+  "constructor": "0x0016E7E0",
+  "vtable": "0x00695450",
+  "overrides": {
+   "3": "0x0016E858",
+   "7": "0x0016E3B0",
+   "17": "0x0016E7D8",
+   "37": "0x0016EB04",
+   "39": "0x0016EB24"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "PuzzleTrigger": {
+  "constructor": "0x00175FF0",
+  "vtable": "0x00696850",
+  "overrides": {
+   "3": "0x00176048",
+   "7": "0x00175E28",
+   "21": "0x00175F98"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "SavePoint": {
+  "constructor": "0x001D68D8",
+  "vtable": "0x006A18D0",
+  "overrides": {
+   "3": "0x001D6930",
+   "7": "0x001D6748",
+   "21": "0x001D6930",
+   "23": "0x001D68D0",
+   "25": "0x001D6748",
+   "27": "0x001D69D0",
+   "29": "0x001883C8",
+   "31": "0x001883D0",
+   "33": "0x001883D8",
+   "35": "0x001883E0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x84",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "ScreenText": {
+  "constructor": "0x001B3260",
+  "vtable": "0x0069C758",
+  "overrides": {
+   "3": "0x001B3300",
+   "7": "0x001B2CF8"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x7c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x80",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x84",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x88",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x8c",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "TillTrigger": {
+  "constructor": "0x00176408",
+  "vtable": "0x00696910",
+  "overrides": {
+   "3": "0x00176468",
+   "7": "0x00176238",
+   "21": "0x00176550"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "TimerHUD": {
+  "constructor": "0x001541F0",
+  "vtable": "0x00692D70",
+  "overrides": {
+   "3": "0x00154310",
+   "7": "0x001544A0"
+  },
+  "pure_data": false,
+  "defaults": []
+ },
+ "UnlockableData": {
+  "constructor": "0x0017E378",
+  "vtable": "0x006A37F0",
+  "overrides": {},
+  "pure_data": true,
+  "defaults": []
+ },
+ "Waypoint": {
+  "constructor": "0x001A52F0",
+  "vtable": "0x0069B7C8",
+  "overrides": {
+   "3": "0x001A5348",
+   "5": "0x001A5408",
+   "7": "0x001A50D0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x48",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "WeaponHUD": {
+  "constructor": "0x00154500",
+  "vtable": "0x00692F18",
+  "overrides": {
+   "3": "0x00154728",
+   "7": "0x00155800",
+   "21": "0x00156778"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x44",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x9c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xa8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xac",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xb0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xdc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xe0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf8",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xfc",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x100",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x104",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x108",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xcc",
+    "type": "float",
+    "value": 1.333333
+   }
+  ]
+ },
+ "ZoneTrigger": {
+  "constructor": "0x0017BBA8",
+  "vtable": "0x00697558",
+  "overrides": {
+   "3": "0x0017BCD8",
+   "7": "0x0017BF80",
+   "23": "0x0017C488",
+   "25": "0x0017C640"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x110",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x114",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x120",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x11c",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x128",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x12c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x168",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x16c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf0",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0xf4",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x118",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x160",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x164",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x14c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x138",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "cBlackOutFSE": {
+  "constructor": "0x00156A98",
+  "vtable": "0x00693048",
+  "overrides": {
+   "3": "0x00156C10",
+   "7": "0x001567E8"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x54",
+    "type": "float",
+    "value": 0.975
+   },
+   {
+    "offset": "0x5c",
+    "type": "float",
+    "value": 0.3
+   },
+   {
+    "offset": "0x60",
+    "type": "float",
+    "value": 0.1
+   },
+   {
+    "offset": "0x64",
+    "type": "float",
+    "value": -0.1
+   },
+   {
+    "offset": "0x78",
+    "type": "float",
+    "value": 1.5
+   },
+   {
+    "offset": "0x7c",
+    "type": "float",
+    "value": 2.0
+   },
+   {
+    "offset": "0x80",
+    "type": "float",
+    "value": 2.5
+   },
+   {
+    "offset": "0x84",
+    "type": "float",
+    "value": 3.0
+   },
+   {
+    "offset": "0x88",
+    "type": "float",
+    "value": -0.03
+   },
+   {
+    "offset": "0x8c",
+    "type": "float",
+    "value": 0.02
+   },
+   {
+    "offset": "0x90",
+    "type": "float",
+    "value": -0.01
+   },
+   {
+    "offset": "0x94",
+    "type": "float",
+    "value": 0.03
+   },
+   {
+    "offset": "0x98",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x9c",
+    "type": "float",
+    "value": 0.5
+   },
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x74",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "cFlexFilter": {
+  "constructor": "0x0015EE20",
+  "vtable": "0x006939A0",
+  "overrides": {
+   "3": "0x0015EF20",
+   "7": "0x0015E6C0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x78",
+    "type": "float",
+    "value": 0.3
+   },
+   {
+    "offset": "0x8c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x50",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x54",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x5c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x64",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x68",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x6c",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x70",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x84",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x88",
+    "type": "int",
+    "value": 1
+   },
+   {
+    "offset": "0x80",
+    "type": "int",
+    "value": 1
+   }
+  ]
+ },
+ "cPenanceFSE": {
+  "constructor": "0x00162338",
+  "vtable": "0x00693E88",
+  "overrides": {
+   "3": "0x00162430",
+   "7": "0x001620E0"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x50",
+    "type": "float",
+    "value": 0.78
+   },
+   {
+    "offset": "0x74",
+    "type": "float",
+    "value": 1.5
+   },
+   {
+    "offset": "0x78",
+    "type": "float",
+    "value": 2.0
+   },
+   {
+    "offset": "0x7c",
+    "type": "float",
+    "value": 2.5
+   },
+   {
+    "offset": "0x80",
+    "type": "float",
+    "value": 3.0
+   },
+   {
+    "offset": "0x84",
+    "type": "float",
+    "value": -0.03
+   },
+   {
+    "offset": "0x88",
+    "type": "float",
+    "value": 0.02
+   },
+   {
+    "offset": "0x8c",
+    "type": "float",
+    "value": -0.01
+   },
+   {
+    "offset": "0x90",
+    "type": "float",
+    "value": 0.03
+   },
+   {
+    "offset": "0x4c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x54",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x58",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x60",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ },
+ "cThreatController": {
+  "constructor": "0x00168678",
+  "vtable": "0x00694620",
+  "overrides": {
+   "3": "0x00168778",
+   "7": "0x00168470",
+   "31": "0x00168B10",
+   "33": "0x00168B60"
+  },
+  "pure_data": false,
+  "defaults": [
+   {
+    "offset": "0x50",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x5c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x64",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x54",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x58",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x60",
+    "type": "float",
+    "value": 1.0
+   },
+   {
+    "offset": "0x68",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x6c",
+    "type": "int",
+    "value": 0
+   },
+   {
+    "offset": "0x70",
+    "type": "int",
+    "value": 0
+   }
+  ]
+ }
+}
