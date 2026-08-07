@@ -16,6 +16,7 @@
 #include "ImGuizmo.h"
 #include "im_anim.h"
 #include "ClimaxEngine/Game/CameraLinks.h"
+#include "ClimaxEngine/Game/CharacterController.h"
 
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
@@ -864,12 +865,78 @@ void main(){
             float speed = state.wasdSpeed * dt;
             if (keys[SDL_SCANCODE_LSHIFT]) speed *= 3.0f;
 
-            if (keys[SDL_SCANCODE_W]) { state.camPosX += flat_fwd.x * speed; state.camPosZ += flat_fwd.z * speed; }
-            if (keys[SDL_SCANCODE_S]) { state.camPosX -= flat_fwd.x * speed; state.camPosZ -= flat_fwd.z * speed; }
-            if (keys[SDL_SCANCODE_A]) { state.camPosX -= right.x * speed; state.camPosZ -= right.z * speed; }
-            if (keys[SDL_SCANCODE_D]) { state.camPosX += right.x * speed; state.camPosZ += right.z * speed; }
-            if (keys[SDL_SCANCODE_Q]) { state.camPosY -= speed; }
-            if (keys[SDL_SCANCODE_E]) { state.camPosY += speed; }
+            if (state.playMode) {
+                // Walk mode: the same keys drive a body through the collision
+                // mesh instead of teleporting the camera. Speed is a rate here,
+                // not a per-frame step, because the controller integrates.
+                static ClimaxEngine::Game::CharacterController body;
+                static bool placed = false;
+                static const CollisionMesh* placedFor = nullptr;
+
+                if (!placed || placedFor != &g_Collision) {
+                    glm::vec3 spawn;
+                    if (!ClimaxEngine::Game::FindPlayerSpawn(g_GameObjects, spawn))
+                        spawn = glm::vec3(state.camPosX, state.camPosY, state.camPosZ);
+                    body.position = spawn;
+                    body.SnapToGround(g_Collision);
+                    placed = true;
+                    placedFor = &g_Collision;
+                }
+
+                glm::vec3 wish(0.0f);
+                if (keys[SDL_SCANCODE_W]) wish += flat_fwd;
+                if (keys[SDL_SCANCODE_S]) wish -= flat_fwd;
+                if (keys[SDL_SCANCODE_A]) wish -= right;
+                if (keys[SDL_SCANCODE_D]) wish += right;
+                if (glm::length(wish) > 1e-4f) wish = glm::normalize(wish);
+
+                float walk = state.walkSpeed;
+                if (keys[SDL_SCANCODE_LSHIFT]) walk *= 2.0f;
+                body.Step(g_Collision, wish * walk * dt, dt);
+
+                // Camera planes: crossing one hands the view to the camera
+                // that side names. Rebuilt when the level changes, which is
+                // what the collision-mesh pointer tracks.
+                static ClimaxEngine::Game::CameraSwitcher switcher;
+                static const CollisionMesh* switchesFor = nullptr;
+                if (switchesFor != &g_Collision) {
+                    switcher.Reset(ClimaxEngine::Game::BuildCameraSwitches(
+                        g_GameObjects, g_Cameras));
+                    switchesFor = &g_Collision;
+                    state.activeCamera = -1;
+                }
+                if (state.autoCameras) {
+                    const int cut = switcher.Update(body.position);
+                    if (cut >= 0 && cut < (int)g_Cameras.size())
+                        state.activeCamera = cut;
+                }
+
+                if (state.autoCameras && state.activeCamera >= 0 &&
+                    state.activeCamera < (int)g_Cameras.size()) {
+                    // A fixed camera does not follow the player: it sits where
+                    // the designer put it and looks where they aimed it, which
+                    // is the whole point of the framing in this game.
+                    const LevelCamera& lc = g_Cameras[(size_t)state.activeCamera];
+                    state.camPosX = lc.position.x;
+                    state.camPosY = lc.position.y;
+                    state.camPosZ = lc.position.z;
+                    state.camFovDeg = lc.fovDeg;
+                    const glm::vec3 back = -lc.forward;
+                    state.camPitch = glm::degrees(asinf(glm::clamp(back.y, -1.0f, 1.0f)));
+                    state.camYaw   = glm::degrees(atan2f(back.x, back.z));
+                } else {
+                    state.camPosX = body.position.x;
+                    state.camPosY = body.position.y + state.eyeHeight;
+                    state.camPosZ = body.position.z;
+                }
+            } else {
+                if (keys[SDL_SCANCODE_W]) { state.camPosX += flat_fwd.x * speed; state.camPosZ += flat_fwd.z * speed; }
+                if (keys[SDL_SCANCODE_S]) { state.camPosX -= flat_fwd.x * speed; state.camPosZ -= flat_fwd.z * speed; }
+                if (keys[SDL_SCANCODE_A]) { state.camPosX -= right.x * speed; state.camPosZ -= right.z * speed; }
+                if (keys[SDL_SCANCODE_D]) { state.camPosX += right.x * speed; state.camPosZ += right.z * speed; }
+                if (keys[SDL_SCANCODE_Q]) { state.camPosY -= speed; }
+                if (keys[SDL_SCANCODE_E]) { state.camPosY += speed; }
+            }
         } else if (mouse_captured) {
             mouse_captured = false;
             SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -1465,6 +1532,38 @@ void main(){
             ImGui::SliderFloat("##wasd_speed", &state.wasdSpeed, 1.0f, 100.0f, "Speed %.1f");
             ImGui::SetNextItemWidth(-1);
             ImGui::SliderFloat("##wasd_sens", &state.wasdSensitivity, 0.01f, 1.0f, "Sens %.2f");
+        }
+
+        {
+            // Walk mode only means anything once the level has collision to
+            // stand on, so it is disabled rather than silently doing nothing.
+            const bool canWalk = !g_Collision.indices.empty();
+            ImGui::BeginDisabled(!canWalk);
+            if (ImGui::Checkbox("Walk (collision)", &state.playMode) && state.playMode)
+                state.useWASD = true;   // walk mode drives the same camera
+            ImGui::EndDisabled();
+            if (ImGui::IsItemHovered() && state.uiTooltips)
+                ImGui::SetTooltip(canWalk
+                    ? "Move as a body through the level's collision mesh.\n"
+                      "Starts at the level's CPlayerSpawner when it has one."
+                    : "This level has no collision mesh loaded.");
+            if (state.playMode) {
+                ImGui::SetNextItemWidth(-70.0f);
+                ImGui::SliderFloat("##walkspeed", &state.walkSpeed, 1.0f, 8.0f, "%.1f");
+                ImGui::SameLine(); ImGui::TextDisabled("Speed");
+                ImGui::SetNextItemWidth(-70.0f);
+                ImGui::SliderFloat("##eye", &state.eyeHeight, 0.8f, 2.2f, "%.2f");
+                ImGui::SameLine(); ImGui::TextDisabled("Eye");
+                ImGui::Checkbox("Fixed cameras", &state.autoCameras);
+                if (ImGui::IsItemHovered() && state.uiTooltips)
+                    ImGui::SetTooltip("Hand the view to the level's own cameras when\n"
+                                      "a PlaneTrigger is crossed, as the game does.\n"
+                                      "Off keeps a first-person view on the body.");
+                if (state.autoCameras && state.activeCamera >= 0 &&
+                    state.activeCamera < (int)g_Cameras.size())
+                    ImGui::TextDisabled("camera: %s",
+                                        g_Cameras[(size_t)state.activeCamera].name.c_str());
+            }
         }
 
         if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) {

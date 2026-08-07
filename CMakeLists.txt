@@ -120,6 +120,7 @@ set(APP_SOURCES
     src/Loader/GeometryDecoder.cpp
     src/SG/SceneObject.cpp
     src/Game/CameraLinks.cpp
+    src/Game/CharacterController.cpp
     src/Loader/ResourceLoader.cpp
     src/Platform/Wii/WiiGeometry.cpp
     src/Loader/Export.cpp

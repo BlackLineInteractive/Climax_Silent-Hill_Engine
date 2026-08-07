@@ -38,5 +38,30 @@ std::vector<CameraSwitch> BuildCameraSwitches(
 int FindCameraByName(const std::vector<LevelCamera> &cameras,
                      const std::string &name);
 
+// Tracks which side of each switch plane the player is on, and reports the
+// camera to cut to when one is crossed.
+//
+// This is the mechanism behind Silent Hill's hard camera changes: a plane in
+// the level names one camera for each side, and crossing it hands over. Kept
+// here rather than in the viewer because it is game behaviour, not a tool
+// feature.
+class CameraSwitcher {
+public:
+    // Rebuilt whenever the level changes.
+    void Reset(std::vector<CameraSwitch> switches);
+
+    // Returns the camera index to become active, or -1 when nothing changed.
+    // The first call after Reset only records which side the player starts on,
+    // so entering a level does not count as a crossing.
+    int Update(const glm::vec3 &playerPos);
+
+    const std::vector<CameraSwitch> &Switches() const { return m_switches; }
+
+private:
+    std::vector<CameraSwitch> m_switches;
+    std::vector<float> m_side;   // last signed distance, one per switch
+    bool m_primed = false;
+};
+
 } // namespace Game
 } // namespace ClimaxEngine

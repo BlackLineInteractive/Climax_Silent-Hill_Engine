@@ -309,6 +309,15 @@ struct ViewerState {
   // Free flight camera
   bool useWASD = false;
   float camPosX = 0.0f, camPosY = 2.0f, camPosZ = 15.0f;
+  // Walk mode: a body that obeys the level's collision instead of a free
+  // camera. Off by default -- the viewer is still a viewer.
+  bool  playMode = false;
+  float walkSpeed = 3.2f;
+  float eyeHeight = 1.55f;
+  // Which level camera the switch planes have handed control to, or -1 for the
+  // free look. Only used in walk mode.
+  int   activeCamera = -1;
+  bool  autoCameras = true;
   float wasdSpeed = 15.0f;
   float wasdSensitivity = 0.2f;
 
