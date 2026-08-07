@@ -109,6 +109,8 @@ def demangle_setter(sym: str) -> str:
 
 # Observations of the real data, produced by tools/property_observations.py.
 # Optional: the generator still works without it, the comments are just poorer.
+DECOMPILED: dict = {}
+
 try:
     with open('docs/property_observations.json') as _f:
         OBSERVATIONS = json.load(_f)
@@ -449,6 +451,23 @@ def emit_source(cls: ClassInfo, factory_info: dict, out_dir: Path):
         '',
     ]
 
+    # The original, decompiled from the retail executable. Kept as a comment so
+    # the file still compiles: Ghidra's output names functions FUN_xxxxxx and
+    # types undefined4, so it is a reference to port against, not code to build.
+    original = DECOMPILED.get(cls.name)
+    if original:
+        lines += [
+            '#if 0',
+            '// ─────────────────────────────────────────────────────────────────',
+            '// Original HandleAttributes, decompiled from SLES_551.47.',
+            '// Produced by tools/GhidraDecompile.java at the address',
+            f'// tools/sho_attrs.py recovered for {cls.name}.',
+            '// ─────────────────────────────────────────────────────────────────',
+            original.rstrip(),
+            '#endif',
+            '',
+        ]
+
     path.write_text('\n'.join(lines))
     return path
 
@@ -549,6 +568,26 @@ def emit_rws_types(out_dir: Path):
         """)
     path.write_text(content)
     return path
+
+
+def load_decompiled(path: Optional[str]) -> dict:
+    """Ghidra output for the handlers, keyed by class name.
+
+    The files are what tools/GhidraDecompile.java writes: real decompiled C for
+    the very functions sho_attrs.py located. It cannot be dropped in as code --
+    the names are FUN_xxxxxx and the types are undefined -- but having the
+    original logic beside the generated skeleton is the difference between
+    filling in a switch from guesswork and reading what the engine did.
+    """
+    out = {}
+    if not path:
+        return out
+    d = Path(path)
+    if not d.is_dir():
+        return out
+    for f in d.glob('*_HandleAttributes.c'):
+        out[f.stem.replace('_HandleAttributes', '')] = f.read_text()
+    return out
 
 
 def emit_support_headers(out_dir: Path):
@@ -723,9 +762,13 @@ def parse_class_map(map_path: str) -> list[ClassInfo]:
                     type=s.get('type'),
                     calls=s.get('calls'),
                 ))
+            # The merged map keeps both binaries' case addresses under
+            # separate keys. Origins' own is the one that matters -- it is the
+            # address in the executable being ported -- with Ghost Rider's as a
+            # fallback for classes only it has.
             props.append(Property(
                 index=p['index'],
-                case=p.get('case'),
+                case=p.get('case_sho') or p.get('case_gr') or p.get('case'),
                 stores=stores,
             ))
         classes.append(ClassInfo(
@@ -744,6 +787,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('sles',         help='Path to SLES_551.47')
+    ap.add_argument('--decomp', help='directory of Ghidra-decompiled handlers')
     ap.add_argument('--map',  '-m', default='docs/port_class_map.json')
     ap.add_argument('--out',  '-o', default='port')
     ap.add_argument('--no-factory-analysis', action='store_true',
@@ -759,6 +803,10 @@ def main():
     print(f'      {len(classes)} classes loaded')
 
     out = Path(args.out)
+    global DECOMPILED
+    DECOMPILED = load_decompiled(args.decomp)
+    if DECOMPILED:
+        print(f'      {len(DECOMPILED)} decompiled handlers available')
 
     print(f'[3/6] Emitting RWS types header ...')
     emit_support_headers(out)
