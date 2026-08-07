@@ -764,7 +764,9 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
 // returns is the size it occupies in memory, which is smaller. The last word is
 // the index of the previous keyframe, and following those links splits the
 // frames into one chain per texture layer.
+
 static void ParseUVAnimations(const std::vector<uint8_t> &data) {
+
   const uint32_t RW_VER = 0x1c020065;
   const size_t sz = data.size();
   auto ru32 = [&](size_t o) -> uint32_t {
@@ -780,8 +782,9 @@ static void ParseUVAnimations(const std::vector<uint8_t> &data) {
 
   // Scanned exhaustively rather than by walking chunk sizes: the 0x2B sections
   // sit inside the container's shells, so a top-level walk steps straight over
-  // them.
-  for (size_t o = 0; o + 12 <= sz; o += 4) {
+  // them. Byte-by-byte, not word-by-word — the sections are not word aligned
+  // (DH_1_Exterior has one at 1053589), so a stride of 4 misses them entirely.
+  for (size_t o = 0; o + 12 <= sz; o += 1) {
     const uint32_t t = ru32(o), s = ru32(o + 4), v = ru32(o + 8);
     if (t != 0x2B || v != RW_VER || s == 0 || o + 12 + s > sz) continue;
 
@@ -800,8 +803,14 @@ static void ParseUVAnimations(const std::vector<uint8_t> &data) {
       std::string name;
       for (size_t k = 0; k < 32 && data[h + 24 + k]; k++) name += (char)data[h + 24 + k];
 
+      // 20 bytes of RtAnimAnimation header + 68 of RpUVAnimCustomData, then
+      // the keyframes. RenderWare has two UV keyframe schemes and only the
+      // linear one is 32 bytes; the stride the data implies tells them apart.
       const size_t keys = h + 88;
-      if (numFrames && numFrames < 4096 && keys + numFrames * 32 <= h + as) {
+      const uint32_t stride =
+          (numFrames && as > 88) ? (uint32_t)((as - 88) / numFrames) : 0;
+      if (numFrames && numFrames < 4096 && stride == 32 &&
+          keys + (size_t)numFrames * 32 <= h + as) {
         UVAnimClip clip;
         clip.duration = duration;
         std::vector<UVAnimKey> flat(numFrames);
@@ -840,16 +849,8 @@ static void ParseUVAnimations(const std::vector<uint8_t> &data) {
     }
   }
 
-  {
-    std::cout << "[uvanim] scan: " << g_UVAnims.size() << " clips";
-    int shown = 0;
-    for (auto &kv : g_UVAnims) {
-      if (shown++ >= 2) break;
-      std::cout << "  " << kv.first << " (" << kv.second.layers.size()
-                << " layers, " << kv.second.duration << "s)";
-    }
-    std::cout << "\n";
-  }
+  if (!g_UVAnims.empty())
+    std::cout << "[uvanim] " << g_UVAnims.size() << " clips\n";
 }
 
 void ParseContainerStructureData(const std::vector<uint8_t> &data) {

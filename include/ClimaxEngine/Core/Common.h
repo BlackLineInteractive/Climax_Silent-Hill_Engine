@@ -264,6 +264,8 @@ struct ViewerState {
   // Free flight camera
   bool useWASD = false;
   float camPosX = 0.0f, camPosY = 2.0f, camPosZ = 15.0f;
+  float wasdSpeed = 15.0f;
+  float wasdSensitivity = 0.2f;
 
 
   bool flipU = false;
@@ -313,6 +315,10 @@ struct ViewerState {
 
   // Animation player
   bool showAnimPlayer = false;
+  // UV animation runs off the scene clock; these only pause and rescale it.
+  bool  uvAnimRun = true;
+  float uvAnimSpeed = 1.0f;
+  float uvAnimTime = 0.0f;
   float animSpeed = 1.0f;
   bool showBoneOverlay = false;
   bool animRestPose = false;

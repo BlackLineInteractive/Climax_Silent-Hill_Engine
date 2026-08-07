@@ -418,7 +418,10 @@ void RenderArcWindow() {
                 .c_str());
 
   static bool onlyContainers = true;
+  static bool sortBySize = false;
   ImGui::Checkbox("Levels only", &onlyContainers);
+  ImGui::SameLine();
+  ImGui::Checkbox("Sort by size", &sortBySize);
   if (ImGui::IsItemHovered())
     ImGui::SetTooltip(
         "Show only entries without a known file extension —\n"
@@ -430,7 +433,7 @@ void RenderArcWindow() {
                            sizeof(arcFilter));
 
   ImGui::Separator();
-  ImGui::BeginChild("##arclist");
+  ImGui::BeginChild("##arclist", ImVec2(0, 0), false, ImGuiWindowFlags_NavFlattened);
 
   int pendingLoad = -1;
   int pendingPlay = -1;
@@ -448,18 +451,14 @@ void RenderArcWindow() {
     return e == "igcstream" || e == "ads" || e == "vag" || e == "rws" ||
            e == "abc";
   };
+
+  std::vector<int> filteredIndices;
   for (size_t i = 0; i < entries.size(); i++) {
     const std::string &n = entries[i].name;
-    // Determine whether this is a real file (known extension) or a game
-    // container. Real extensions in the archive are all lowercase (.arc,
-    // .txd, .xml, .vml, .nav, .mm, etc.).  Game object names like
-    // "CPlayerBehaviour.Travis" use a capital-letter qualifier after the
-    // dot — treat those the same as no-extension containers.
     auto dotPos = n.rfind('.');
     bool isKnownExt = false;
     if (dotPos != std::string::npos) {
       std::string ext = n.substr(dotPos + 1);
-      // A known extension is all lowercase and short
       bool allLower = !ext.empty() &&
                       std::all_of(ext.begin(), ext.end(), [](unsigned char c) {
                         return c == tolower(c);
@@ -478,25 +477,49 @@ void RenderArcWindow() {
       if (lo.find(needle) == std::string::npos)
         continue;
     }
-    shown++;
+    filteredIndices.push_back((int)i);
+  }
 
+  if (sortBySize) {
+    std::sort(filteredIndices.begin(), filteredIndices.end(), [&](int a, int b) {
+      return entries[a].Size() > entries[b].Size();
+    });
+  }
+
+  int currentIndexInList = -1;
+  shown = filteredIndices.size();
+
+  for (size_t list_i = 0; list_i < filteredIndices.size(); list_i++) {
+    int i = filteredIndices[list_i];
+    const std::string &n = entries[i].name;
     const bool audio = isAudioEntry(n);
     const bool current = (g_CurrentMeshContainer == n);
-    ImGui::PushID((int)i);
+    if (current) currentIndexInList = (int)list_i;
+
+    ImGui::PushID(i);
     
     float target_indent = current ? 15.0f : 0.0f;
     float indent = iam_tween_float(ImGui::GetID("arc_item"), ImGui::GetID("indent_channel"), target_indent, 0.3f, iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, ImGui::GetIO().DeltaTime);
     
     if (indent > 0.1f) ImGui::Indent(indent);
 
-    if (ImGui::Selectable(n.c_str(), current)) {
+    // Make the selectable leave space for the size label, or just format the string
+    char labelBuf[512];
+    snprintf(labelBuf, sizeof(labelBuf), "%s", n.c_str());
+    
+    // We want the size to be aligned right. ImGui doesn't support right aligned text in selectable easily without tables,
+    // but we can just use SameLine after.
+    // To make the background span nicely and look visually readable, we give Selectable a specific width
+    float availWidth = ImGui::GetContentRegionAvail().x;
+    if (ImGui::Selectable(labelBuf, current, 0, ImVec2(availWidth - 80.0f, 0))) {
       if (audio)
-        pendingPlay = (int)i;
+        pendingPlay = i;
       else
-        pendingLoad = (int)i;
+        pendingLoad = i;
     }
     
     if (indent > 0.1f) ImGui::Unindent(indent);
+    
     if (ImGui::IsItemHovered()) {
       const size_t nTxd =
           ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance()
@@ -508,9 +531,22 @@ void RenderArcWindow() {
                                             : " uncompressed",
                         nTxd);
     }
-    ImGui::SameLine();
+    
+    ImGui::SameLine(ImGui::GetWindowWidth() - 80.0f - ImGui::GetStyle().ScrollbarSize);
     ImGui::TextDisabled("%.0f KB", entries[i].Size() / 1024.0f);
+    
     ImGui::PopID();
+  }
+
+  if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) && currentIndexInList != -1) {
+      if (ImGui::IsKeyPressed(ImGuiKey_UpArrow) && currentIndexInList > 0) {
+          int prev = filteredIndices[currentIndexInList - 1];
+          if (isAudioEntry(entries[prev].name)) pendingPlay = prev; else pendingLoad = prev;
+      }
+      if (ImGui::IsKeyPressed(ImGuiKey_DownArrow) && currentIndexInList < (int)filteredIndices.size() - 1) {
+          int next = filteredIndices[currentIndexInList + 1];
+          if (isAudioEntry(entries[next].name)) pendingPlay = next; else pendingLoad = next;
+      }
   }
   ImGui::EndChild();
   ImGui::End();
@@ -967,13 +1003,10 @@ void RenderTxdWindow() {
   ImGui::End();
 }
 
-void RenderAudioPlayer() {
-  // Opened from the Panels checkbox, and by itself as soon as a level with a
-  // sound bank loads or an archive with music beside it is mounted. It stays
-  // openable when empty on purpose: an empty list has to be able to say why.
-  if (!state.showAudioPlayer)
-    return;
-
+// One tab of the Playback panel. Sound, skeletal animation and UV animation are
+// three views of the same question -- what is this level playing right now --
+// so they share a window instead of scattering three of them across the screen.
+static void AudioTabBody() {
   auto timecode = [](float sec) {
     const int t = (int)sec;
     char buf[32];
@@ -981,8 +1014,7 @@ void RenderAudioPlayer() {
     return std::string(buf);
   };
 
-  ImGui::SetNextWindowSize(ImVec2(420, 460), ImGuiCond_FirstUseEver);
-  if (ImGui::Begin("Audio", &state.showAudioPlayer)) {
+  {
     const AudioClip &cur = CurrentAudioClip();
 
     // ── Now playing ────────────────────────────────────────────────
@@ -1196,14 +1228,10 @@ void RenderAudioPlayer() {
       ImGui::EndTabBar();
     }
   }
-  ImGui::End();
 }
 
-void RenderAnimationPlayer() {
-  if (!state.showAnimPlayer) return;
-
-  ImGui::SetNextWindowSize(ImVec2(420, 250), ImGuiCond_FirstUseEver);
-  if (ImGui::Begin("Animation Player", &state.showAnimPlayer)) {
+static void SkeletalTabBody() {
+  {
     // Find all CClumpObjects with skeletons
     std::vector<std::shared_ptr<ClimaxEngine::SG::CClumpObject>> clumps;
     for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
@@ -1247,7 +1275,7 @@ void RenderAnimationPlayer() {
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(anim_play.x*1.2f, anim_play.y*1.2f, anim_play.z*1.2f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(anim_play.x*0.8f, anim_play.y*0.8f, anim_play.z*0.8f, 1.0f));
         
-        if (ImGui::Button(state.animSpeed > 0 ? "Pause" : "Play ")) {
+        if (ImGui::Button(state.animSpeed > 0 ? "Pause###play_btn" : "Play ###play_btn")) {
            state.animSpeed = (state.animSpeed > 0) ? 0.0f : 1.0f;
         }
         ImGui::PopStyleColor(3);
@@ -1267,13 +1295,128 @@ void RenderAnimationPlayer() {
            clump->animTime = t;
         }
         
-        ImGui::SliderFloat("Speed", &state.animSpeed, 0.1f, 4.0f, "%.1fx");
+        ImGui::SliderFloat("Speed", &state.animSpeed, 0.0f, 4.0f, "%.1fx");
       } else {
         ImGui::TextDisabled("No animation clip attached to this object.");
       }
 
       ImGui::Separator();
       ImGui::Checkbox("Show Bone Overlay", &state.showBoneOverlay);
+    }
+  }
+}
+
+// UV animation needs no transport of its own -- it is driven by the same clock
+// the scene is, and every material that names a clip runs it. What this tab is
+// for is seeing which clips a level carries and what they actually do, which is
+// the only way to tell a stalled clip from one that is merely slow.
+static void UVAnimTabBody() {
+  if (g_UVAnims.empty()) {
+    ImGui::TextDisabled("This level carries no UV animations.");
+    ImGui::TextDisabled("They live in the container's 0x2B sections; fire and");
+    ImGui::TextDisabled("torches are the usual carriers.");
+    return;
+  }
+
+  ImGui::Text("%d clips", (int)g_UVAnims.size());
+  ImGui::SameLine();
+  ImGui::TextDisabled("| driven by the scene clock");
+
+  ImGui::Checkbox("Run", &state.uvAnimRun);
+  ImGui::SameLine();
+  ImGui::SetNextItemWidth(-90.0f);
+  ImGui::SliderFloat("Speed", &state.uvAnimSpeed, 0.0f, 4.0f, "%.2fx");
+
+  ImGui::Separator();
+
+  static std::string sel;
+  if (sel.empty() || !g_UVAnims.count(sel)) sel = g_UVAnims.begin()->first;
+
+  ImGui::SetNextItemWidth(-1.0f);
+  if (ImGui::BeginCombo("##uvclip", sel.c_str())) {
+    for (auto &kv : g_UVAnims)
+      if (ImGui::Selectable(kv.first.c_str(), kv.first == sel)) sel = kv.first;
+    ImGui::EndCombo();
+  }
+
+  const UVAnimClip &clip = g_UVAnims[sel];
+  ImGui::TextDisabled("%.2f s   %d layer%s", clip.duration,
+                      (int)clip.layers.size(),
+                      clip.layers.size() == 1 ? "" : "s");
+
+  const float t = clip.duration > 0.0f
+                      ? std::fmod(state.uvAnimTime, clip.duration)
+                      : 0.0f;
+  float shown = t;
+  ImGui::SetNextItemWidth(-1.0f);
+  ImGui::SliderFloat("##uvtime", &shown, 0.0f,
+                     clip.duration > 0.0f ? clip.duration : 1.0f, "%.2f s");
+
+  ImGui::Spacing();
+  if (ImGui::BeginTable("uvlayers", 5,
+                        ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                            ImGuiTableFlags_SizingStretchProp)) {
+    ImGui::TableSetupColumn("Layer");
+    ImGui::TableSetupColumn("Keys");
+    ImGui::TableSetupColumn("Scale");
+    ImGui::TableSetupColumn("Offset now");
+    ImGui::TableSetupColumn("Drift / s");
+    ImGui::TableHeadersRow();
+
+    for (size_t L = 0; L < clip.layers.size(); L++) {
+      const auto &k = clip.layers[L];
+      if (k.empty()) continue;
+      // Where the layer sits at the current time, by the same linear walk the
+      // renderer does.
+      size_t i = 0;
+      while (i + 1 < k.size() && k[i + 1].time <= t) i++;
+      const size_t j = std::min(i + 1, k.size() - 1);
+      const float span = k[j].time - k[i].time;
+      const float a = span > 1e-6f ? (t - k[i].time) / span : 0.0f;
+      const float uo = k[i].uOff + (k[j].uOff - k[i].uOff) * a;
+      const float vo = k[i].vOff + (k[j].vOff - k[i].vOff) * a;
+      const float du = clip.duration > 0.0f
+                           ? (k.back().uOff - k.front().uOff) / clip.duration
+                           : 0.0f;
+      const float dv = clip.duration > 0.0f
+                           ? (k.back().vOff - k.front().vOff) / clip.duration
+                           : 0.0f;
+
+      ImGui::TableNextRow();
+      ImGui::TableNextColumn(); ImGui::Text("%d", (int)L);
+      ImGui::TableNextColumn(); ImGui::Text("%d", (int)k.size());
+      ImGui::TableNextColumn();
+      ImGui::Text("%.2f, %.2f", k[i].uScale, k[i].vScale);
+      ImGui::TableNextColumn(); ImGui::Text("%.2f, %.2f", uo, vo);
+      ImGui::TableNextColumn(); ImGui::Text("%.2f, %.2f", du, dv);
+    }
+    ImGui::EndTable();
+  }
+
+  if (clip.layers.size() > 1)
+    ImGui::TextDisabled("Layer 1 is not drawn yet -- see TODO.md.");
+}
+
+void RenderPlaybackPanel() {
+  if (!state.showAudioPlayer)
+    return;
+
+  ImGui::SetNextWindowSize(ImVec2(460, 500), ImGuiCond_FirstUseEver);
+  if (ImGui::Begin("Playback", &state.showAudioPlayer)) {
+    if (ImGui::BeginTabBar("##playback")) {
+      if (ImGui::BeginTabItem("Sound")) {
+        AudioTabBody();
+        ImGui::EndTabItem();
+      }
+      if (ImGui::BeginTabItem("Skeletal")) {
+        SkeletalTabBody();
+        ImGui::EndTabItem();
+      }
+      if (ImGui::BeginTabItem("UV")) {
+        UVAnimTabBody();
+        ImGui::EndTabItem();
+      }
+      ImGui::EndTabBar();
     }
   }
   ImGui::End();

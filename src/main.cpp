@@ -790,14 +790,14 @@ void main(){
             if (e.type == SDL_MOUSEMOTION && mouseRight && !mouse_captured) {
                 float dx = (float)(e.motion.x - prevMouseX);
                 float dy = (float)(e.motion.y - prevMouseY);
-                state.camYaw   += dx * 0.4f;
-                state.camPitch  = glm::clamp(state.camPitch - dy * 0.4f, -89.0f, 89.0f);
+                state.camYaw   -= dx * 0.4f;
+                state.camPitch  = glm::clamp(state.camPitch + dy * 0.4f, -89.0f, 89.0f);
                 prevMouseX = e.motion.x;
                 prevMouseY = e.motion.y;
             }
             if (e.type == SDL_MOUSEMOTION && mouse_captured && state.useWASD) {
-                state.camYaw   -= e.motion.xrel * 0.4f;
-                state.camPitch  = glm::clamp(state.camPitch + e.motion.yrel * 0.4f, -89.0f, 89.0f);
+                state.camYaw   -= e.motion.xrel * state.wasdSensitivity;
+                state.camPitch  = glm::clamp(state.camPitch + e.motion.yrel * state.wasdSensitivity, -89.0f, 89.0f);
             }
         }
 
@@ -813,7 +813,7 @@ void main(){
             glm::vec3 right = glm::normalize(glm::cross(fwd, glm::vec3(0, 1, 0)));
             glm::vec3 flat_fwd = glm::normalize(glm::cross(glm::vec3(0, 1, 0), right));
 
-            float speed = 20.0f * dt;
+            float speed = state.wasdSpeed * dt;
             if (keys[SDL_SCANCODE_LSHIFT]) speed *= 3.0f;
 
             if (keys[SDL_SCANCODE_W]) { state.camPosX += flat_fwd.x * speed; state.camPosZ += flat_fwd.z * speed; }
@@ -947,6 +947,7 @@ void main(){
                 std::cerr.flush();
             }
             float dt = ImGui::GetIO().DeltaTime;
+            if (state.uvAnimRun) state.uvAnimTime += dt * state.uvAnimSpeed;
             for (auto& go : g_GameObjects) {
                 if (go.currentClipIndex >= 0 && go.currentClipIndex < (int)go.clipSectionIndices.size()) {
                     go.animTime += dt;
@@ -1087,7 +1088,7 @@ void main(){
                             if (!chunk.uvAnimName.empty()) {
                                 auto itA = g_UVAnims.find(chunk.uvAnimName);
                                 if (itA != g_UVAnims.end())
-                                    uv = EvalUVAnim(itA->second, 0, (float)ImGui::GetTime());
+                                    uv = EvalUVAnim(itA->second, 0, state.uvAnimTime);
                             }
                             glUniform2f(uUvScl, uv.x, uv.y);
                             glUniform2f(uUvOff, uv.z, uv.w);
@@ -1355,27 +1356,28 @@ void main(){
                 float yRad = glm::radians(state.camYaw);
                 float pRad = glm::radians(glm::clamp(state.camPitch, -89.0f, 89.0f));
                 float dist = std::max(state.camDist, 0.1f);
-                glm::vec3 offset(
-                    dist * cosf(pRad) * sinf(yRad),
-                    dist * sinf(pRad),
-                    dist * cosf(pRad) * cosf(yRad)
-                );
-                state.camPosX = state.camTargetX + offset.x;
-                state.camPosY = state.camTargetY + offset.y;
-                state.camPosZ = state.camTargetZ + offset.z;
+                state.camPosX = state.camTargetX + cosf(pRad) * sinf(yRad) * dist;
+                state.camPosY = state.camTargetY + sinf(pRad) * dist;
+                state.camPosZ = state.camTargetZ + cosf(pRad) * cosf(yRad) * dist;
             } else {
                 // Sync orbit target
                 float yRad = glm::radians(state.camYaw);
                 float pRad = glm::radians(glm::clamp(state.camPitch, -89.0f, 89.0f));
-                glm::vec3 fwd(
-                     -cosf(pRad) * sinf(yRad),
-                     -sinf(pRad),
-                     -cosf(pRad) * cosf(yRad)
-                );
-                state.camTargetX = state.camPosX + fwd.x * state.camDist;
-                state.camTargetY = state.camPosY + fwd.y * state.camDist;
-                state.camTargetZ = state.camPosZ + fwd.z * state.camDist;
+                state.camTargetX = state.camPosX - cosf(pRad) * sinf(yRad) * state.camDist;
+                state.camTargetY = state.camPosY - sinf(pRad) * state.camDist;
+                state.camTargetZ = state.camPosZ - cosf(pRad) * cosf(yRad) * state.camDist;
+                
+                if (mouse_captured) {
+                    mouse_captured = false;
+                    SDL_SetRelativeMouseMode(SDL_FALSE);
+                }
             }
+        }
+        if (state.useWASD) {
+            ImGui::SetNextItemWidth(-1);
+            ImGui::SliderFloat("##wasd_speed", &state.wasdSpeed, 1.0f, 100.0f, "Speed %.1f");
+            ImGui::SetNextItemWidth(-1);
+            ImGui::SliderFloat("##wasd_sens", &state.wasdSensitivity, 0.01f, 1.0f, "Sens %.2f");
         }
 
         if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) {
@@ -1551,8 +1553,7 @@ void main(){
         ImGui::Checkbox("Textures",  &state.showTextures);
         ImGui::Checkbox("Archive",   &state.showArc); ImGui::SameLine(128);
         ImGui::Checkbox("Manual",    &state.showManual);
-        ImGui::Checkbox("Audio",     &state.showAudioPlayer); ImGui::SameLine(128);
-        ImGui::Checkbox("Animation", &state.showAnimPlayer);
+        ImGui::Checkbox("Playback",  &state.showAudioPlayer);
 
         // Wii-only options; hidden when the loaded container has neither.
         {
@@ -1661,8 +1662,7 @@ void main(){
             }
         }
         
-        RenderAudioPlayer();
-        RenderAnimationPlayer();
+        RenderPlaybackPanel();
 
         ImGui::End();
 

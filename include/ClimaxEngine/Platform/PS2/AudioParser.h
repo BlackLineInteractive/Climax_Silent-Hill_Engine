@@ -31,9 +31,11 @@ struct AudioClip {
     int                  sampleRate = 44100;
     int                  channels   = 1;
     std::vector<int16_t> pcm;
+    float                durationSeconds = -1.0f;
 
-    bool  Valid()   const { return !pcm.empty() && sampleRate > 0 && channels > 0; }
+    bool  Valid()   const { return (durationSeconds >= 0.0f || !pcm.empty()) && sampleRate > 0 && channels > 0; }
     float Seconds() const {
+        if (durationSeconds >= 0.0f) return durationSeconds;
         return Valid() ? (float)pcm.size() / (float)(sampleRate * channels) : 0.0f;
     }
 };

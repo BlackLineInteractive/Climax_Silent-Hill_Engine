@@ -161,20 +161,21 @@ riskiest unknown is settled: skin weights are **not** in the VIF packets — all
 the spec can be skipped. Start from the skeleton (FrameList + HAnim) drawn as a
 bone overlay in the rest pose.
 
-### 3. Fire is static (hard edges fixed)
+### 3. Fire — done, with two loose ends
 
-Flames showed as flat slabs with hard polygon borders, and they do not animate.
+Flames showed as flat slabs with hard polygon borders and did not animate. Both
+are fixed; what remains is listed at the end of this entry.
 
-**The hard border is fixed.** The shader dropped the vertex colour entirely on
-additive materials, to stop baked room lighting from driving effect sheets to
-black. That also threw away the vertex *alpha*, which on the flame meshes runs
-the full 0..1 across the mesh and is the artist's fade — the thing that keeps a
-flame from ending in a straight polygon edge. The fix takes the alpha and leaves
-the RGB alone: with `SRC_ALPHA/ONE` it scales the additive contribution to
-nothing at the edges without darkening the sheet.
+**The hard border.** The shader dropped the vertex colour entirely on additive
+materials, to stop baked room lighting from driving effect sheets to black. That
+also threw away the vertex *alpha*, which on the flame meshes runs the full
+0..1 across the mesh and is the artist's fade — the thing that keeps a flame
+from ending in a straight polygon edge. The fix takes the alpha and leaves the
+RGB alone: with `SRC_ALPHA/ONE` it scales the additive contribution to nothing
+at the edges without darkening the sheet.
 
-**The animation is still missing**; the rest of this entry is the recovered
-format for it. Everything else in the material path was measured and ruled out:
+**The animation** is implemented; the format is below. Everything else in the
+material path was measured and ruled out:
 
 * **Blend mode is correct.** Every fire material declares mode 1 — additive —
   and the runtime receives it (`[scene] blend modes: 0=322 1=150
@@ -234,17 +235,47 @@ loader currently walks past.
 
 The second section's first animation is `JDMaterialNode13`, 2 frames, 12.0 s.
 
-**Keyframe size and contents** come straight from the executable.
-`ClimaxT1KeyFrameStreamGetSizeCB` is `numFrames * 0x18`, so **24 bytes each**,
-and `ClimaxT1KeyFrameBlend` interpolates four floats at `+0x08`, `+0x0C`,
-`+0x10`, `+0x14` — i.e. after the standard 8-byte `RtAnimKeyFrame` header of
-`{prevFrame, time}`. Those four floats are the animated UV transform.
+The header is **88 bytes**: the 20 above plus a 68-byte `RpUVAnimCustomData`
+(one int, the 32-byte name, then saved runtime pointers). Ghost Rider confirms
+the whole thing is stock RenderWare — it exports `RpUVAnimLinearKeyFrame*`,
+`RpUVAnimParamKeyFrame*`, `_rwStreamReadSingleUVAnim` and
+`RtDictSchemaStreamReadDict`.
 
-**To implement:** parse `0x2B` into a name→animation table, resolve each
-material's `0x0135` name against it, evaluate the four floats at the current
-time with the same linear blend the engine uses, and feed them to the shader as
-a UV transform; then draw the `n1` layer with its own transform. Nothing in the
-texture or blend path remains to fix.
+**A keyframe is 32 bytes on disk** — an `RpUVAnimLinearKeyFrame`, which is
+`{prevFrame, time, matrix[6]}`. (`ClimaxT1KeyFrameStreamGetSizeCB` returns
+`numFrames * 0x18`; that 24 is the size in memory, where the pointer replaces
+two of the streamed words.) Every animation in the game uses typeID `0x1C1`,
+the linear scheme:
+
+    +0x00 f32 time        +0x14 f32 uOffset
+    +0x04 f32 (unidentified, always -0.0)
+    +0x08 f32 uScale      +0x18 f32 vOffset
+    +0x0C f32 vScale      +0x1C u32 previous keyframe index
+    +0x10 f32 (always 0)
+
+Following the previous-frame links splits the frames into one chain per texture
+layer. The torch clip has two, and they are exactly the dual-sheet setup the
+UserData describes:
+
+    layer 0: scale ( 1.0,  1.0)  offset scrolls U at -1.0/s, V at -0.25/s
+    layer 1: scale ( 0.8, -0.8)  offset scrolls U at -0.5/s, V at -0.25/s
+
+The offsets reach whole texture units at the end of the clip (-28.0 after 28 s),
+so under WRAP addressing the loop closes seamlessly.
+
+One trap worth recording: **the sections are not word aligned** —
+`DH_1_Exterior` has one at offset 1053589 — so a scan with a stride of 4 finds
+nothing at all.
+
+**Still open on fire:**
+
+* Only the first layer is drawn. The material's `n1` sheet needs a second draw
+  with its own UV transform before the flame looks like the game's.
+* Names in the file are truncated to 31 characters, so clips whose names share a
+  prefix collide in the lookup table — 74 animations collapse to 21 entries in
+  `DH_1_Exterior`. The material's reference is truncated identically, so the
+  match still succeeds, but a fire can pick up a same-prefixed neighbour's clip.
+  Whether the engine disambiguates these is not known.
 
 ### 4. Rooms with no lighting
 

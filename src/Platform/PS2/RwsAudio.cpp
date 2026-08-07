@@ -61,6 +61,8 @@ bool RwaVirtualVoice::Play(const AudioClip& clip, int targetRate, int targetChan
     m_sourceFrames = m_channels ? m_pcm.size() / (size_t)m_channels : 0;
     if (m_sourceFrames == 0) return false;
 
+    m_clip.durationSeconds = m_clip.Seconds();
+
     // The decoded source is no longer needed; only its description is kept so
     // the panel can still report the original rate and codec.
     m_clip.pcm.clear();
