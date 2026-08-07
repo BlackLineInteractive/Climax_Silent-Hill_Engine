@@ -2,6 +2,7 @@
 #include "ClimaxEngine/Core/RWS/RwStream.h"
 #include "ClimaxEngine/SG/SceneObject.h"
 #include "ClimaxEngine/Loader/Loader.h"
+#include "ClimaxEngine/Game/CameraLinks.h"
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
 
@@ -431,6 +432,16 @@ void LoadLevelData(const std::string &displayName,
           bm[mc->blendMode]++;
           if (mc->blendMode) ex[mc->blendMode] = mc->texName;
         }
+      {
+        auto sw = ClimaxEngine::Game::BuildCameraSwitches(g_GameObjects, g_Cameras);
+        int ok = 0;
+        for (const auto &x : sw) if (x.cameraA >= 0 && x.cameraB >= 0) ok++;
+        std::cout << "[links] " << sw.size() << " camera switches, " << ok
+                  << " fully resolved\n";
+        for (size_t k = 0; k < sw.size() && k < 6; k++)
+          std::cout << "         " << sw[k].nameA << " (" << sw[k].cameraA << ")  ->  "
+                    << sw[k].nameB << " (" << sw[k].cameraB << ")\n";
+      }
       std::cout << "[scene] blend modes:";
       for (auto &kv : bm)
         std::cout << " " << kv.first << "=" << kv.second
@@ -612,6 +623,23 @@ bool LoadLevelFromArc(int entryIndex) {
 // matrix — this is the placement the viewer was missing, which is why every
 // object used to sit at the origin. Names are padded with 0xBF filler bytes.
 // ---------------------------------------------------------------------------
+// True when a property payload holds designer text rather than binary.
+//
+// Names and GUIDs are both 16 bytes here, so length cannot separate them. A
+// name is printable ASCII, at least three characters, followed by a terminator
+// -- either NUL or the 0xBF padding this format uses. Requiring the terminator
+// is what keeps four-byte floats out: a float whose bytes happen to be
+// printable, like "333?", fills the payload with no room for one.
+static bool IsNameProperty(const std::vector<uint8_t> &d, size_t off, size_t len) {
+  size_t k = 0;
+  while (k < len && d[off + k] >= 32 && d[off + k] < 127)
+    ++k;
+  if (k < 3 || k >= len)
+    return false;
+  const uint8_t term = d[off + k];
+  return term == 0x00 || term == 0xBF;
+}
+
 static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
                             uint32_t size) {
   const size_t sz = data.size();
@@ -665,6 +693,15 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
       component = readName(payOff, payLen);
       if (go.instName.empty())
         go.instName = component;
+    } else if (kind == 0x00 && payLen >= 4 && IsNameProperty(data, payOff, payLen)) {
+      // A designer-authored name. Checked before the GUID branch because both
+      // are 16 bytes wide -- a GUID is binary, a name is printable text with a
+      // terminator, so the content decides, not the length.
+      std::string nm = readName(payOff, payLen);
+      if (go.objName.empty())
+        go.objName = nm;
+      else
+        go.linkNames.push_back(nm);
     } else if (kind == 0x00 && payLen == 16) {
       go.guidRefs.emplace_back((const char *)&data[payOff], 16);
     } else if (kind == 0x00 && payLen == 64 && component == "CZone" && idx == 3) {
@@ -1598,13 +1635,13 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
     if (!isCam || go.atOrigin)
       continue;
     LevelCamera cam;
-    // instName is the first 0x80 component, which for CConstraintCamera is
-    // CSystemCommands -- useless as a label. The class is what identifies the
-    // camera's behaviour, so lead with that.
-    cam.name = go.className;
-    if (!go.instName.empty() && go.instName != go.className &&
-        go.instName != "CSystemCommands")
-      cam.name += " (" + go.instName + ")";
+    // The name a camera is actually known by is the one the designer typed --
+    // "camStairway01", "SpCaHall02" -- and it is what a PlaneTrigger names when
+    // it switches to this camera. instName is only the first component of the
+    // record, which for CConstraintCamera is CSystemCommands, so it made every
+    // one of them read as the same thing.
+    cam.name = !go.objName.empty() ? go.objName : go.className;
+    cam.className = go.className;
     cam.position = go.position;
     // Column 2 is the look direction, column 1 is up (RenderWare convention).
     cam.forward = glm::normalize(glm::vec3(go.transform[2]));

@@ -15,6 +15,7 @@
 #include "imgui_impl_opengl3.h"
 #include "ImGuizmo.h"
 #include "im_anim.h"
+#include "ClimaxEngine/Game/CameraLinks.h"
 
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
@@ -1476,6 +1477,30 @@ void main(){
         if (!g_Cameras.empty()) {
             ImGui::Spacing();
             ImGui::TextDisabled("Level cameras (%zu)", g_Cameras.size());
+            {
+                // Level logic, read straight out of the object graph: which
+                // plane hands over to which camera.
+                static std::vector<ClimaxEngine::Game::CameraSwitch> switches;
+                static size_t builtFor = (size_t)-1;
+                if (builtFor != g_GameObjects.size()) {
+                    switches = ClimaxEngine::Game::BuildCameraSwitches(g_GameObjects, g_Cameras);
+                    builtFor = g_GameObjects.size();
+                }
+                if (!switches.empty()) {
+                    int resolved = 0;
+                    for (const auto& sw : switches)
+                        if (sw.cameraA >= 0 && sw.cameraB >= 0) resolved++;
+                    ImGui::TextDisabled("%zu camera switches, %d resolved",
+                                        switches.size(), resolved);
+                    if (ImGui::IsItemHovered() && state.uiTooltips) {
+                        ImGui::BeginTooltip();
+                        for (size_t k = 0; k < switches.size() && k < 12; k++)
+                            ImGui::Text("%s  ->  %s", switches[k].nameA.c_str(),
+                                        switches[k].nameB.c_str());
+                        ImGui::EndTooltip();
+                    }
+                }
+            }
             if (state.camFovDeg != 60.0f) {
                 ImGui::SameLine();
                 ImGui::TextDisabled("FOV %.0f°", state.camFovDeg);

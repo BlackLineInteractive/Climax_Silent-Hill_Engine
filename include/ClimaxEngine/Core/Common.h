@@ -242,6 +242,19 @@ struct GameObject {
   // so constraint and cutscene cameras carry it too. -1 means not present.
   float fovDeg = -1.0f;
 
+  // RenderWare Studio wires level logic by *name*, not by pointer or GUID:
+  // both CEventHandler::RegisterMsg and ::LinkMsg take a const char*. An object
+  // publishes the name it is known by, and other objects name it back.
+  //
+  //   PlaneTrigger   prop 3 = "camLanding01"   prop 4 = "camLanding02"
+  //   CStaticCamera  prop 0 = "camStairway01"
+  //
+  // `objName` is the first such string the object declares -- the name it is
+  // found by. `linkNames` are the rest, in property order: for a PlaneTrigger
+  // those are the cameras to switch between, one per crossing direction.
+  std::string objName;
+  std::vector<std::string> linkNames;
+
   // Animation playback state
   int currentClipIndex = -1;
   float animTime = 0.0f;
@@ -251,7 +264,8 @@ struct GameObject {
 
 // A camera position recovered from a CStaticCamera / CIGCCamera object.
 struct LevelCamera {
-  std::string name; // instance name, e.g. "camRoom102Toilet"
+  std::string name;      // designer name, e.g. "camStairway01"
+  std::string className; // CStaticCamera, CConstraintCamera, ...
   glm::vec3 position = glm::vec3(0.0f);
   glm::vec3 forward = glm::vec3(0, 0, 1);
   glm::vec3 up = glm::vec3(0, 1, 0);
