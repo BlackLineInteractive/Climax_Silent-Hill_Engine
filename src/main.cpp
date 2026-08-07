@@ -18,6 +18,7 @@
 #include "ClimaxEngine/Game/CameraLinks.h"
 #include "ClimaxEngine/Game/CharacterController.h"
 #include "ClimaxEngine/Game/ZoneLinks.h"
+#include "ClimaxEngine/Render/PlayerModel.h"
 
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
@@ -161,6 +162,11 @@ static std::string s_zonePrompt;
 // Set by the key handler, consumed and cleared by the step, so a single press
 // travels once instead of once per frame it is held.
 static bool        s_useDoorPressed = false;
+
+// Where to stand Travis and which way to turn him. Written by the walk step,
+// read by the draw pass.
+static glm::vec3 s_playerFeet = glm::vec3(0.0f);
+static float     s_playerYaw  = 0.0f;
 
 // Build a view matrix from orbit parameters and return camera world position
 static glm::mat4 BuildView(glm::vec3& outEye) {
@@ -885,6 +891,14 @@ void main(){
                 // Walk mode: the same keys drive a body through the collision
                 // mesh instead of teleporting the camera. Speed is a rate here,
                 // not a per-frame step, because the controller integrates.
+                // Travis is fetched once, the first time a level is walked.
+                // It costs a level reload, so it must not sit in the frame path.
+                static bool triedPlayer = false;
+                if (!triedPlayer && !g_CurrentMeshContainer.empty()) {
+                    triedPlayer = true;
+                    LoadPlayerModel("CPlayerBehaviour.Travis");
+                }
+
                 static ClimaxEngine::Game::CharacterController body;
                 // Keyed by the container's name, not by &g_Collision: that is a
                 // global whose address never changes, so the old test never
@@ -922,6 +936,21 @@ void main(){
                 float walk = state.walkSpeed;
                 if (keys[SDL_SCANCODE_LSHIFT]) walk *= 2.0f;
                 body.Step(g_Collision, wish * walk * dt, dt);
+
+                // SnapToGround puts the sphere's centre one radius above the
+                // floor, so the model's feet are that much below it.
+                s_playerFeet = glm::vec3(body.position.x,
+                                         body.position.y - body.radius,
+                                         body.position.z);
+                if (glm::length(wish) > 1e-3f) {
+                    // Turn towards the way he is walking, by the short way
+                    // round, so crossing due south does not spin him.
+                    const float want = glm::degrees(atan2f(wish.x, wish.z));
+                    float d = want - s_playerYaw;
+                    while (d >  180.0f) d -= 360.0f;
+                    while (d < -180.0f) d += 360.0f;
+                    s_playerYaw += d * glm::min(1.0f, dt * 12.0f);
+                }
 
                 // Camera planes: crossing one hands the view to the camera
                 // that side names. Rebuilt when the level changes, which is
@@ -1398,6 +1427,44 @@ void main(){
                     }
                 }
             } // opaque pass, then blended pass
+
+            // ── Travis ──────────────────────────────────────────────────────
+            // Drawn after the level and outside the two passes: he is opaque,
+            // and his textures are not in g_TextureMap -- the model owns them
+            // so that loading the next room cannot delete them.
+            //
+            // The pose is the container's rest pose. PS2 characters are
+            // segmented and each part is already positioned in the clump's
+            // space, so one model matrix places the whole figure; animating
+            // him means feeding the skinning path, which this does not do yet.
+            if (state.playMode && state.autoCameras && g_Player.loaded) {
+                glm::mat4 model = glm::translate(glm::mat4(1.0f), s_playerFeet);
+                model = glm::rotate(model, glm::radians(s_playerYaw),
+                                    glm::vec3(0, 1, 0));
+
+                glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
+                glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(model));
+                glUniform1i(ctx.uUseSkinning, 0);
+                glUniform1i(uAlphaOff, 0);
+                glUniform1i(uAdd, 0);
+                glUniform1i(uIce, 0);
+                glUniform2f(uUvScl, 1.0f, 1.0f);
+                glUniform2f(uUvOff, 0.0f, 0.0f);
+                glBlendEquation(GL_FUNC_ADD);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                glDepthMask(GL_TRUE);
+
+                for (const MeshChunk &m : g_Player.meshes) {
+                    auto itT = g_Player.textures.find(m.texName);
+                    const GLuint tid = itT == g_Player.textures.end() ? 0 : itT->second;
+                    glBindTexture(GL_TEXTURE_2D, tid);
+                    glUniform1i(uUntex, (m.untextured || tid == 0) ? 1 : 0);
+                    glUniform1i(uUnlit, m.unlitGeometry ? 1 : 0);
+                    glUniform4fv(uMatCol, 1, glm::value_ptr(m.matColor));
+                    GpuFor(const_cast<MeshChunk &>(m)).Draw();
+                }
+            }
+
             glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glDepthMask(GL_TRUE);

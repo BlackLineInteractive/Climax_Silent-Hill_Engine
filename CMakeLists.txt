@@ -151,6 +151,7 @@ set(TOOLKIT_RENDER_SOURCES
     src/Rendering/GLSLBackend.cpp
     src/Rendering/CPURasterizer.cpp
     src/Rendering/GPUMesh.cpp
+    src/Rendering/PlayerModel.cpp
 )
 if(APPLE)
     list(APPEND TOOLKIT_RENDER_SOURCES src/Rendering/MetalBackend.mm)
