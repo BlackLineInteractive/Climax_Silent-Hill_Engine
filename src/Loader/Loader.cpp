@@ -431,24 +431,6 @@ void LoadLevelData(const std::string &displayName,
           bm[mc->blendMode]++;
           if (mc->blendMode) ex[mc->blendMode] = mc->texName;
         }
-      {
-        for (auto &o : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
-          auto cl = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(o);
-          if (!cl || cl->skeleton.bones.empty()) continue;
-          std::set<int> frames; size_t noFrame = 0, tracked = 0;
-          for (auto *mc : cl->GetMeshes()) {
-            if (mc->frameIndex < 0) { noFrame++; continue; }
-            frames.insert(mc->frameIndex);
-          }
-          for (int f : frames)
-            if (f < (int)cl->skeleton.bones.size() &&
-                cl->skeleton.bones[(size_t)f].trackIndex >= 0) tracked++;
-          std::cout << "[bind] " << o->GetName() << ": bones="
-                    << cl->skeleton.bones.size() << " meshes=" << cl->GetMeshes().size()
-                    << " noFrame=" << noFrame << " distinctFrames=" << frames.size()
-                    << " ofThoseTracked=" << tracked << "\n";
-        }
-      }
       std::cout << "[scene] blend modes:";
       for (auto &kv : bm)
         std::cout << " " << kv.first << "=" << kv.second

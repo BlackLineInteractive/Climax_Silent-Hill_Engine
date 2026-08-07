@@ -1074,7 +1074,42 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
               const size_t firstChunk = destObj->GetMeshes().size();
               handleOwner(g + 12, g + 12 + gs, geomMats, geomCols, geomBlend);
               {
-                const int fi = (itF != geomFrame.end()) ? (int)itF->second : -1;
+                int fi = (itF != geomFrame.end()) ? (int)itF->second : -1;
+
+                // For a character every atomic sits on the clump root, so the
+                // atomic's frame says nothing -- all twelve pieces of Travis
+                // came out on frame 0, which has no track, which is why he
+                // stood still. The real binding is in the geometry's own Skin
+                // PLG: `usedBoneIds` lists the bones the piece touches, and a
+                // piece that touches exactly one is rigidly attached to it.
+                // Those ids index the HAnim table, which is what `trackIndex`
+                // holds.
+                SG::CClumpObject *cl = dynamic_cast<SG::CClumpObject *>(destObj);
+                if (cl && !cl->skeleton.bones.empty()) {
+                  for (size_t gx = g + 12; gx + 12 <= g + 12 + gs;) {
+                    const uint32_t xt = ru32(gx), xs = ru32(gx + 4);
+                    if (ru32(gx + 8) != 0x1C020065 || xs == 0 || gx + 12 + xs > g + 12 + gs)
+                      break;
+                    if (xt == 0x03) {
+                      for (size_t sk = gx + 12; sk + 12 <= gx + 12 + xs;) {
+                        const uint32_t st = ru32(sk), ss = ru32(sk + 4);
+                        if (ss == 0 || sk + 12 + ss > gx + 12 + xs) break;
+                        if (st == 0x0116 && ss > 24 && ru32(sk + 12) == 0x01) {
+                          const size_t base = sk + 24;          // past inner Struct header
+                          const uint8_t used = payload[base + 5];
+                          if (used == 1) {
+                            const int want = payload[base + 8]; // usedBoneIds[0]
+                            for (size_t b = 0; b < cl->skeleton.bones.size(); b++)
+                              if (cl->skeleton.bones[b].trackIndex == want) { fi = (int)b; break; }
+                          }
+                        }
+                        sk += 12 + ss;
+                      }
+                    }
+                    gx += 12 + xs;
+                  }
+                }
+
                 auto meshes = destObj->GetMeshes();
                 for (size_t k = firstChunk; k < meshes.size(); k++)
                   meshes[k]->frameIndex = fi;
