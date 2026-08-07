@@ -951,6 +951,7 @@ void main(){
                     while (d < -180.0f) d += 360.0f;
                     s_playerYaw += d * glm::min(1.0f, dt * 12.0f);
                 }
+                g_Player.Advance(dt);
 
                 // Camera planes: crossing one hands the view to the camera
                 // that side names. Rebuilt when the level changes, which is
@@ -1433,18 +1434,14 @@ void main(){
             // and his textures are not in g_TextureMap -- the model owns them
             // so that loading the next room cannot delete them.
             //
-            // The pose is the container's rest pose. PS2 characters are
-            // segmented and each part is already positioned in the clump's
-            // space, so one model matrix places the whole figure; animating
-            // him means feeding the skinning path, which this does not do yet.
+            // Drawn through the objects' own SetMatrixAndDraw, so the skeleton,
+            // the clip and the skinning all run on the existing path. Placing
+            // him is just setting the transform they already multiply by.
             if (state.playMode && state.autoCameras && g_Player.loaded) {
                 glm::mat4 model = glm::translate(glm::mat4(1.0f), s_playerFeet);
                 model = glm::rotate(model, glm::radians(s_playerYaw),
                                     glm::vec3(0, 1, 0));
 
-                glUniformMatrix4fv(uM, 1, GL_FALSE, glm::value_ptr(mvp));
-                glUniformMatrix4fv(uModel, 1, GL_FALSE, glm::value_ptr(model));
-                glUniform1i(ctx.uUseSkinning, 0);
                 glUniform1i(uAlphaOff, 0);
                 glUniform1i(uAdd, 0);
                 glUniform1i(uIce, 0);
@@ -1454,14 +1451,23 @@ void main(){
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                 glDepthMask(GL_TRUE);
 
-                for (const MeshChunk &m : g_Player.meshes) {
-                    auto itT = g_Player.textures.find(m.texName);
-                    const GLuint tid = itT == g_Player.textures.end() ? 0 : itT->second;
-                    glBindTexture(GL_TEXTURE_2D, tid);
-                    glUniform1i(uUntex, (m.untextured || tid == 0) ? 1 : 0);
-                    glUniform1i(uUnlit, m.unlitGeometry ? 1 : 0);
-                    glUniform4fv(uMatCol, 1, glm::value_ptr(m.matColor));
-                    GpuFor(const_cast<MeshChunk &>(m)).Draw();
+                for (auto& obj : g_Player.objects) {
+                    obj->SetTransform(model);
+                    for (auto* chunkPtr : obj->GetMeshes()) {
+                        const MeshChunk& m = *chunkPtr;
+                        // The container's particle blanks are authored at full
+                        // size and scaled when the game spawns them; drawn as
+                        // they are, they carpet the floor.
+                        if (IsPlayerEffectMesh(m)) continue;
+
+                        auto itT = g_Player.textures.find(m.texName);
+                        const GLuint tid = itT == g_Player.textures.end() ? 0 : itT->second;
+                        glBindTexture(GL_TEXTURE_2D, tid);
+                        glUniform1i(uUntex, (m.untextured || tid == 0) ? 1 : 0);
+                        glUniform1i(uUnlit, m.unlitGeometry ? 1 : 0);
+                        glUniform4fv(uMatCol, 1, glm::value_ptr(m.matColor));
+                        obj->SetMatrixAndDraw(ctx, chunkPtr);
+                    }
                 }
             }
 

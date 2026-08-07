@@ -8,38 +8,56 @@
 // room he walks out of.
 //
 // Until the loader can hold two containers at once, this takes the cheap route:
-// load the player container, lift its meshes and textures out of the globals
-// before the next load can free them, then put the level back. The GPU buffers
-// are never touched, so the copies stay drawable.
+// load the player container, take its scene objects and textures out of the
+// globals before the next load frees them, then put the level back.
+//
+// The scene objects are kept whole rather than copied mesh by mesh, and that is
+// the difference between a statue and a character: a CClumpObject carries its
+// skeleton, its clip and its posing code, so setting its transform each frame
+// is all that animation needs. The registrar holds shared_ptr, so retaining one
+// costs nothing and survives Clear().
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include <GL/glew.h>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "ClimaxEngine/Core/Types.h"
+#include "ClimaxEngine/SG/SceneObject.h"
 
 struct PlayerModel {
-    std::vector<MeshChunk>        meshes;
-    std::map<std::string, GLuint> textures;  // owned here, not by g_TextureMap
-    bool      loaded = false;
+    std::vector<std::shared_ptr<ClimaxEngine::SG::CSceneObject>> objects;
+    std::map<std::string, GLuint> textures; // owned here, not by g_TextureMap
+    std::vector<AnimClip> clips;            // the container's own animations
+
+    bool loaded = false;
+    // Bounds of the body alone, with the oversized effect sheets left out --
+    // see PlayerModel.cpp for why they have to be.
     glm::vec3 boundsMin = glm::vec3(0.0f);
     glm::vec3 boundsMax = glm::vec3(0.0f);
 
-    // Distance from the model's feet to the top of its head, in level units.
     float Height() const { return boundsMax.y - boundsMin.y; }
+
+    // Drives every clump's animTime. Clips loop on their own duration.
+    void Advance(float dt);
+
+    // Binds `name` (case-insensitive substring) to every clump whose skeleton
+    // it fits. Returns the number of clumps that took it.
+    int PlayClip(const std::string &name);
 };
 
 extern PlayerModel g_Player;
 
+// True for a mesh that is one of the container's full-size particle blanks
+// rather than part of the body. The game scales these at runtime; drawn as
+// authored they are floor-wide quads, which is the sheet under Travis's feet.
+bool IsPlayerEffectMesh(const MeshChunk &m);
+
 // Loads `entryName` out of the mounted archive and keeps it, then restores
-// whatever level was loaded before. Returns false when the archive has no such
-// entry or the container yields no geometry.
-//
-// Costs a full level reload, so it is meant to be called once.
+// whatever level was loaded before. Costs a full level reload, so call once.
 bool LoadPlayerModel(const std::string &entryName);
 
-// Frees the textures the model owns. The mesh buffers live in the GPU registry
-// and go with it.
+// Frees the textures the model owns and drops its objects.
 void ReleasePlayerModel();
