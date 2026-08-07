@@ -63,10 +63,9 @@ bool RwaVirtualVoice::Play(const AudioClip& clip, int targetRate, int targetChan
 
     m_clip.durationSeconds = m_clip.Seconds();
 
-    // The decoded source is no longer needed; only its description is kept so
-    // the panel can still report the original rate and codec.
-    m_clip.pcm.clear();
-    m_clip.pcm.shrink_to_fit();
+    // We no longer clear the decoded source (m_clip.pcm). The UI uses this copy
+    // to export .wav files, so it must retain the original PCM data.
+
 
     m_playing = true;
     m_paused = false;

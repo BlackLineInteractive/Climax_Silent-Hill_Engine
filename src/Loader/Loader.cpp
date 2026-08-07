@@ -853,10 +853,124 @@ static void ParseUVAnimations(const std::vector<uint8_t> &data) {
     std::cout << "[uvanim] " << g_UVAnims.size() << " clips\n";
 }
 
+// Reads every skeletal animation clip in the container.
+//
+// Clips are 0x1B chunks sitting directly in the stream, not inside a 0x716
+// shell, so the section walk never reaches them -- the same trap the UV
+// animations sprang. Scanned byte-by-byte for the same reason: the chunks are
+// not word aligned.
+//
+// Layout, confirmed by arithmetic over all 3029 clips in the archive: every one
+// satisfies `chunkSize - records*20 - 20 == 24`, which is exactly the 20-byte
+// RtAnimAnimation header, six floats of translation offset and scale, then one
+// 20-byte record per keyframe.
+static void ParseSkeletalAnimations(const std::vector<uint8_t> &data) {
+  const uint32_t RW_VER = 0x1c020065;
+  const size_t sz = data.size();
+  auto ru32 = [&](size_t o) -> uint32_t {
+    uint32_t v = 0;
+    if (o + 4 <= sz) memcpy(&v, &data[o], 4);
+    return v;
+  };
+  auto rf32 = [&](size_t o) -> float {
+    float v = 0.0f;
+    if (o + 4 <= sz) memcpy(&v, &data[o], 4);
+    return v;
+  };
+
+  for (size_t o = 0; o + 32 <= sz; o += 1) {
+    if (ru32(o) != 0x1B || ru32(o + 8) != RW_VER) continue;
+    const uint32_t cs = ru32(o + 4);
+    if (cs < 44 || o + 12 + cs > sz) continue;
+
+    const size_t h = o + 12;
+    if (ru32(h) != 0x100) continue;                  // version
+    if (ru32(h + 4) != 0x1103) continue;             // Climax keyframe scheme
+    const uint32_t records = ru32(h + 8);
+    const float duration = rf32(h + 16);
+    if (!records || records > 200000) continue;
+    if (!(duration > 0.0f && duration < 600.0f)) continue;
+    if (cs != 20 + 24 + records * 20) continue;      // the layout must add up
+
+    float tOff[3], tScl[3];
+    for (int j = 0; j < 3; j++) tOff[j] = rf32(h + 20 + j * 4);
+    for (int j = 0; j < 3; j++) tScl[j] = rf32(h + 32 + j * 4);
+
+    const size_t hdrBase = h + 44;
+    const size_t datBase = hdrBase + (size_t)records * 8;
+
+    AnimClip clip;
+    clip.name = "Clip_" + std::to_string(g_AnimClips.size());
+    clip.duration = duration;
+    clip.fps = 30.0f;
+
+    // Records are a flat list. Each points at its predecessor by byte offset,
+    // and the stride is 20, so the chain gives the track a record belongs to.
+    // The field is a byte offset back to the previous keyframe of the same
+    // track -- except in the first record of each track, where the file keeps
+    // the saved runtime pointer instead. Those read as huge negatives that step
+    // by exactly the 20-byte stride, so anything that does not resolve to an
+    // earlier record in this clip is a track root. The count that falls out is
+    // the bone count.
+    std::vector<int> track((size_t)records, -1);
+    int tracks = 0;
+    for (uint32_t k = 0; k < records; k++) {
+      const int32_t prevOff = (int32_t)ru32(hdrBase + (size_t)k * 8);
+      const long prev = (long)k - (long)prevOff / 20;
+      if (prev < 0 || prev >= (long)k) {
+        track[k] = tracks++;
+        clip.tracks.emplace_back();
+      } else {
+        track[k] = track[(size_t)prev];
+      }
+    }
+    if (tracks <= 0 || tracks > 512) continue;
+
+    for (uint32_t k = 0; k < records; k++) {
+      const int ti = track[k];
+      if (ti < 0 || ti >= (int)clip.tracks.size()) continue;
+      const float t = rf32(hdrBase + (size_t)k * 8 + 4);
+      const size_t dp = datBase + (size_t)k * 12;
+      const uint32_t c1 = ru32(dp);
+      uint16_t c2, tx, ty, tz;
+      memcpy(&c2, &data[dp + 4], 2);
+      memcpy(&tx, &data[dp + 6], 2);
+      memcpy(&ty, &data[dp + 8], 2);
+      memcpy(&tz, &data[dp + 10], 2);
+
+      // A quaternion in four 12-bit fields; the reference stores the conjugate.
+      const float qx = ((float)(c1 >> 20) - 2048.0f) / 2047.0f;
+      const float qy = ((float)((c1 >> 8) & 0xFFF) - 2048.0f) / 2047.0f;
+      const float qz = ((float)((((c1 << 4) & 0xFFF) | (c2 >> 12))) - 2048.0f) / 2047.0f;
+      const float qw = ((float)(c2 & 0xFFF) - 2048.0f) / 2047.0f;
+
+      clip.tracks[(size_t)ti].times.push_back(t);
+      clip.tracks[(size_t)ti].rot.push_back(glm::quat(qw, -qx, -qy, -qz));
+      clip.tracks[(size_t)ti].pos.push_back(
+          glm::vec3((tx / 65535.0f) * tScl[0] + tOff[0],
+                    (ty / 65535.0f) * tScl[1] + tOff[1],
+                    (tz / 65535.0f) * tScl[2] + tOff[2]));
+    }
+    g_AnimClips.push_back(std::move(clip));
+    o += 12 + cs - 1;
+  }
+
+  if (!g_AnimClips.empty()) {
+    size_t minT = SIZE_MAX, maxT = 0;
+    for (auto &c : g_AnimClips) {
+      minT = std::min(minT, c.tracks.size());
+      maxT = std::max(maxT, c.tracks.size());
+    }
+    std::cout << "[anim] " << g_AnimClips.size() << " clips, "
+              << minT << ".." << maxT << " tracks each\n";
+  }
+}
+
 void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   g_ContainerChunks.clear();
   g_ShoTypes.clear();
   g_UVAnims.clear();
+  g_AnimClips.clear();
   g_ShoSections.clear();
   g_Clumps.clear();
   g_GameObjects.clear();
@@ -872,6 +986,7 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   ClimaxEngine::ResourceLoader::CResourceHandler::GetInstance().ProcessStream("Container", &memStream, sz);
 
   ParseUVAnimations(data);
+  ParseSkeletalAnimations(data);
 
 
   const uint32_t RW_VER = 0x1c020065;
@@ -1312,8 +1427,9 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
         
         if (typeId == 0x1103) {
           AnimClip clip;
-          clip.name = g_ShoSections.back().name; // wait, the filename is the secName, wait, secName is "rwID_HANIMANIMATION" according to the section loop. But the spec says "The section tag carries the source filename, which is the clip's identity". The section tag is g_ShoSections.back().name? No, g_ShoSections.back().name is set from the dictionary! Wait, the actual filename is stored somewhere else in the section?
-          // I will set clip.name to a fallback for now.
+          // The section name is the type tag ("rwID_HANIMANIMATION"), not the
+          // clip's own filename, so every clip would be called the same thing.
+          // Number them until the real name is located.
           clip.name = "Clip_" + std::to_string(g_ShoSections.size() - 1);
           clip.duration = duration;
           clip.fps = 30.0f;
@@ -1369,7 +1485,10 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
                 float qz = ((float)((((c1 << 4) & 0xFFF) | (c2 >> 12))) - 2048.0f) / 2047.0f;
                 float qw = ((float)((c2 & 0xFFF)) - 2048.0f) / 2047.0f;
                 
-                glm::quat q(-qx, -qy, -qz, qw); // Spec says reference uses conjugate, test both ways. Let's try conjugate.
+                // glm::quat takes the scalar first. Passing (x, y, z, w) here
+                // put -qx into w and qw into z, which is a different rotation
+                // entirely. The conjugate is what the reference stores.
+                glm::quat q(qw, -qx, -qy, -qz);
                 
                 float px = (tx / 65535.0f) * transScalar[0] + transOffset[0];
                 float py = (ty / 65535.0f) * transScalar[1] + transOffset[1];
@@ -1380,6 +1499,19 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
                 clip.tracks[tIdx].rot.push_back(q);
                 clip.tracks[tIdx].pos.push_back(pos);
               }
+            }
+            {
+              size_t keys = 0;
+              float tmin = 1e9f, tmax = -1e9f;
+              for (auto &tr : clip.tracks) {
+                keys += tr.times.size();
+                for (float t : tr.times) { tmin = std::min(tmin, t); tmax = std::max(tmax, t); }
+              }
+              std::cout << "[anim] " << clip.name << "  tracks=" << clip.tracks.size()
+                        << " records=" << frameCount << " keys=" << keys
+                        << " duration=" << clip.duration
+                        << " t=" << (keys ? tmin : 0.0f) << ".." << (keys ? tmax : 0.0f)
+                        << "\n";
             }
             g_ShoSections.back().animClip = std::move(clip);
           }

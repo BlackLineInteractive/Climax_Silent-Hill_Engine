@@ -47,12 +47,13 @@ bool ReadChunk(const uint8_t* d, size_t size, size_t off, Chunk& c) {
 // Sony 4-bit ADPCM
 // ---------------------------------------------------------------------------
 
-void Audio::DecodeVAG(const uint8_t* d, size_t size, std::vector<int16_t>& out) {
+void Audio::DecodeVAG(const uint8_t* d, size_t size, std::vector<int16_t>& out,
+                      Audio::VagState& state) {
     static const int kF0[5] = {0, 60, 115, 98, 122};
     static const int kF1[5] = {0, 0, -52, -55, -60};
 
     out.reserve(out.size() + size / 16 * 28);
-    int32_t s1 = 0, s2 = 0;
+    int32_t s1 = state.s1, s2 = state.s2;
 
     for (size_t o = 0; o + 16 <= size; o += 16) {
         int shift = d[o] & 0x0F;
@@ -73,6 +74,13 @@ void Audio::DecodeVAG(const uint8_t* d, size_t size, std::vector<int16_t>& out) 
             out.push_back(s);
         }
     }
+    state.s1 = s1;
+    state.s2 = s2;
+}
+
+void Audio::DecodeVAG(const uint8_t* d, size_t size, std::vector<int16_t>& out) {
+    Audio::VagState st;
+    DecodeVAG(d, size, out, st);
 }
 
 // ---------------------------------------------------------------------------
@@ -145,11 +153,12 @@ bool Audio::LoadADS(const uint8_t* d, size_t size, AudioClip& out) {
         // Sony ADPCM. Each channel carries its own predictor across blocks.
         out.codec = "VAG (Sony ADPCM)";
         std::vector<std::vector<int16_t>> ch((size_t)chans);
+        std::vector<Audio::VagState> st((size_t)chans);
         const size_t stride = (size_t)interleave * chans;
         for (size_t off = 0; off + stride <= bodyLen; off += stride)
             for (uint32_t c = 0; c < chans; ++c)
                 Audio::DecodeVAG(body + off + (size_t)c * interleave, interleave,
-                                 ch[c]);
+                                 ch[c], st[c]);
         if (ch[0].empty()) return false;
         const size_t n = ch[0].size();
         out.pcm.assign(n * chans, 0);
@@ -216,10 +225,12 @@ bool Audio::LoadRWS(const uint8_t* d, size_t size, AudioClip& out) {
         uint32_t interleave = ru32(hdr.payload + 0xC4);
         if (interleave == 0 || interleave % 16) interleave = 2048;
         std::vector<std::vector<int16_t>> ch(2);
+        Audio::VagState st[2];
         const size_t stride = (size_t)interleave * 2;
         for (size_t off = 0; off + stride <= len; off += stride) {
-            Audio::DecodeVAG(d + dataStart + off, interleave, ch[0]);
-            Audio::DecodeVAG(d + dataStart + off + interleave, interleave, ch[1]);
+            Audio::DecodeVAG(d + dataStart + off, interleave, ch[0], st[0]);
+            Audio::DecodeVAG(d + dataStart + off + interleave, interleave, ch[1],
+                             st[1]);
         }
         const size_t n = ch[0].size();
         out.pcm.assign(n * 2, 0);
@@ -381,6 +392,19 @@ bool Audio::LoadBuffer(const uint8_t* d, size_t size, AudioClip& out) {
         out.codec = "VAG (Sony ADPCM)";
         out.pcm.clear();
         Audio::DecodeVAG(d + 0x30, size - 0x30, out.pcm);
+        return out.Valid();
+    }
+
+    // Basic WAV (PCM 16-bit) exported by this tool
+    if (std::memcmp(d, "RIFF", 4) == 0 && size >= 44 && std::memcmp(d + 8, "WAVEfmt ", 8) == 0) {
+        out.channels = d[22] | (d[23] << 8);
+        out.sampleRate = d[24] | (d[25] << 8) | (d[26] << 16) | (d[27] << 24);
+        out.codec = "WAV (PCM16)";
+        uint32_t dataBytes = d[40] | (d[41] << 8) | (d[42] << 16) | (d[43] << 24);
+        if (44 + dataBytes <= size) {
+            out.pcm.resize(dataBytes / 2);
+            std::memcpy(out.pcm.data(), d + 44, dataBytes);
+        }
         return out.Valid();
     }
 

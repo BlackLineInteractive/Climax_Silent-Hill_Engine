@@ -13,6 +13,7 @@ std::vector<ContainerChunkInfo>         g_ContainerChunks;
 std::map<std::string, std::vector<MeshChunk*>> g_MeshTexMap;
 
 std::map<std::string, UVAnimClip> g_UVAnims;
+std::vector<AnimClip> g_AnimClips;
 std::map<std::string, std::string> g_MatUVAnim;
 
 std::vector<ShoTypeEntry>  g_ShoTypes;

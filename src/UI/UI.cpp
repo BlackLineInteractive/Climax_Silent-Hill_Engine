@@ -1111,14 +1111,29 @@ static void AudioTabBody() {
     ImGui::SetNextItemWidth(120.0f);
     ImGui::SliderFloat("Volume", &state.audioVolume, 0.0f, 1.5f, "%.2f");
     
+    static float lastExportTime = -10.0f;
+    bool recentlySaved = ((float)ImGui::GetTime() - lastExportTime) < 2.0f;
+
     ImGui::SameLine(ImGui::GetWindowSize().x - 90.0f);
-    if (ImGui::Button("Save WAV", ImVec2(80, 0))) {
+    if (recentlySaved) {
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+    }
+    
+    if (ImGui::Button(recentlySaved ? "Saved!###savewav" : "Save WAV###savewav", ImVec2(80, 0))) {
       std::string name = cur.name.empty() ? std::string("sound") : cur.name;
       for (auto &c : name)
         if (c == '/' || c == '\\' || c == ':')
           c = '_';
-      if (Audio::WriteWav(name + ".wav", cur))
+      if (Audio::WriteWav(name + ".wav", cur)) {
         std::cout << "[audio] wrote " << name << ".wav\n";
+        lastExportTime = (float)ImGui::GetTime();
+      }
+    }
+    
+    if (recentlySaved) {
+        ImGui::PopStyleColor(3);
     }
 
     ImGui::EndDisabled();

@@ -359,6 +359,8 @@ struct UVAnimClip {
   std::vector<std::vector<UVAnimKey>> layers; // one keyframe chain per layer
 };
 extern std::map<std::string, UVAnimClip> g_UVAnims;
+// Every skeletal clip the container carries, in the order they appear.
+extern std::vector<AnimClip> g_AnimClips;
 // texture name -> the clip its material names, filled while materials are read
 extern std::map<std::string, std::string> g_MatUVAnim;
 

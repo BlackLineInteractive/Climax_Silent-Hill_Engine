@@ -44,6 +44,19 @@ namespace Audio {
 
 // Sony 4-bit ADPCM. 16-byte block -> 28 samples; one contiguous mono stream.
 // The block decode follows PS2Recomp's ps2_audio_vag.cpp.
+//
+// The two previous samples are the filter's state and must survive across
+// calls. Interleaved music is decoded one interleave block at a time, so a
+// decoder that starts from zero every call restarts the filter at every block
+// boundary — which is audible as a click on each block and is baked into any
+// exported WAV. Callers that decode a stream in pieces keep a VagState and pass
+// it to every call for that channel.
+struct VagState { int32_t s1 = 0, s2 = 0; };
+
+void DecodeVAG(const uint8_t* data, size_t size, std::vector<int16_t>& out,
+               VagState& state);
+
+// One-shot form for a stream decoded in a single call.
 void DecodeVAG(const uint8_t* data, size_t size, std::vector<int16_t>& out);
 
 // Sony ADS: 'SShd' header + 'SSbd' body. `data` must point at the 'SShd'.
