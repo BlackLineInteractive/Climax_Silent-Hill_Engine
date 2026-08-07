@@ -257,7 +257,10 @@ def ppc_to_c(func: Function, string_map: dict) -> str:
 
             # Fallback: raw asm comment
             if c_line is None:
-                c_line = f"    /* {insn.addr:08X}  {m:<8} {op} */"
+                try:
+                    c_line = f"    /* {insn.address:08X}  {m:<8} {op} */"
+                except Exception:
+                    c_line = "    /* [skipdata] */"
 
             lines.append(c_line)
 

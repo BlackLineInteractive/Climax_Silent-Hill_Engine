@@ -31,6 +31,8 @@ game-iso/
 
 dol_out/
 
+sho_sles_out/
+
 # Editor / IDE
 .vscode/
 .idea/
