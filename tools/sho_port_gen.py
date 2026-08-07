@@ -107,6 +107,14 @@ def demangle_setter(sym: str) -> str:
 # C++ type helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Observations of the real data, produced by tools/property_observations.py.
+# Optional: the generator still works without it, the comments are just poorer.
+try:
+    with open('docs/property_observations.json') as _f:
+        OBSERVATIONS = json.load(_f)
+except Exception:
+    OBSERVATIONS = {}
+
 TYPE_MAP = {
     'float':  'float',
     'int':    'int32_t',
@@ -266,8 +274,25 @@ def emit_header(cls: ClassInfo, factory_info: dict, out_dir: Path):
         f'    // ── Fields recovered from HandleAttributes property stores ──',
     ]
 
+    # What the shipped data says about each property index, keyed by the class's
+    # own component. The code gives the offset and the width; only the archive
+    # can say whether a slot holds a designer-typed name, a placement matrix, or
+    # a value nobody ever changed from its default.
+    obs = OBSERVATIONS.get(cls.name, {}).get(cls.name, {})
+
     seen_offsets: set[str] = set()
     for prop in cls.properties:
+        note = ''
+        o = obs.get(str(prop.index))
+        if o:
+            if o.get('constant'):
+                top = o['top'][0][0] if o.get('top') else '?'
+                note = f"  [{o['kind']}, constant {top} across {o['seen']}]"
+            else:
+                note = f"  [{o['kind']}, {o['distinct']} distinct over {o['seen']}]"
+                if o.get('top'):
+                    vals = ', '.join(str(v) for v, _ in o['top'][:3])
+                    note += f" e.g. {vals}"
         for store in prop.stores:
             if store.offset and store.offset not in seen_offsets:
                 seen_offsets.add(store.offset)
@@ -275,7 +300,7 @@ def emit_header(cls: ClassInfo, factory_info: dict, out_dir: Path):
                 off_int  = int(store.offset, 16) if store.offset.startswith('0x') else int(store.offset)
                 lines.append(
                     f'    {cpp_type:<30} field_{off_int:04X};'
-                    f'  ///< property stores, offset {store.offset} ({store.type})'
+                    f'  ///< prop {prop.index} @ {store.offset} ({store.type}){note}'
                 )
 
     if not seen_offsets:
