@@ -361,6 +361,49 @@ there; none of it is read yet. Note its component chain starts with
 `CSystemCommands`, not with the camera class, which is why a component-blind
 reader picks up the wrong properties for it.
 
+### 4b. The message system — how level logic is actually wired
+
+Everything in RenderWare Studio talks through `RWS::CEventHandler`. The core
+API, from Ghost Rider:
+
+    RegisterMsg(CEventId&, const char*, const char*)   "I can send this"
+    LinkMsg(CEventId&, const char*, unsigned short)    "notify me when it fires"
+    LinkMsgToEventHandler(CEventHandler*, CEventId&, const char*, unsigned short)
+    QueueMsg(const CMsg&, void*) / FlushQueuedMessages()
+    RWS::_SendMsg(CMsg&)                               global dispatch
+
+Note both `RegisterMsg` and `LinkMsg` take **`const char*`** — the wiring is by
+**name**, not by pointer or GUID. That was worth checking rather than assuming:
+across `DH_1_Hallway`, 0 of 103 GUID references in `0x0704` objects point at
+another game object, so objects genuinely do not reference each other that way.
+
+The names are plain string properties on the objects we already parse:
+
+    PlaneTrigger    prop 3 = "camLanding01"    prop 4 = "camLanding02"
+    PlaneTrigger    prop 3 = "camStairway02"   prop 4 = "camStairway01"
+    CStaticCamera   prop 0 = "camStairway01"   prop 1 = "camStairway01S"
+    CZone           prop 0 = "DH_1_Exterior"   prop 1 = "DH_1_Hallway"
+
+So a `PlaneTrigger` is a plane that, when crossed, switches from one named
+camera to another — one property per crossing direction. That is the mechanism
+behind Silent Hill's hard camera cuts on stairs and in corridors.
+`CStaticCamera` publishes the name it is found by, and `CZone` names the zones
+it borders.
+
+This also fixes a smaller thing: camera entries in the viewer were labelled
+`CStaticCamera` / `CConstraintCamera` because the label was taken from the
+component name. The real designer-authored name is property 0.
+
+`CEventHandler::RegisterStreamChunkHandlers` registers chunk **0x712**, but no
+0x712 section exists anywhere in `SH.ARC` -- the 13 byte-scan hits are noise
+(one per container, no valid structure). The links are carried as the string
+properties above, not as a separate chunk.
+
+**Not implemented yet:** nothing dispatches these. Next step is a name table
+(object name -> object) plus the trigger/camera pairing, which is enough to
+switch cameras when the player crosses a plane -- the first piece of real game
+logic, and it needs no format we do not already read.
+
 ### 5. Rooms with no lighting
 
 `HO_1_WomensRoom` and others render unlit. Vertex colours are present in every
