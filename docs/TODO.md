@@ -404,7 +404,7 @@ properties above, not as a separate chunk.
 switch cameras when the player crosses a plane -- the first piece of real game
 logic, and it needs no format we do not already read.
 
-### 4c. Collision — the current triangles are fabricated
+### 4c. Collision — solved
 
 The collision overlay draws a fan of long spikes converging on a few points.
 Two real index bugs were found and fixed on the way (indices were not rebased
@@ -434,10 +434,30 @@ lands inside C and D, so it has been reading **plane floats as vertex indices**
 list: F indexes nodes rather than vertices, and E's fields are out of vertex
 range in 49 of 73 records.
 
-So the collision is a plane BSP, and the triangles currently drawn are an
-artefact of the parser, not level data. Displaying it properly means either
-deriving polygons from the BSP leaves, or drawing the planes directly rather
-than pretending there is a mesh.
+That conclusion was wrong, and the mistake was a name. The second array was
+called "BSP nodes" and the search for faces moved past it into C, D, E and F.
+Ghost Rider settles it: `CollisionBSP::DebugRenderFace` takes `this->field_04`
+-- the **second** array the stream reader fills -- indexes it by
+`faceIndex * 8`, and reads three `u16` which it scales by 16 to reach the
+vertex array. So that array is the face list:
+
+    struct CollisionFace {   // 8 bytes
+        uint16_t v0, v1, v2; // indices into the vertex array, stride 16
+        uint16_t flags;      // surface type: 24601, 40984, 24599 seen
+    };
+
+Verified before changing any code: all 99 records in `HO_1_Hallway1` index
+inside the 70-vertex array, and the triangles come out with a median area of
+1.53 against a maximum of 4.25 -- even and small, as a corridor should be.
+
+The fix took the overlay from a fan of spikes to real geometry:
+
+    HO_1_Hallway1   before: mean edge 8.70, max 16.26
+                    after : mean edge 3.07, max  4.13
+
+Two genuine index bugs were also fixed on the way and remain worth keeping:
+indices were not rebased between blocks, and a vertex failing the finite check
+was skipped rather than occupying its slot, shifting every later index.
 
 ### 5. Rooms with no lighting
 
