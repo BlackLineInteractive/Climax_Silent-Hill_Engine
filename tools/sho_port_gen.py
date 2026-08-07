@@ -253,6 +253,7 @@ def emit_header(cls: ClassInfo, factory_info: dict, out_dir: Path):
         f'// Ghost Rider cross-ref: {cls.gr_address or "n/a"}',
         '',
         '#include <cstdint>',
+        '#include <new>',
         '#include "engine/rws_types.h"',
         '#include "engine/CGameObject.h"',
         '',
@@ -364,7 +365,9 @@ def emit_source(cls: ClassInfo, factory_info: dict, out_dir: Path):
         f'// Source: SLES_551.47  factory @ {cls.factory}',
         '',
         f'#include "engine/{cls.name}.h"',
+        '#include <new>',
         '#include "engine/CMemory.h"',
+        '#include "engine/CGameObjectRegistry.h"',
         '#include "rws/CAttributeCommandIterator.h"',
         '',
         f'namespace SHO {{',
@@ -390,7 +393,10 @@ def emit_source(cls: ClassInfo, factory_info: dict, out_dir: Path):
         '',
         f'void {cls.name}::Register() {{',
         f'    // Original registry record @ {cls.registry}',
-        f'    CGameObjectRegistry::Register("{cls.name}", Create, {cls.size});',
+        # The factory is typed to the concrete class for callers' convenience,
+        # so it needs a cast to the registry's CGameObject* signature.
+        f'    CGameObjectRegistry::Register("{cls.name}",',
+        f'        reinterpret_cast<CGameObjectRegistry::FactoryFn>(Create), {cls.size});',
         '}',
         '',
     ]
@@ -545,6 +551,71 @@ def emit_rws_types(out_dir: Path):
     return path
 
 
+def emit_support_headers(out_dir: Path):
+    """Emit the headers the generated code includes but nothing provided.
+
+    Without these the output does not compile at all -- the class files include
+    engine/CMemory.h, engine/CGameObjectRegistry.h and
+    rws/CAttributeCommandIterator.h, and the base header includes rws_types.h by
+    a path that only resolves from inside engine/. They are stubs on purpose:
+    the point is that the tree builds, so the recovered per-class work can be
+    filled in against something that compiles rather than against nothing.
+    """
+    inc = out_dir / 'include'
+    (inc / 'engine').mkdir(parents=True, exist_ok=True)
+    (inc / 'rws').mkdir(parents=True, exist_ok=True)
+
+    # The class files include "rws_types.h" unqualified as well as
+    # "engine/rws_types.h"; a forwarding header costs nothing and removes a
+    # whole class of build breakage.
+    (inc / 'rws_types.h').write_text(
+        '#pragma once\n'
+        '// Forwards to the real header so both include spellings resolve.\n'
+        '#include "engine/rws_types.h"\n')
+
+    (inc / 'engine' / 'CMemory.h').write_text(textwrap.dedent("""\
+        #pragma once
+        // Allocator stub.
+        //
+        // The original factories call the engine's own pooled allocator, which
+        // takes a size and an alignment class (always 2 in the factories seen).
+        // Nothing about the port depends on reproducing the pool yet, so this
+        // forwards to the system allocator and keeps the call shape.
+        #include <cstddef>
+        #include <cstdlib>
+
+        namespace SHO {
+
+        struct CMemory {
+            static void* Alloc(std::size_t size, int alignClass = 2) {
+                (void)alignClass;
+                return std::calloc(1, size);
+            }
+            static void Free(void* p) { std::free(p); }
+        };
+
+        }  // namespace SHO
+        """))
+
+    # CGameObject.h already declares the registry; a second definition here
+    # is a redefinition error, so this path forwards to it.
+    (inc / 'engine' / 'CGameObjectRegistry.h').write_text(
+        '#pragma once\n'
+        '// Declared in engine/CGameObject.h; this path forwards, because the\n'
+        '// generated class files include it by this name.\n'
+        '#include "engine/CGameObject.h"\n')
+
+    # rws_types.h already declares the iterator; defining it again here is a
+    # redefinition error, so this header only forwards.
+    (inc / 'rws' / 'CAttributeCommandIterator.h').write_text(
+        '#pragma once\n'
+        '// The iterator is declared in engine/rws_types.h; this path just\n'
+        '// forwards, because the generated class files include both spellings.\n'
+        '#include "engine/rws_types.h"\n')
+
+    return inc
+
+
 def emit_base_game_object(out_dir: Path):
     """Emit include/engine/CGameObject.h — minimal base class stub."""
     path = out_dir / 'include' / 'engine' / 'CGameObject.h'
@@ -690,6 +761,7 @@ def main():
     out = Path(args.out)
 
     print(f'[3/6] Emitting RWS types header ...')
+    emit_support_headers(out)
     emit_rws_types(out)
     emit_base_game_object(out)
 
