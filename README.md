@@ -18,7 +18,7 @@ Opens proprietary Climax Engine container files (no file extension — named lik
 
 ## Screenshots
 
-![Screenshot 0](media/s2-v0.2.png)
+![Dhalia House](media/s2-v0.2.png)
 ![Pool Area](media/s0-v0.2.png)
 ![Intro Road](media/v0.2.png)
 ![Intro Road 2](media/s1-v0.2.png)
