@@ -385,6 +385,28 @@ The lesson is the one this file keeps relearning: a property that looks
 constant may just be constant *in the level you happened to open*. The check
 costs one pass over the archive.
 
+**But the authored aim is not universal, and that matters more than it sounds.**
+Using it everywhere made the framing worse, not better, which forced a second
+measurement:
+
+    CStaticCamera      473   authored pitch mean -10.5 deg, needed -15.8  ->  error -3.6
+    CConstraintCamera  417   authored pitch ZERO on 400 of 417,  needed  -11.1
+
+So `CConstraintCamera` has no authored pitch at all — its vertical aim is
+computed at run time, which is exactly what the class name says and why it is
+the one that visibly follows Travis. Only `CStaticCamera` is genuinely aimed.
+
+And even `CStaticCamera` is not always: its authored direction holds a walkable
+marker in frame on 350 of 471 instances. The other 121 live in the **29 of 201
+multi-camera levels where every camera shares one rotation** — a default the
+designer never touched. `HO_1_Hallway1` is one of them: all four cameras read
+yaw 180.0, pitch 0.0, while the aim needed to see the spawn points ranges from
+102 to 163 degrees of yaw and 5 to 25 down.
+
+`Game::CameraAim` therefore honours the authored direction only while it still
+holds the subject, and tracks otherwise. That is a fallback, not a reading of
+the engine — what the real code does with a defaulted matrix is unknown.
+
 `CBaseCamera` property 1 — the `"...S"` name — is not the aim either. It is the
 event name the camera answers to: `HO_1_Hallway1`'s `PlaneTrigger` names
 `camHallwayS` and `camEntranceS`, while `CMessageRelay` addresses the plain
