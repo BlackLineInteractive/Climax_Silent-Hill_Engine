@@ -9,6 +9,7 @@
 #include <string>
 #include <map>
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
 #include <iostream>
 
@@ -19,6 +20,35 @@ static char arcFilter[128] = "";
 
 FileBrowserState g_FileBrowser;
 namespace fs = std::filesystem;
+
+// A path as it should appear on screen.
+//
+// The home directory is written as "~", so a panel does not put the machine's
+// account name in every screenshot, and a long path keeps its tail rather than
+// its head -- the archive name is what a reader needs, the directories above it
+// are not. Purely cosmetic: nothing opens the abbreviated form.
+static std::string DisplayPath(const std::string &raw, size_t maxLen = 52) {
+  std::string s = raw;
+#ifdef _WIN32
+  const char *home = std::getenv("USERPROFILE");
+#else
+  const char *home = std::getenv("HOME");
+#endif
+  if (home && *home) {
+    const std::string h(home);
+    if (s.size() >= h.size() && s.compare(0, h.size(), h) == 0)
+      s = "~" + s.substr(h.size());
+  }
+  if (s.size() > maxLen) {
+    // Cut on a separator so the result still reads as a path.
+    size_t cut = s.size() - (maxLen - 3);
+    const size_t sep = s.find_first_of("/\\", cut);
+    if (sep != std::string::npos)
+      cut = sep;
+    s = "..." + s.substr(cut);
+  }
+  return s;
+}
 
 void FileBrowserState::Open(FileBrowserMode m) {
   mode = m;
@@ -72,7 +102,9 @@ void FileBrowserState::Render() {
                          errorMessage.c_str());
       ImGui::Separator();
     }
-    ImGui::Text("Path: %s", currentPath.c_str());
+    ImGui::Text("Path: %s", DisplayPath(currentPath, 64).c_str());
+    if (ImGui::IsItemHovered())
+      ImGui::SetTooltip("%s", currentPath.c_str());
     ImGui::Separator();
 
     if (ImGui::Button("..") && fs::path(currentPath).has_parent_path()) {
@@ -438,11 +470,13 @@ void RenderArcWindow() {
       ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance()
           .GetFirstArchive()
           ->Entries();
-  ImGui::TextDisabled(
-      "%s", ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance()
-                .GetFirstArchive()
-                ->Path()
-                .c_str());
+  const std::string arcPath =
+      ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance()
+          .GetFirstArchive()
+          ->Path();
+  ImGui::TextDisabled("%s", DisplayPath(arcPath).c_str());
+  if (ImGui::IsItemHovered())
+    ImGui::SetTooltip("%s", arcPath.c_str());
 
   static bool onlyContainers = true;
   static bool sortBySize = false;
@@ -1324,9 +1358,10 @@ static void AudioTabBody() {
             ImGui::TextDisabled("Looked next to:");
             ImGui::TextWrapped(
                 "%s",
-                ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance()
-                    .GetFirstArchive()
-                    ->Path()
+                DisplayPath(ClimaxEngine::RWS::FileSystem::CArchiveManager::
+                                GetInstance()
+                                    .GetFirstArchive()
+                                    ->Path())
                     .c_str());
           } else {
             ImGui::Spacing();
