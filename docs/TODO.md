@@ -326,6 +326,24 @@ in the archive gives: 420 at the 90 degree default, and a real spread of
 authored values -- 20, 30, 38, 45, 50, 60, 75, 85. That is field of view in
 degrees, confirmed by variance, not by a single decode.
 
+**There are seven camera classes, not one**, and only the fixed ones are
+handled so far:
+
+    CStaticCamera       473   fully fixed
+    CConstraintCamera   417   follows the player within limits  <- not implemented
+    CIGCCamera           53   cutscenes
+    CTnfCamera           15
+    CFmaCameraNode       13
+    CPeepholeCamera      10   door peephole
+    CFmaCamera            8
+
+`CConstraintCamera` is the "semi-static" one the player notices in game -- it
+tracks Travis inside a constrained volume. Ghost Rider gives it a 21-property
+table against `CStaticCamera`'s 5, so the tracking limits and rates are all in
+there; none of it is read yet. Note its component chain starts with
+`CSystemCommands`, not with the camera class, which is why a component-blind
+reader picks up the wrong properties for it.
+
 ### 5. Rooms with no lighting
 
 `HO_1_WomensRoom` and others render unlit. Vertex colours are present in every

@@ -24,7 +24,8 @@ Opens proprietary Climax Engine container files (no file extension — named lik
 ![Motel](media/MO_1_Courtyard.png)
 ![Butcher's Great Sword](media/ButchersGreatSword.png)
 ![Audio Test Room](media/audio-test-room.png)
-![Ghost Rider](media/GR.png)
+
+![Ghost Rider](media/GhostRider.png)
 
 ![SHSM Wii](media/shsm-wii-0.png)
 ![SHSM Wii 1](media/shsm-wii-1.png)

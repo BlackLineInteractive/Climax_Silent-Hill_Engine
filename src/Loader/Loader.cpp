@@ -431,20 +431,6 @@ void LoadLevelData(const std::string &displayName,
           bm[mc->blendMode]++;
           if (mc->blendMode) ex[mc->blendMode] = mc->texName;
         }
-      {
-        int nonDefault = 0;
-        for (const auto &cm : g_Cameras) if (cm.fovDeg != 60.0f) nonDefault++;
-        if (!g_Cameras.empty()) {
-          std::cout << "[camfov] " << g_Cameras.size() << " cameras, "
-                    << nonDefault << " with an authored FOV:";
-          int shown = 0;
-          for (const auto &cm : g_Cameras) {
-            if (shown++ >= 6) break;
-            std::cout << "  " << cm.name << "=" << cm.fovDeg;
-          }
-          std::cout << "\n";
-        }
-      }
       std::cout << "[scene] blend modes:";
       for (auto &kv : bm)
         std::cout << " " << kv.first << "=" << kv.second
@@ -688,7 +674,8 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
       memcpy(&go.volume[0][0], &data[payOff], 64);
       go.haveVolume = true;
     } else if (kind == 0x00 && idx == 4 && payLen == 4 &&
-               component == "CStaticCamera") {
+               (component == "CStaticCamera" || component == "CTnfCamera" ||
+                component == "CPeepholeCamera")) {
       // Field of view in degrees. See GameObject::fovDeg for how this was
       // confirmed -- it is not the same index CBaseCamera or CBaseBehaviour
       // use, and those two overwriting it in an earlier, component-blind scan
@@ -1606,7 +1593,13 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
     if (!isCam || go.atOrigin)
       continue;
     LevelCamera cam;
-    cam.name = go.instName.empty() ? go.className : go.instName;
+    // instName is the first 0x80 component, which for CConstraintCamera is
+    // CSystemCommands -- useless as a label. The class is what identifies the
+    // camera's behaviour, so lead with that.
+    cam.name = go.className;
+    if (!go.instName.empty() && go.instName != go.className &&
+        go.instName != "CSystemCommands")
+      cam.name += " (" + go.instName + ")";
     cam.position = go.position;
     // Column 2 is the look direction, column 1 is up (RenderWare convention).
     cam.forward = glm::normalize(glm::vec3(go.transform[2]));
