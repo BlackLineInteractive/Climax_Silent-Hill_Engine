@@ -97,60 +97,43 @@ remaining lead is disassembling the resource-request path in `main.dol`.
 
 ## Origins (PS2)
 
-### 1. Characters have no face
+### 1. Characters have no face — cause found, fix landed
 
-The face texture decodes correctly and the mesh is there (`Travis_Face2_NoHat`,
-242 tris), but the face does not appear.
+The face texture decoded correctly and the mesh was there, but the face never
+appeared. **We were discarding it.**
 
-**The previous explanation was wrong and is retracted.** It said character parts
-address neighbouring atlas tiles (`Ambassador_2` U and V both 1.0-2.0) and that
-`GL_REPEAT` folds them onto one quadrant so the face samples hair. Under WRAP,
-a UV of 1.5 samples exactly the same texel as 0.5 — an offset of a whole unit
-changes nothing. And the addressing really is WRAP: every texture in
-`TravisAmbassador` and `TravisWithAlessaAmbassador` reads
-`filter=LINEAR U=WRAP V=WRAP`. So the UV range cannot be the cause.
+The material's `0x0A01` extension is three words, and the middle one is the
+blend mode. Every character head and body declares `0x00010003`, and the engine
+masks it to 16 bits exactly as we do — `ClimaxT1PipeSetupWorldMaterialPipes`
+does `andi $s3, $v0, 0xffff` on the value the moment it reads it. So the mode is
+**3**, and Ghost Rider says what 3 is:
 
-What was ruled out along the way:
+* the alpha-op dispatch table in `.data` at `0x003AA298` is
+  `NUL, STD, ADD, SUB, NONE, FIXA, FIXB`;
+* `hasBlendOpsCB` indexes it with `blendMode + 1`, which lines the file's 0/1/2
+  up with STD/ADD/SUB and makes **3 = NONE**;
+* `ClimaxT1AtomicSetAlphaOpNONE` sets `SRCBLEND = rwBLENDONE` and
+  `DESTBLEND = rwBLENDZERO`.
 
-* **No MatFX.** librw's own table gives `0x0120 = ID_MATFX`, and character
-  materials carry no such chunk — only `0x0A01` (present on level materials too)
-  and `0x011F`. There is no UV transform, no bump map and no dual-texture blend
-  state in the asset.
-* **The PS2 geometry has one UV set.** All 104 packets of `CIGCCharacter.Alessa`
-  carry four streams at VU addresses 0-3, one of which is `V2-32` — a single
-  texture coordinate stream.
+NONE means the surface is written straight out and **its alpha is not a coverage
+channel at all**. Character textures rely on that completely:
 
-What was found and is *not* yet used: material `0x011F` is Climax UserData with
-named fields `k0`, `l0`, `f0`, `t0`, `n0`, and some materials carry a second set
-`k1`..`n1`. `n0` is the base texture name; `n1`, where present, is a second
-texture — `Env02`, an environment map. `t0` is 3 everywhere, so it is not a tile
-index. Dual-textured materials therefore exist and the viewer draws only the
-base layer.
+    nurse_head      256x256   1% opaque texels,  33% below our discard threshold
+    Ariel_head_cm   128x128  12% opaque texels,  23% below our discard threshold
 
-The cause of the missing face is **not known**. The next thing worth checking is
-whether the face mesh is being drawn at all and simply comes out invisible, as
-opposed to being dropped during load — those two have never been told apart.
+So `if (tex.a < 0.02) discard;` threw away a third of every face. The fix routes
+mode 3 into the opaque pass, sets `GL_ONE, GL_ZERO`, skips the alpha test and
+forces the output alpha to 1.
 
-There is now one concrete lead. Sweeping the blend-mode field of every material
-in the archive turns up a third value besides 0/1/2: **`0x00010003`**, and the
-textures carrying it are almost entirely characters —
+**Still unexplained:** the high word. It is `0x0001` on characters and weapons,
+and `Travis_Transparency` carries `0x00010000` — the same flag with mode 0 — so
+it is an independent bit, not part of the mode. What it selects is unknown.
 
-    Ariel_head_cm, nurse_head, Nurse_body, Nurse san_body, Travis_Stalker_Body,
-    Travis_Stalker_Trousers, SHO_PS2_Burnt_Alessa_1/2, SHO_PS2_Travis_Saviour_1/2,
-    SHO_PS2_Flauros_1/2, SHO_PS2_Carrion_Large1/2_cm, T_Butcher_01/03/04,
-    StraightJacket_*, PS2_sad_dady_01/02/04, SD_Tongue, Ambassador_1/2
-
-plus the weapons (AK47, Magnum, Shotgun, HuntingRifle, PS2_M1911) and the
-pickups (Aid_Ampoule_2, Aid_Drink_2, Energy_Drink_2). Nothing else in the game
-uses it. The viewer masks the field to 16 bits, reads mode 3, matches none of
-the three known modes and silently falls back to standard alpha — so whatever
-the high word `0x0001` selects, we are not doing it.
-
-That the value lands on heads and bodies and on nothing else makes it the first
-real candidate for the missing faces. What it means is still unknown: the low
-word may be a fourth blend mode, or the field may be two `u16` and the high word
-a separate flag. Reading `ClimaxT1MaterialGetFrameBlendMode` in the executable
-would settle it.
+What was ruled out earlier and stays ruled out: the retracted UV-tile-offset
+explanation (addressing is WRAP, so an offset of a whole unit changes nothing),
+and MatFX (character materials carry no `0x0120`). Material `0x011F` UserData is
+still unused and still names a second texture (`n1` = `Env02`, an environment
+map) on some materials, so dual-layer characters remain undrawn.
 
 ### 2. Animation
 

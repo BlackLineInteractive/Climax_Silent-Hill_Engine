@@ -507,6 +507,7 @@ uniform bool  useVertexColors;
 uniform bool  untextured;
 uniform bool  additive;
 uniform bool  unlitGeometry;
+uniform bool  alphaOff;
 uniform vec4  matColor;
 uniform float brightness;
 uniform int   renderMode;
@@ -566,7 +567,13 @@ void main(){
         // with the surface normal taken from the screen-space derivatives the
         // flat-shading path already uses.
         vec4 tex = texture(t, TC);
-        if(tex.a < 0.02) discard;
+        // A material whose blend op is NONE has no coverage channel: the
+        // engine writes it with SRCBLEND ONE / DESTBLEND ZERO and never looks
+        // at alpha. Character heads and bodies are all declared that way, and
+        // their textures are barely opaque anywhere -- nurse_head has 1% opaque
+        // texels and a third of it below this threshold -- so testing alpha on
+        // them discarded the face and left the head bare.
+        if(!alphaOff && tex.a < 0.02) discard;
         vec3 V = normalize(eyePos - fragWorldPos);
         vec3 L = normalize(vec3(0.45, 1.0, 0.35));
         vec3 Nf = faceforward(N, -V, N);
@@ -584,7 +591,13 @@ void main(){
         // Discard only what is fully transparent. Cutting at 0.1 threw away the
         // whole soft edge of a gradient and left a hard jagged border where the
         // game fades out smoothly; the rest is handled by alpha blending.
-        if(tex.a < 0.02) discard;
+        // A material whose blend op is NONE has no coverage channel: the
+        // engine writes it with SRCBLEND ONE / DESTBLEND ZERO and never looks
+        // at alpha. Character heads and bodies are all declared that way, and
+        // their textures are barely opaque anywhere -- nurse_head has 1% opaque
+        // texels and a third of it below this threshold -- so testing alpha on
+        // them discarded the face and left the head bare.
+        if(!alphaOff && tex.a < 0.02) discard;
         // Additive effect sheets carry their own brightness. Multiplying their
         // RGB by the baked vertex lighting drives them to black in a dark room,
         // which is why they only showed up with vertex colours switched off.
@@ -602,6 +615,7 @@ void main(){
         else
             col = tex;
         col.rgb *= brightness;
+        if(alphaOff) col.a = 1.0;
         FragColor = col;
     }
 }
@@ -960,6 +974,7 @@ void main(){
         const GLint uUntex  = glGetUniformLocation(p, "untextured");
         const GLint uAdd    = glGetUniformLocation(p, "additive");
         const GLint uUnlit  = glGetUniformLocation(p, "unlitGeometry");
+        const GLint uAlphaOff = glGetUniformLocation(p, "alphaOff");
         const GLint uUvOff  = glGetUniformLocation(p, "uvOffset");
         const GLint uUvScl  = glGetUniformLocation(p, "uvScale");
         const GLint uMatCol = glGetUniformLocation(p, "matColor");
@@ -1012,10 +1027,20 @@ void main(){
                         auto itG0 = g_TexGradient.find(chunk.texName);
                         const bool isFx = chunk.texName.size() > 3 &&
                             sho_strnicmp(chunk.texName.c_str(), "FX_", 3) == 0;
+                        // The engine masks this to 16 bits too -- the world
+                        // pipe setup does `andi $s3, $v0, 0xffff` right after
+                        // reading the field.
                         const uint32_t declared = chunk.blendMode & 0xFFFF;
-                        const bool blended = declared == 1 || declared == 2 ||
-                            isFx || chunk.additive ||
-                            (itG0 != g_TexGradient.end() && itG0->second);
+                        // Mode 3 is the engine's NONE op: SRCBLEND ONE,
+                        // DESTBLEND ZERO. The surface is written straight out
+                        // and its alpha is not a coverage channel at all, so it
+                        // belongs in the opaque pass whatever its texture looks
+                        // like.
+                        const bool alphaOff = (declared == 3);
+                        const bool blended = !alphaOff &&
+                            (declared == 1 || declared == 2 ||
+                             isFx || chunk.additive ||
+                             (itG0 != g_TexGradient.end() && itG0->second));
                         if ((pass == 0) == blended) continue;
                         
                         const std::string& tName =
@@ -1072,11 +1097,16 @@ void main(){
                             glBlendEquation(GL_FUNC_REVERSE_SUBTRACT);
                             glBlendFunc(GL_SRC_ALPHA, GL_ONE);
                             glDepthMask(GL_FALSE);
+                        } else if (alphaOff) {
+                            glBlendEquation(GL_FUNC_ADD);
+                            glBlendFunc(GL_ONE, GL_ZERO);
+                            glDepthMask(GL_TRUE);
                         } else {
                             glBlendEquation(GL_FUNC_ADD);
                             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                             glDepthMask(pass == 0 ? GL_TRUE : GL_FALSE);
                         }
+                        glUniform1i(uAlphaOff, alphaOff ? 1 : 0);
 
                         // UV animation. The clip's offsets run to whole texture
                         // units over its duration (-28.0 after 28 s), so with

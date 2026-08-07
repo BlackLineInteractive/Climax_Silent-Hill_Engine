@@ -899,8 +899,17 @@ void RenderTxdWindow() {
       ImGui::GetWindowDrawList()->AddRectFilled(
           rowMin, rowMax, IM_COL32(60, 100, 160, (int)anim_alpha), 4.0f);
 
-    // Thumbnail
-    ImGui::Image((ImTextureID)(intptr_t)pi.glID, ImVec2(THUMB, THUMB));
+    // Thumbnail with scale animation
+    float target_scale = hovered ? 1.08f : 1.0f;
+    float anim_scale = iam_tween_float(ImGui::GetID(name.c_str()), ImGui::GetID("txd_scale"), target_scale, 0.25f, iam_ease_preset(iam_ease_out_back), iam_policy_crossfade, ImGui::GetIO().DeltaTime);
+    float scaled_thumb = THUMB * anim_scale;
+    float offset = (scaled_thumb - THUMB) * -0.5f;
+    
+    ImVec2 curPos = ImGui::GetCursorPos();
+    ImGui::SetCursorPos(ImVec2(curPos.x + offset, curPos.y + offset));
+    ImGui::Image((ImTextureID)(intptr_t)pi.glID, ImVec2(scaled_thumb, scaled_thumb));
+    ImGui::SetCursorPos(ImVec2(curPos.x, curPos.y)); // Restore X/Y for layout
+    
     ImGui::SameLine(THUMB + 8.0f);
 
     // Text info column

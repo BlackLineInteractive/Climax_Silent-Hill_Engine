@@ -59,7 +59,11 @@ def decode(w, pc):
     if op == 0x0F:
         return f'lui     ${R[rt]}, 0x{imm:04x}', 'lui', (rt, imm << 16)
     if op in I_OPS:
-        return f'{I_OPS[op]:<7s} ${R[rt]}, ${R[rs]}, {s:#x}', 'imm', (rt, rs, s)
+        # andi/ori/xori zero-extend their immediate; the arithmetic ones sign-
+        # extend it. Printing a mask of 0xffff as -0x1 makes register masking
+        # unreadable, which matters because the engine masks constantly.
+        v = imm if op in (0x0C, 0x0D, 0x0E) else s
+        return f'{I_OPS[op]:<7s} ${R[rt]}, ${R[rs]}, {v:#x}', 'imm', (rt, rs, v)
     if op in M_OPS:
         return f'{M_OPS[op]:<7s} ${R[rt]}, {s:#x}(${R[rs]})', 'mem', (rt, rs, s)
     if op in (0x04, 0x05):
