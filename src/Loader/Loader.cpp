@@ -939,14 +939,19 @@ static void ParseSkeletalAnimations(const std::vector<uint8_t> &data) {
       memcpy(&ty, &data[dp + 8], 2);
       memcpy(&tz, &data[dp + 10], 2);
 
-      // A quaternion in four 12-bit fields; the reference stores the conjugate.
+      // A quaternion in four 12-bit fields.
+      //
+      // Taken conjugated at first, following the reference. That turned the
+      // model back to front -- Travis faced away from his own chest -- which is
+      // exactly the check the spec calls for: if it inverts, drop the
+      // conjugate. So the components go in as they are.
       const float qx = ((float)(c1 >> 20) - 2048.0f) / 2047.0f;
       const float qy = ((float)((c1 >> 8) & 0xFFF) - 2048.0f) / 2047.0f;
       const float qz = ((float)((((c1 << 4) & 0xFFF) | (c2 >> 12))) - 2048.0f) / 2047.0f;
       const float qw = ((float)(c2 & 0xFFF) - 2048.0f) / 2047.0f;
 
       clip.tracks[(size_t)ti].times.push_back(t);
-      clip.tracks[(size_t)ti].rot.push_back(glm::quat(qw, -qx, -qy, -qz));
+      clip.tracks[(size_t)ti].rot.push_back(glm::quat(qw, qx, qy, qz));
       clip.tracks[(size_t)ti].pos.push_back(
           glm::vec3((tx / 65535.0f) * tScl[0] + tOff[0],
                     (ty / 65535.0f) * tScl[1] + tOff[1],

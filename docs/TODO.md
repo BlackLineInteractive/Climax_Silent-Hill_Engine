@@ -166,10 +166,45 @@ One decoding bug fixed on the way: `glm::quat` takes the scalar **first**, and
 the old code passed `(x, y, z, w)`, which put `-qx` into `w` and `qw` into `z` —
 a different rotation entirely.
 
-**Still to do:** map tracks to bones through the HAnim PLG (`0x011E`) bone
-table, read `Skin PLG (0x0116)` for the inverse bind matrices and per-vertex
-weights, then evaluate and skin. The player UI already has the transport and a
-timeline; it drives nothing until those two land.
+**Bone table done.** Every frame's HAnim PLG (`0x011E`) gives its bone id, and
+the hierarchy root carries the table whose order is the clip's track order.
+Travis: 53 bones in the table, 53 of 54 frames bound, the odd one out being the
+clump root. That mapping is now `Bone::trackIndex`.
+
+**Evaluation and rigid binding done.** Each mesh records the frame it hangs off,
+and the renderer applies the animated frame matrix times the inverse of the rest
+one (the rest pose is baked into the vertices at load). Pieces bound to a single
+bone animate correctly — the head moves.
+
+**Where the per-vertex weights actually are.** Not in the Skin PLG: Ghost Rider
+settles it, `RpSkinGetVertexBoneIndices` returns `skin[0x14]` and
+`RpSkinGetVertexBoneWeights` returns `skin[0x18]`, and
+`_rpSkinGeometryNativeRead` writes `0x00, 0x04, 0x08, 0x0C, 0x10, 0x44` and
+reads 16 bytes into `0x1C` — it never touches `0x14` or `0x18`, so both stay
+null. The chunk's own tail is 16 bytes of counts and an empty split-data header
+`[0, 0, 0]`.
+
+They ride with the native geometry instead, as **four floats per vertex** where
+each float's lowest byte is the bone's VU address. A bone matrix occupies four
+quadwords, so the index is `byte / 4` — which is why those bytes never looked
+like bone numbers. Confirmed in our own data by signature search over
+`CPlayerBehaviour.Travis`: six runs of consecutive records, the largest 2667
+long, every low byte a multiple of four, every weight set summing to 1.0, and a
+mix of rigid `[1,0,0,0]` and blended `[0,0.5,0,0.5]` entries.
+
+    @655412   2667 records   [1.0,0,0,0]     low bytes [140,0,0,0]  -> bone 35
+    @2645872    18 records   [0,0.5,0,0.5]   low bytes [12,0,12,0]  -> bones 3,3
+
+**Still to do:** tie each run to its geometry and vertex order (the reference
+walks them per material through `matIdNumFaceList`), fill `Vertex::boneIds` and
+`boneWeights`, and switch multi-bone pieces from the rigid path to the shader's
+skinning branch, which already exists. Rigid pieces keep the frame binding.
+
+Ruled out along the way, each by measurement rather than argument: weights in
+the VIF streams (one four-stream layout across the whole container), one packet
+per bone (39 used bones against 109 packets), and packets lost to the parser
+(zero rejected). One real defect was found and fixed there: a packet whose
+stream addressed a VU slot above 3 was discarded together with its geometry.
 
 ### 3. Fire — done, with two loose ends
 

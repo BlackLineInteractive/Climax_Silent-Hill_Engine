@@ -51,6 +51,7 @@ void CWorldObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
 // the rest one. A piece whose frame has no track stays exactly where it was.
 void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) {
     glm::mat4 model = m_transform;
+    bool skinned = false;
 
     // Whichever clip is playing: the one bound to this object, or the one the
     // player picked out of the container's list.
@@ -106,13 +107,39 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
         }
 
         currentBoneMats = posed;
-        const size_t f = (size_t)chunk->frameIndex;
-        model = m_transform * posed[f] * glm::inverse(rest[f]);
+
+        if (chunk->hasWeights && state.animSkinning) {
+            // The native data indexes bones by their place in the HAnim table,
+            // so the uniform array has to be in that order, not frame order.
+            // The rest pose is already baked into the vertices, so the skinning
+            // matrix is the same delta the rigid path uses.
+            std::vector<glm::mat4> pal(128, glm::mat4(1.0f));
+            for (size_t b = 0; b < n; ++b) {
+                // Indexed by the skin's own bone index, which is the second
+                // field of the HAnim table entry -- the per-vertex slots refer
+                // to that, not to the table's position.
+                const Bone &bn = skeleton.bones[b];
+                const int t = bn.skinIndex >= 0 ? bn.skinIndex : bn.trackIndex;
+                if (t >= 0 && t < 128) pal[(size_t)t] = posed[b] * glm::inverse(rest[b]);
+            }
+            GLint prog = 0;
+            glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
+            if (prog) {
+                const GLint loc = glGetUniformLocation(prog, "boneTransforms");
+                if (loc >= 0) {
+                    glUniformMatrix4fv(loc, 128, GL_FALSE, glm::value_ptr(pal[0]));
+                    skinned = true;
+                }
+            }
+        } else {
+            const size_t f = (size_t)chunk->frameIndex;
+            model = m_transform * posed[f] * glm::inverse(rest[f]);
+        }
     }
 
     glUniformMatrix4fv(ctx.uM, 1, GL_FALSE, glm::value_ptr(ctx.viewProj * model));
     glUniformMatrix4fv(ctx.uModel, 1, GL_FALSE, glm::value_ptr(model));
-    glUniform1i(ctx.uUseSkinning, 0);
+    glUniform1i(ctx.uUseSkinning, skinned ? 1 : 0);
 
     glBindVertexArray(chunk->vao);
     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk->vertices.size());

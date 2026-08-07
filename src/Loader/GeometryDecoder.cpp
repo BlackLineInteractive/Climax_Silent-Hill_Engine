@@ -80,12 +80,10 @@ bool ReadPacket(const uint8_t* d, size_t d_sz, size_t p, size_t end,
       // Rejecting the whole packet because one stream lands above VU address 3
       // threw away the geometry with it. Anything higher is simply not decoded;
       // DecodePacket already ignores addresses it does not know.
-      if (s.addr > 1023)
-        return false;
+      if (s.addr > 1023) return false;
       // CL=4 with WL=1 means CL >= WL, so every written vector has a source.
       const size_t payload = ((size_t)s.num * s.bpv + 3) & ~size_t(3);
-      if (p + payload > end)
-        return false;
+      if (p + payload > end) return false;
       out.streams.push_back(s);
       p += payload;
       continue;
@@ -383,7 +381,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                           }
                           
                           // Now parse the extensions for bone ids and names
-                          std::vector<int32_t> hanimOrder;
+                          std::vector<int32_t> hanimOrder, hanimSkin;
                           size_t extOff = st + 12 + ru32(st + 4);
                           std::cout << "[scene] Clump " << destObj->GetName() << " got skeleton with " << n << " bones!\n";
                           for (uint32_t i = 0; i < n; i++) {
@@ -415,11 +413,15 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                                           if (boneCount && boneCount < 1024 &&
                                               d + 20 + (size_t)boneCount * 12 <= extEnd) {
                                               hanimOrder.clear();
+                                              hanimSkin.clear();
                                               hanimOrder.reserve(boneCount);
+                                              hanimSkin.reserve(boneCount);
                                               for (uint32_t bx = 0; bx < boneCount; ++bx) {
-                                                  int32_t id = 0;
+                                                  int32_t id = 0, sk = 0;
                                                   memcpy(&id, &payload[d + 20 + (size_t)bx * 12], 4);
+                                                  memcpy(&sk, &payload[d + 24 + (size_t)bx * 12], 4);
                                                   hanimOrder.push_back(id);
+                                                  hanimSkin.push_back(sk);
                                               }
                                           }
                                       }
@@ -464,6 +466,8 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                                   for (size_t t = 0; t < hanimOrder.size(); ++t) {
                                       if (hanimOrder[t] == bone.boneId) {
                                           bone.trackIndex = (int)t;
+                                          if (t < hanimSkin.size())
+                                              bone.skinIndex = (int)hanimSkin[t];
                                           break;
                                       }
                                   }
@@ -883,6 +887,7 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       }
 
       triVerts.clear();
+      bool sawWeights = false;
       const auto packets = PacketsIn(payload, length, p, vifEnd);
       
       std::vector<uint8_t> boneIds;
@@ -893,45 +898,64 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
           boneWeights.resize(numIdx * 4);
           for (uint32_t v = 0; v < numIdx; ++v) {
               for (int w = 0; w < 4; ++w) {
-                  uint8_t bId = payload[wp + w * 4];
-                  boneIds[v * 4 + w] = bId / 4;
+                  // The byte is the matrix's address in VU memory. A bone
+                  // matrix spans four quadwords, so dividing by four gives the
+                  // slot -- and slot 0 is not a bone, so the index is one less.
+                  // Checked against the data: a piece whose Skin PLG lists
+                  // exactly one used bone, 29, stores 120 here, and
+                  // 120 / 4 - 1 = 29.
+                  const uint8_t bId = payload[wp + w * 4];
+                  const int slot = (int)bId / 4 - 1;
+                  boneIds[v * 4 + w] = (uint8_t)(slot > 0 ? slot : 0);
                   // Zero out the lowest byte (the bone ID) to read the clean float
                   uint8_t floatBytes[4] = {0, payload[wp + w * 4 + 1], payload[wp + w * 4 + 2], payload[wp + w * 4 + 3]};
                   float weight;
                   memcpy(&weight, floatBytes, 4);
                   boneWeights[v * 4 + w] = weight;
                   
-                  // In sho_noesis.py: "if weight1 > 0: boneID1 -= 1". Wait!
-                  // Let's check Noesis again. "boneID1 -= 1" if weight > 0? No, let's just use it directly, but let's see.
-                  if (boneWeights[v * 4 + w] > 0.0f && boneIds[v * 4 + w] > 0) {
-                      boneIds[v * 4 + w] -= 1; // It seems bone indices are 1-based or offset by 1 in some logic? Let's follow sho_noesis exactly! Wait, I'll review it if it looks wrong.
-                  }
               }
               wp += 16;
           }
       }
 
+      // One weight record per *unique* vertex, but a triangle strip carries on
+      // across packet boundaries: every packet after the first restates the two
+      // vertices that closed the one before it. Measured -- a six-packet
+      // geometry uploads 220 vertices for 210 records, exactly +2 per join.
+      // Walking the records packet by packet therefore slipped two places at
+      // every seam, which is what tore the model apart.
       size_t vertexIndex = 0;
+      bool firstPacket = true;
       for (const auto &pk : packets) {
         DecodePacket(payload, pk, rawVerts, adcFlags);
-        
-        // Inject skin weights into rawVerts
+
+        const size_t base = firstPacket ? 0
+                                        : (vertexIndex >= 2 ? vertexIndex - 2 : 0);
         if (hasSkin && meshType == 0 && !boneWeights.empty()) {
-            for (size_t v = 0; v < rawVerts.size() && vertexIndex + v < numIdx; ++v) {
+            for (size_t v = 0; v < rawVerts.size(); ++v) {
+                const size_t wi = base + v;
+                if (wi >= numIdx) break;
                 for (int w = 0; w < 4; ++w) {
-                    rawVerts[v].boneIds[w] = boneIds[(vertexIndex + v) * 4 + w];
-                    rawVerts[v].boneWeights[w] = boneWeights[(vertexIndex + v) * 4 + w];
+                    rawVerts[v].boneIds[w] = boneIds[wi * 4 + w];
+                    rawVerts[v].boneWeights[w] = boneWeights[wi * 4 + w];
                 }
             }
+            sawWeights = true;
         }
-        
+
         StripToTriangles(rawVerts, adcFlags, triVerts);
-        vertexIndex += pk.vertexCount;
+        vertexIndex = base + (size_t)pk.vertexCount;
+        firstPacket = false;
         totalVerts += pk.vertexCount;
       }
       totalPackets += packets.size();
       totalSplits++;
+      const size_t before = destObj->GetMeshes().size();
       addChunk(triVerts, matIds[i], localMats, localCols, localBlend);
+      if (sawWeights) {
+        auto ms = destObj->GetMeshes();
+        for (size_t k = before; k < ms.size(); k++) ms[k]->hasWeights = true;
+      }
       p = blockEnd;
     }
   };

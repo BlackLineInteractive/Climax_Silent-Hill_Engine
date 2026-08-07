@@ -42,6 +42,9 @@ struct Bone {
   // which is the order the clip's keyframe tracks come in.
   int boneId = -1;
   int trackIndex = -1;
+  // Second field of the HAnim table entry: where this bone sits in the skin's
+  // own arrays, which is what the per-vertex slots index.
+  int skinIndex = -1;
 };
 
 struct AnimTrack {
@@ -98,6 +101,10 @@ struct MeshChunk {
   // The rest-pose matrix is already baked into the vertices, so the renderer
   // applies the difference between the animated matrix and the rest one.
   int frameIndex = -1;
+  // True when the native data carried four bone weights per vertex. Those
+  // pieces go through the shader's skinning branch; the rest are rigid and
+  // follow their frame.
+  bool hasWeights = false;
   bool additive = false;
   bool unlitGeometry = false; // vertex colours are all zero: no baked light
   bool untextured = false;
@@ -333,6 +340,9 @@ struct ViewerState {
   bool  uiTooltips  = true;
   // Which clip from g_AnimClips the Playback panel is driving; -1 for none.
   int   animClipIndex = -1;
+  // Vertex skinning for the pieces whose native data carries four weights.
+  // Rigid pieces keep following their frame either way.
+  bool  animSkinning = true;
   // UV animation runs off the scene clock; these only pause and rescale it.
   bool  uvAnimRun = true;
   float uvAnimSpeed = 1.0f;

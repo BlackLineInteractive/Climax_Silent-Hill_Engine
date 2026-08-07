@@ -1437,6 +1437,13 @@ static void SkeletalTabBody() {
   ImGui::SameLine(); ImGui::TextDisabled("Speed");
 
   ImGui::Checkbox("Bone overlay", &state.showBoneOverlay);
+  ImGui::SameLine();
+  ImGui::Checkbox("Skinning", &state.animSkinning);
+  if (ImGui::IsItemHovered())
+    ImGui::SetTooltip("Experimental. The four weights per vertex are read, but\n"
+                      "the bone-slot mapping is not settled: turning this on\n"
+                      "tears the model apart. Off means every piece follows its\n"
+                      "frame, which is correct for the rigid ones.");
 
   ImGui::Spacing();
   ImGui::TextDisabled("PS2 characters are segmented, not vertex-skinned:");
