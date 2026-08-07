@@ -96,11 +96,49 @@ textures**: the section walk, the object graph and the material lists all
 decode, and then the native geometry and raster blocks do not, because they are
 not the formats the toolkit knows.
 
-The texture dictionary says so outright -- its device id is **9**, against **6**
-in the retail PS2 build. So the prototype's rasters and display lists are in the
-PSP's own native form, and reading them needs a third decoder alongside the
-existing PS2 (VIF) and Wii (GX) paths. Everything above the platform layer is
-already shared.
+The texture dictionary device id is **9**, against **6** in the retail PS2
+build, so the rasters are in the PSP's own form. Both halves were then looked
+at properly, and they turn out to be very different problems.
+
+### Geometry: not a PSP problem at all
+
+There is **no `0x0510` NativeDataPLG anywhere** in these containers, only
+BinMesh. The geometry flags have the native bit clear:
+
+    flags=0x0001003F   tristrip, positions, UVs, vertex colours, normals
+
+That is ordinary RenderWare geometry -- plain arrays in the Struct, no display
+lists of any kind. The decoder required both a BinMesh *and* a native block and
+returned early otherwise, which is why levels that parsed every section,
+material, clump and skeleton still produced zero meshes.
+
+A plain-geometry path is now implemented, and it is worth recording the one
+trap: the triangle record is
+
+    { u16 vertex2; u16 vertex1; u16 materialId; u16 vertex3; }
+
+The material id sits *between* the vertices and vertex 3 comes last. Read as
+three consecutive indices it yields a mesh that looks nearly right and is wrong
+everywhere. `SilentHill` and `Asylum_1flr_z1` now build meshes (10 and 4
+respectively); the retail PS2 path is unaffected.
+
+### Textures: a real PSP format, decoded and verified
+
+The raster header is 172 bytes and starts with standard RenderWare format bits,
+then width and height as two `u16`:
+
+    0x4500 = PAL4|8888   32x32   ->  512 indices + 64 palette + 172 = 748
+    0x0300 = 4444       128x128  ->  32768 + 172 = 32940
+    0x0200 = 565         64x64   ->   8192 + 172 = 8364
+
+Three different formats and sizes all agreeing on a 172-byte header is what
+confirms it. The pixels are **swizzled in 16-byte by 8-row blocks**, and the
+component order is PSP's own (`R` in the low nibble, `A` in the high). Decoding
+a 4444 raster with both corrections produces a clean, coherent surface; without
+the unswizzle it comes out as horizontal stripes.
+
+This is documented but **not implemented** in the toolkit -- prototype levels
+currently render untextured.
 
 ## 5. Game Executable (`EBOOT.BIN`)
 The game engine logic is contained entirely within `/PSP_GAME/SYSDIR/EBOOT.BIN`. As is standard for PSP games, this file is an encrypted PRX/ELF, but remarkably, the prototype's `EBOOT.BIN` is a **raw, unencrypted ELF** (`\x7FELF`).
