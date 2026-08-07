@@ -62,6 +62,18 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
              state.animClipIndex < (int)g_AnimClips.size())
         clip = &g_AnimClips[(size_t)state.animClipIndex];
 
+    // A clip only belongs to the skeleton it was authored for. The container
+    // holds clips for every skeleton it ships -- Butcher has five -- and
+    // driving a 53-track clip through a 9-bone arm, or a 34-track one through
+    // the full body, animates some bones and leaves the rest at rest, which
+    // stretches whatever spans the two into spikes.
+    if (clip) {
+        int tracks = 0;
+        for (const Bone &bn : skeleton.bones)
+            if (bn.trackIndex >= 0) tracks++;
+        if ((size_t)tracks != clip->tracks.size()) clip = nullptr;
+    }
+
     if (!skeleton.bones.empty() && chunk->frameIndex >= 0 &&
         chunk->frameIndex < (int)skeleton.bones.size() &&
         (clip || state.animRestPose)) {
