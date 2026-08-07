@@ -62,8 +62,9 @@ Currently a deliberate approximation: a Fresnel rim and a specular highlight,
 switched by a hand-maintained name rule, with a tooltip saying so.
 
 The real look comes from the GX TEV stages, and those are **not in the
-container** — the same situation as the PS2 blend mode living in the GS `ALPHA`
-register. What the asset does carry is the `0x0129` material extension: a single
+container**. (The comparison this once drew to the PS2 blend mode no longer
+holds: that one *is* in the asset, in the `0x0A01` material extension.) What the
+asset does carry is the `0x0129` material extension: a single
 alternate texture, which in 20 of 1747 world materials is the same surface in
 its frozen state (`EN_SC_BK_ceiling` → `EN_SC_BK_ceiling_Frozen`). That is
 implemented as the **Frozen variant** toggle.
@@ -178,23 +179,62 @@ the material path has been measured and ruled out:
 * **It is not a frame atlas.** Mesh UVs span `u 0..4, v -1..1` — the sheet is
   tiled, not indexed.
 
-What is left is the one thing we do not run. Every fire material carries a
-**`0x0135` UV-animation plugin** (45, 31, 112, 27 and 22 occurrences across the
-Dahlia sheets), and the single fire texture that lacks it — `FX_fire_Dahlia_e`,
-the only one with a real alpha cutout — is also the only one authored as a plain
-sprite. The plugin holds a slot mask and a name:
+The cause is **UV animation, which we do not run**, and the format is now fully
+recovered. Fire is a pair of tiled flame sheets scrolled past each other; frozen
+at one instant a scrolling sheet is exactly a still rectangular patch, which is
+what we draw.
 
-    FX_Generic_Torches_FX_Hub6_Torch
+**The material side.** Every fire material carries a `0x0135` UV-animation
+plugin (45, 31, 112, 27 and 22 occurrences across the Dahlia sheets) holding a
+slot mask and the name `FX_Generic_Torches_FX_Hub6_Torch`. The one fire texture
+without the plugin, `FX_fire_Dahlia_e`, is also the only one with a real alpha
+cutout — a plain sprite, and it needs no animation.
 
-and there is **no `0x2B` UV-animation dictionary anywhere in the archive**, so
-that name is resolved against an entity in the engine's effect system rather
-than a RenderWare chunk. The flame is a scrolling sheet: tiled UVs pushed
-through an animated 2D transform. Sampled statically, a scrolling flame sheet is
-exactly a still rectangular patch of flame — which is what we draw.
+The material's `0x011F` Climax UserData decodes cleanly and gives **two layers**:
 
-Implementing it means finding what `FX_Generic_Torches` resolves to in the
-container's object graph and running the transform per frame. That is the next
-step; nothing in the texture or blend path remains to fix.
+    k0 float 0.0   l0 int 0   f0 int 0   t0 int 3   n0 "FX_fire_Dahlia"
+    k1 float 0.0   l1 int 0   f1 int 0   t1 int 3   n1 "FX_fire_Dahlia_f"
+
+which is why the accessor in the executable is `ClimaxT1MaterialGetUVMatrices`,
+plural. We draw only `n0`.
+
+**Where the animations live.** An earlier search for a `0x2B` chunk found
+nothing because it looked for a RenderWare chunk carrying the version word.
+`0x2B` is not a chunk — it is an **RWS section type**, confirmed by Ghost Rider:
+
+    GetTypeID__Q214ResourceLoader24CUVAnimationStreamLoader -> 0x2B
+    GetTypeID__Q214ResourceLoader27CHAnimAnimationStreamLoader -> 0x1B
+
+`DH_1_Exterior` holds **four `0x2B` sections** (and sixteen `0x1B`), which the
+loader currently walks past.
+
+**Layout**, read out of the two sections in `DH_1_Exterior`:
+
+    0x2B section
+      0x0001 Struct, 4 bytes -> u32 animation count (12 in the first section)
+      per animation: a 0x001B chunk whose payload is a standard RtAnimAnimation
+        +0x00  u32   version   = 0x100
+        +0x04  u32   typeID    = 0x1C1   (Climax keyframe scheme)
+        +0x08  u32   numFrames = 16
+        +0x0C  u32   flags     = 0
+        +0x10  f32   duration  = 28.0 s
+        +0x14  u32   0
+        +0x18  char  name[32]  "FX_Generic_Torches_FX_Hub6_Torch"
+        then the keyframes
+
+The second section's first animation is `JDMaterialNode13`, 2 frames, 12.0 s.
+
+**Keyframe size and contents** come straight from the executable.
+`ClimaxT1KeyFrameStreamGetSizeCB` is `numFrames * 0x18`, so **24 bytes each**,
+and `ClimaxT1KeyFrameBlend` interpolates four floats at `+0x08`, `+0x0C`,
+`+0x10`, `+0x14` — i.e. after the standard 8-byte `RtAnimKeyFrame` header of
+`{prevFrame, time}`. Those four floats are the animated UV transform.
+
+**To implement:** parse `0x2B` into a name→animation table, resolve each
+material's `0x0135` name against it, evaluate the four floats at the current
+time with the same linear blend the engine uses, and feed them to the shader as
+a UV transform; then draw the `n1` layer with its own transform. Nothing in the
+texture or blend path remains to fix.
 
 ### 4. Rooms with no lighting
 
