@@ -265,6 +265,11 @@ struct GameObject {
 // A camera position recovered from a CStaticCamera / CIGCCamera object.
 struct LevelCamera {
   std::string name;      // designer name, e.g. "camStairway01"
+  // A camera publishes two names -- CBaseCamera property 0 and property 1, the
+  // second being the first with an "S" suffix. Triggers reference either one:
+  // DH_1_Hallway's planes name the plain form, HO_1_Hallway1's name the S form.
+  // A camera has to be findable by both or half the level logic goes unresolved.
+  std::string altName;
   std::string className; // CStaticCamera, CConstraintCamera, ...
   glm::vec3 position = glm::vec3(0.0f);
   glm::vec3 forward = glm::vec3(0, 0, 1);

@@ -404,6 +404,41 @@ properties above, not as a separate chunk.
 switch cameras when the player crosses a plane -- the first piece of real game
 logic, and it needs no format we do not already read.
 
+### 4c. Collision — the current triangles are fabricated
+
+The collision overlay draws a fan of long spikes converging on a few points.
+Two real index bugs were found and fixed on the way (indices were not rebased
+between blocks, and a vertex failing the finite check was skipped instead of
+occupying its slot, shifting every later index) but neither was the cause.
+
+The cause is that **`rwID_CBSP` holds no triangle list at all.** Ghost Rider's
+`CollisionBSP::StreamRead` (reached from
+`ResourceLoader::CCBSPStreamLoader::Read`, whose `GetTypeID` returns **0x1100**
+-- the inner chunk id seen in the data) reads a magic word `0x0C011B59`, a
+version of 1, then **six** counts, then six arrays:
+
+    A x 16   vertices
+    B x  8   BSP nodes
+    C x  2   u16
+    D x 16   planes        (normal + distance: [0,1,0,0], [1,0,0,4.999], ...)
+    E x  8   node records  (four u16; the third runs as a sequence, the fourth is flags)
+    F x  2   u16 node indices (max 98 against B = 99)
+
+For `HO_1_Hallway1` that is 70/99/29/37/73/136, totalling 3418 bytes against
+3438 available -- the layout adds up.
+
+The loader reads the vertices correctly but then assumes triangle indices sit
+immediately after the nodes, as `u8` triples with a 4-byte stride. That offset
+lands inside C and D, so it has been reading **plane floats as vertex indices**
+-- which is exactly the spike pattern. Neither D, E nor F parses as a triangle
+list: F indexes nodes rather than vertices, and E's fields are out of vertex
+range in 49 of 73 records.
+
+So the collision is a plane BSP, and the triangles currently drawn are an
+artefact of the parser, not level data. Displaying it properly means either
+deriving polygons from the BSP leaves, or drawing the planes directly rather
+than pretending there is a mesh.
+
 ### 5. Rooms with no lighting
 
 `HO_1_WomensRoom` and others render unlit. Vertex colours are present in every

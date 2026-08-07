@@ -8,7 +8,7 @@ int FindCameraByName(const std::vector<LevelCamera> &cameras,
   if (name.empty())
     return -1;
   for (size_t i = 0; i < cameras.size(); ++i)
-    if (cameras[i].name == name)
+    if (cameras[i].name == name || cameras[i].altName == name)
       return (int)i;
   return -1;
 }
