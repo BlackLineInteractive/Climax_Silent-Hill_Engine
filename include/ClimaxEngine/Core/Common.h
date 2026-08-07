@@ -73,14 +73,10 @@ struct MeshChunk {
   // with the effect painted on top: the game draws them additively, so black
   // contributes nothing. Their palettes are fully opaque, so no alpha test can
   // hide the background.
-  // Keyed on the "FX_" name prefix, and that is not a shortcut: the blend mode
-  // is not stored in the asset at all. Checked and ruled out — the material
-  // Extension is an empty UV-anim plugin (0x0A01), byte-identical across all
-  // 68 materials of HO_1_Lobby; TEX0 differs only in PSM (pixel format) with
-  // TFX=0/TCC=1 everywhere; rasterFormat differs only in the palette-size
-  // nibble. On PS2 the blend function lives in the GS ALPHA register, which
-  // the engine sets per draw. The naming convention is the only marker the
-  // data carries.
+  // The "FX_" name prefix used to be the only marker, on the belief that the
+  // blend mode was absent from the asset. That was wrong: it is the 0x0A01
+  // material extension, and the name prefix misses 43 textures that declare a
+  // non-standard mode without carrying the prefix — Blood_Pool_SUB among them.
   // Blend mode from the material's own 0x0A01 extension: 0 standard alpha,
   // 1 additive, 2 subtractive. This is the field the engine reads through
   // ClimaxT1MaterialGetFrameBlendMode, and it replaces the guesswork the

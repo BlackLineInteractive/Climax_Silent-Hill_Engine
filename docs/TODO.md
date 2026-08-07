@@ -160,24 +160,60 @@ riskiest unknown is settled: skin weights are **not** in the VIF packets — all
 the spec can be skipped. Start from the skeleton (FrameList + HAnim) drawn as a
 bone overlay in the rest pose.
 
-### 3. Rooms with no lighting
+### 3. Fire renders as a static rectangle
+
+Flames show as a flat rectangular patch. Everything that could have caused it in
+the material path has been measured and ruled out:
+
+* **Blend mode is correct.** Every fire material declares mode 1 — additive —
+  and the runtime receives it (`[scene] blend modes: 0=322 1=150
+  (FX_fire_Dahlia)`).
+* **The pass was wrong and is now fixed**, but was not the cause: fire already
+  reached the transparent pass through its `FX_` prefix.
+* **The palette decodes correctly.** `FX_fire_Dahlia` is 8-bit; its CLUT is the
+  full 1024 bytes so the GS reorder runs, and the sheet is dark red on black at
+  alpha 128 — authored so that additive blending drops the background out. It is
+  99% fully opaque, which is why no alpha test can shape it.
+* **Addressing is WRAP**, not CLAMP, so a stretched edge texel is not it.
+* **It is not a frame atlas.** Mesh UVs span `u 0..4, v -1..1` — the sheet is
+  tiled, not indexed.
+
+What is left is the one thing we do not run. Every fire material carries a
+**`0x0135` UV-animation plugin** (45, 31, 112, 27 and 22 occurrences across the
+Dahlia sheets), and the single fire texture that lacks it — `FX_fire_Dahlia_e`,
+the only one with a real alpha cutout — is also the only one authored as a plain
+sprite. The plugin holds a slot mask and a name:
+
+    FX_Generic_Torches_FX_Hub6_Torch
+
+and there is **no `0x2B` UV-animation dictionary anywhere in the archive**, so
+that name is resolved against an entity in the engine's effect system rather
+than a RenderWare chunk. The flame is a scrolling sheet: tiled UVs pushed
+through an animated 2D transform. Sampled statically, a scrolling flame sheet is
+exactly a still rectangular patch of flame — which is what we draw.
+
+Implementing it means finding what `FX_Generic_Torches` resolves to in the
+container's object graph and running the transform per frame. That is the next
+step; nothing in the texture or blend path remains to fix.
+
+### 4. Rooms with no lighting
 
 `HO_1_WomensRoom` and others render unlit. Vertex colours are present in every
 packet, so it is not a missing stream; suspect the world's own light data, or a
 section whose colours are genuinely zero.
 
-### 4. Textures missing versus materials with no texture
+### 5. Textures missing versus materials with no texture
 
 A mesh whose `texName` resolves but whose texture is absent renders black, and
 so does a material that legitimately has no texture — the big black wall panel
 in `HO_1_Lobby`. These two cases have to be told apart before either can be
 diagnosed.
 
-### 5. Native fog
+### 6. Native fog
 
 `CFogConfig`, one instance per level, visible in the type table and not read.
 
-### 6. Smaller items
+### 7. Smaller items
 
 * Collision face indices are read as `uint8`, so nothing past vertex 255 is
   reachable.
