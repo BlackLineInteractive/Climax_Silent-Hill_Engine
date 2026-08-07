@@ -19,16 +19,17 @@ Opens proprietary Climax Engine container files (no file extension — named lik
 ## Screenshots
 
 ![Dhalia House](media/s2-v0.2.png)
-![Pool Area](media/s0-v0.2.png)
+![Pool Area](media/poolarea-s0-v0.2.png)
 ![Intro Road](media/v0.2.png)
 ![Intro Road 2](media/s1-v0.2.png)
-![Motel](media/screenshot4.png)
+![Motel](media/MO_1_Courtyard.png)
 ![Butcher's Great Sword](media/ButchersGreatSword.png)
 ![Audio Test Room](media/audio-test-room.png)
 ![Ghost Rider](media/GR.png)
 
-![SHSM Wii](media/shsm-wii.png)
-![SHSM Wii 2](media/shsm-wii-s2.png)
+![SHSM Wii](media/shsm-wii-0.png)
+![SHSM Wii 1](media/shsm-wii-1.png)
+![SHSM Wii 2](media/shsm-wii-2.png)
 ![SHSM Wii 3](media/shsm-wii-3.png)
 ![SHSM Wii 4](media/shsm-wii-4.png)
 ![SHSM Wii 5](media/shsm-wii-5.png)
