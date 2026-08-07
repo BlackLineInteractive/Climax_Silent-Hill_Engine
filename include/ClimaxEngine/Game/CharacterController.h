@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#include "ClimaxEngine/Core/Common.h"
+#include "ClimaxEngine/Core/Types.h"
 
 namespace ClimaxEngine {
 namespace Game {
@@ -62,6 +62,15 @@ bool FindPlayerSpawn(const std::vector<GameObject> &objects, glm::vec3 &out);
 // walls looking in, so the wall is exactly what the test finds.
 bool HasLineOfSight(const CollisionMesh &world, const glm::vec3 &from,
                     const glm::vec3 &to);
+
+// Distance from `from` to the *last* surface crossed on the way to `to`, or a
+// negative value when the segment crosses nothing.
+//
+// The last one rather than the first: what matters for a camera buried in a
+// wall is where it finally enters the room the player stands in, and a thick
+// wall or a double-skinned one is crossed more than once.
+float LastBlockerAlong(const CollisionMesh &world, const glm::vec3 &from,
+                       const glm::vec3 &to);
 
 } // namespace Game
 } // namespace ClimaxEngine

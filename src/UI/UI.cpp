@@ -1,5 +1,6 @@
 #include "ClimaxEngine/UI/UI.h"
 #include "ClimaxEngine/Core/Common.h"
+#include "ClimaxEngine/Render/GPUMesh.h"
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Loader/Loader.h"
 #include "ClimaxEngine/SG/SceneObject.h"
@@ -15,6 +16,7 @@
 
 // Defined in main.cpp — persists the last-opened arc path to disk.
 extern void SaveArcPref(const std::string &arcPath);
+extern std::string LoadArcPref();
 
 static char arcFilter[128] = "";
 
@@ -50,11 +52,51 @@ static std::string DisplayPath(const std::string &raw, size_t maxLen = 52) {
   return s;
 }
 
+// Where the browser should open the first time it is used.
+//
+// The working directory is no help: launched from Finder, an .app bundle
+// inherits "/", so the browser opened on a list of system folders with the game
+// data twenty clicks away. Somewhere the game data has actually been seen is a
+// far better guess -- the mounted archive, then the one remembered from the
+// last run, then the home directory.
+static std::string DefaultBrowseDir() {
+  auto tryDir = [](const std::string &file, std::string &out) {
+    if (file.empty())
+      return false;
+    std::error_code ec;
+    const fs::path p = fs::path(file).parent_path();
+    if (p.empty() || !fs::is_directory(p, ec))
+      return false;
+    out = p.string();
+    return true;
+  };
+
+  std::string out;
+  if (auto *arc = ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance()
+                      .GetFirstArchive())
+    if (tryDir(arc->Path(), out))
+      return out;
+  if (tryDir(LoadArcPref(), out))
+    return out;
+
+#ifdef _WIN32
+  const char *home = std::getenv("USERPROFILE");
+#else
+  const char *home = std::getenv("HOME");
+#endif
+  std::error_code ec;
+  if (home && *home && fs::is_directory(home, ec))
+    return home;
+
+  const fs::path cwd = fs::current_path(ec);
+  return ec ? std::string("/") : cwd.string();
+}
+
 void FileBrowserState::Open(FileBrowserMode m) {
   mode = m;
   showBrowser = true;
   if (currentPath.empty()) {
-    currentPath = fs::current_path().string();
+    currentPath = DefaultBrowseDir();
   }
   RefreshEntries();
 }
@@ -706,7 +748,7 @@ void RenderStructureWindow() {
         ImGui::TextDisabled("@ 0x%05X  (%u B)", s.offset, s.size);
       }
       // Collision summary
-      if (g_Collision.uploaded) {
+      if (GpuPeek(g_Collision)) {
         ImGui::Spacing();
         ImGui::TextColored(ImVec4(0.15f, 0.95f, 0.30f, 1.0f),
                            "  Collision: %zu verts  %zu tris",

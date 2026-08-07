@@ -20,6 +20,7 @@
 
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
+#include "ClimaxEngine/Render/GPUMesh.h"
 #include "ClimaxEngine/SG/SceneObject.h"
 #include "ClimaxEngine/Loader/Export.h"
 #include "ClimaxEngine/Loader/Loader.h"
@@ -142,7 +143,8 @@ void SaveArcPref(const std::string& arcPath) {
     if (f) f << arcPath << "\n";
 }
 
-static std::string LoadArcPref() {
+// Not static: the file browser uses it to work out where to open.
+std::string LoadArcPref() {
     if (g_PrefsPath.empty()) return {};
     std::ifstream f(g_PrefsPath);
     std::string line;
@@ -935,8 +937,8 @@ void main(){
                         const float halfFov =
                             glm::radians(glm::min(c.fovDeg * 0.6f, 85.0f));
                         if (glm::dot(v / dist,
-                                     ClimaxEngine::Game::CameraAim(c, head)) <
-                            cosf(halfFov))
+                                     ClimaxEngine::Game::CameraAim(
+                                         c, c.position, head)) < cosf(halfFov))
                             return false;
                         return ClimaxEngine::Game::HasLineOfSight(g_Collision,
                                                                   c.position, head);
@@ -970,9 +972,6 @@ void main(){
                     // the designer put it and looks where they aimed it, which
                     // is the whole point of the framing in this game.
                     const LevelCamera& lc = g_Cameras[(size_t)state.activeCamera];
-                    state.camPosX = lc.position.x;
-                    state.camPosY = lc.position.y;
-                    state.camPosZ = lc.position.z;
                     state.camFovDeg = lc.fovDeg;
 
                     // The aim of a static camera is authored, and it is in the
@@ -989,12 +988,18 @@ void main(){
                     // nearer the playable space than -row2 on 654 cameras to
                     // 314, mean cosine 0.97, which settles the sign too.
                     //
-                    // Which cameras honour that and which track the player is
-                    // CameraAim's business, not the viewer's.
+                    // Which cameras honour that, which track the player, and how
+                    // the eye gets out from behind the wall it was placed in is
+                    // the game layer's business, not the viewer's.
                     const glm::vec3 subject(body.position.x,
                                             body.position.y + state.eyeHeight * 0.6f,
                                             body.position.z);
-                    const glm::vec3 look = ClimaxEngine::Game::CameraAim(lc, subject);
+                    glm::vec3 eye, look;
+                    ClimaxEngine::Game::ResolveCameraView(g_Collision, lc, subject,
+                                                          eye, look);
+                    state.camPosX = eye.x;
+                    state.camPosY = eye.y;
+                    state.camPosZ = eye.z;
 
                     // The subject, kept current so the near-plane clip below
                     // measures against the player and not a stale orbit pivot.
@@ -1037,20 +1042,23 @@ void main(){
         // Build matrices
         glm::vec3 eye;
         glm::mat4 view = BuildView(eye);
-        // Fixed cameras are routinely placed inside or behind a wall -- in
-        // HO_1_Hallway1 camEntrance sits at z = 3.20 while the floor ends at
-        // z = 2.0 -- and the game keeps the shot clean by clipping whatever is
-        // between the camera and its subject. With a 0.1 near plane that wall
-        // fills the screen instead, which is what "the camera goes outside the
-        // level" looks like. Pushing the near plane out in proportion to how
-        // far away the subject is reproduces the effect without needing to know
-        // which surfaces to hide.
+        // Fixed cameras are placed behind the walls of the room they film, so
+        // the view used to open on that wall. This was answered by pushing the
+        // near plane out in proportion to the distance to the subject, which
+        // cleared the wall but also sliced the front off the room and let the
+        // frame show the emptiness past the floor.
+        //
+        // Game::ResolveCameraView now steps the eye through the wall instead,
+        // so it renders from inside the room and the near plane can go back to
+        // being a near plane. A small proportional clip is kept for the case it
+        // declines to move -- when the wall sits so close to the player that
+        // stepping through would land the camera on top of him.
         float nearPlane = 0.1f;
         if (state.playMode && state.autoCameras && state.activeCamera >= 0 &&
             state.activeCamera < (int)g_Cameras.size()) {
             const glm::vec3 d = eye - glm::vec3(state.camTargetX, state.camTargetY,
                                                 state.camTargetZ);
-            nearPlane = glm::clamp(glm::length(d) * 0.25f, 0.1f, 3.0f);
+            nearPlane = glm::clamp(glm::length(d) * 0.05f, 0.1f, 0.6f);
         }
         glm::mat4 proj = glm::perspective(glm::radians(state.camFovDeg), aspect, nearPlane, 2000.0f);
         glm::mat4 mvp  = proj * view;
@@ -1345,11 +1353,11 @@ void main(){
         }
 
         // --- Collision render pass (solid fill + wireframe) ---
-        if (state.showCollision && g_Collision.uploaded && !g_Collision.indices.empty()) {
+        if (state.showCollision && GpuPeek(g_Collision) && !g_Collision.indices.empty()) {
             glUseProgram(collProg);
             glUniformMatrix4fv(glGetUniformLocation(collProg, "m"), 1, GL_FALSE, glm::value_ptr(mvp));
             glDisable(GL_CULL_FACE);
-            glBindVertexArray(g_Collision.vao);
+            glBindVertexArray(GpuFor(g_Collision).vao);
 
             if (state.showCollisionSolid) {
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -1832,10 +1840,10 @@ void main(){
         }
 
         // ---- Overlay objects (shown when loaded) -------------------
-        if (g_Collision.uploaded || !g_Clumps.empty()) {
+        if (GpuPeek(g_Collision) || !g_Clumps.empty()) {
             ImGui::Spacing();
             ImGui::SeparatorText("Overlay");
-            if (g_Collision.uploaded) {
+            if (GpuPeek(g_Collision)) {
                 ImGui::Checkbox("Collision Wire", &state.showCollision);
                 if (ImGui::IsItemHovered())
                     ImGui::SetTooltip("%zu verts  %zu tris",
@@ -2075,15 +2083,8 @@ void main(){
     glDeleteBuffers(1, &markerVbo);
     ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance().UnmountAll();
 
-    for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
-        for (auto* chunkPtr : obj->GetMeshes()) {
-            auto& chunk = *chunkPtr;
-            if (chunk.vao) glDeleteVertexArrays(1, &chunk.vao);
-            if (chunk.vbo) glDeleteBuffers(1, &chunk.vbo);
-        }
-    }
     for (auto& [name, id] : g_TextureMap) glDeleteTextures(1, &id);
-    g_Collision.Free();
+    ReleaseAllGpuMeshes();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplSDL2_Shutdown();

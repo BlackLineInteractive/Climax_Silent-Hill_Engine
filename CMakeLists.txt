@@ -105,33 +105,34 @@ if(SDL2_INCLUDE_DIRS)
 endif()
 
 # ── Application sources ───────────────────────────────────────────────────────
-set(APP_SOURCES
-    src/main.cpp
-    src/Core/Common.cpp
+# ── climax-core  (NO GL, NO SDL, NO ImGui) ────────────────────────────────────
+# Pure engine data: archive, RW streams, CPU geometry, audio PCM decode.
+# Any translation unit that links climax-core must compile clean without GL.
+# Only files that actually compile without GL are in here. Loader.cpp,
+# GeometryDecoder.cpp, SceneObject.cpp and Common.cpp still call GL directly
+# and still live in the toolkit target; moving them in one at a time, with the
+# build failing if they are not ready, is the whole point of this boundary.
+add_library(climax-core STATIC
     src/Core/RWS/FileSystem/CArchive.cpp
     src/Platform/PS2/AudioParser.cpp
-    src/Platform/PS2/RwsAudio.cpp
-    src/Platform/PS2/PS2Texture.cpp
-    src/Platform/Wii/WiiTexture.cpp
-    src/Rendering/RenderBackend.cpp
-    src/Rendering/GLSLBackend.cpp
-    src/Rendering/CPURasterizer.cpp
-    src/Loader/Loader.cpp
-    src/Loader/GeometryDecoder.cpp
-    src/SG/SceneObject.cpp
+    src/Platform/Wii/WiiGeometry.cpp
+)
+target_include_directories(climax-core PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/vendor
+)
+target_link_libraries(climax-core PUBLIC ZLIB::ZLIB glm::glm)
+
+# ── climax-game  (NO GL, NO SDL, NO ImGui) ────────────────────────────────────
+# Game logic: character controller, cameras, triggers, export.
+add_library(climax-game STATIC
     src/Game/CameraLinks.cpp
     src/Game/CharacterController.cpp
-    src/Loader/ResourceLoader.cpp
-    src/Platform/Wii/WiiGeometry.cpp
-    src/Loader/Export.cpp
-    src/UI/UI.cpp
 )
+target_link_libraries(climax-game PUBLIC climax-core)
 
-if(APPLE)
-    list(APPEND APP_SOURCES src/Rendering/MetalBackend.mm)
-endif()
-
-# ── ImGui sources (fetched) ───────────────────────────────────────────────────
+# ── ImGui / ImGuizmo / ImAnim sources ─────────────────────────────────────────
 set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
@@ -140,23 +141,50 @@ set(IMGUI_SOURCES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_sdl2.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
 )
+set(IMGUIZMO_SOURCES ${IMGUIZMO_DIR}/ImGuizmo.cpp)
+set(IMANIM_SOURCES   ${CMAKE_SOURCE_DIR}/src/UI/ImAnim/im_anim.cpp)
 
-# ── ImGuizmo & ImAnim sources (fetched) ────────────────────────────────────────────────
-set(IMGUIZMO_SOURCES
-    ${IMGUIZMO_DIR}/ImGuizmo.cpp
+# ── Toolkit exe  (SDL + GL + ImGui) ───────────────────────────────────────────
+set(TOOLKIT_RENDER_SOURCES
+    src/Rendering/RenderBackend.cpp
+    src/Rendering/GLSLBackend.cpp
+    src/Rendering/CPURasterizer.cpp
+    src/Rendering/GPUMesh.cpp
 )
+if(APPLE)
+    list(APPEND TOOLKIT_RENDER_SOURCES src/Rendering/MetalBackend.mm)
+endif()
 
-set(IMANIM_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/UI/ImAnim/im_anim.cpp
-)
-
-# ── Target ────────────────────────────────────────────────────────────────────
 add_executable(ClimaxGameEngineToolkit MACOSX_BUNDLE
-    ${APP_SOURCES}
+    src/main.cpp
+    src/UI/UI.cpp
+    # Still GL-bound, so still here rather than in climax-core.
+    src/Core/Common.cpp
+    src/Loader/Loader.cpp
+    src/Loader/GeometryDecoder.cpp
+    src/Loader/ResourceLoader.cpp
+    src/Loader/Export.cpp
+    src/SG/SceneObject.cpp
+    # RwsAudio plays through SDL and PS2Texture uploads to GL from inside the
+    # decoder; WiiTexture builds on PS2Texture. Splitting decode from upload is
+    # the next move, and until then they belong on this side of the line.
+    src/Platform/PS2/RwsAudio.cpp
+    src/Platform/PS2/PS2Texture.cpp
+    src/Platform/Wii/WiiTexture.cpp
+    ${TOOLKIT_RENDER_SOURCES}
     ${IMGUI_SOURCES}
     ${IMGUIZMO_SOURCES}
     ${IMANIM_SOURCES}
 )
+target_include_directories(ClimaxGameEngineToolkit PRIVATE
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+    ${IMGUIZMO_DIR}
+    ${CMAKE_SOURCE_DIR}/src/UI/ImAnim
+)
+if(SDL2_INCLUDE_DIRS)
+    target_include_directories(ClimaxGameEngineToolkit PRIVATE ${SDL2_INCLUDE_DIRS})
+endif()
 
 if(MSVC)
     target_compile_options(ClimaxGameEngineToolkit PRIVATE /W3 /utf-8 /permissive-)
@@ -189,13 +217,32 @@ if(ENABLE_LIBRW)
 endif()
 
 target_link_libraries(ClimaxGameEngineToolkit
+    climax-game     # includes climax-core transitively
     OpenGL::GL
     GLEW::GLEW
-    ZLIB::ZLIB
-    glm::glm
     ${SHO_SDL2_TARGETS}
     ${EXTRA_LIBS}
 )
+
+# ── climax-play  (port exe, NO ImGui) ─────────────────────────────────────────
+# Enforcement: if anyone adds #include "imgui.h" to game/core code,
+# this target will fail to link — making the violation a build error.
+option(BUILD_CLIMAX_PLAY "Build minimal play target without ImGui" OFF)
+if(BUILD_CLIMAX_PLAY)
+    add_executable(climax-play src/play_main.cpp
+        src/Rendering/RenderBackend.cpp
+        src/Rendering/GLSLBackend.cpp
+        src/Rendering/CPURasterizer.cpp
+    )
+    target_link_libraries(climax-play
+        climax-game
+        OpenGL::GL GLEW::GLEW
+        ${SHO_SDL2_TARGETS} ${EXTRA_LIBS}
+    )
+    # Explicit sentinel: any accidental imgui include will cause an
+    # undefined-symbol error at link time.
+    target_compile_definitions(climax-play PRIVATE CLIMAX_NO_IMGUI=1)
+endif()
 
 # Expose the exact RW version the SHO PS2 binary uses as a compile definition
 # so that any translation unit can reference it with SHO_RW_VERSION.

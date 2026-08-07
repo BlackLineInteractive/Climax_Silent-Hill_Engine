@@ -191,6 +191,39 @@ bool HasLineOfSight(const CollisionMesh &world, const glm::vec3 &from,
     return true;
 }
 
+float LastBlockerAlong(const CollisionMesh &world, const glm::vec3 &from,
+                       const glm::vec3 &to) {
+    const glm::vec3 dir = to - from;
+    const float dist = glm::length(dir);
+    if (dist < 1e-4f) return -1.0f;
+    const glm::vec3 d = dir / dist;
+
+    float best = -1.0f;
+    for (size_t i = 0; i + 2 < world.indices.size(); i += 3) {
+        const glm::vec3 &a = world.verts[world.indices[i]];
+        const glm::vec3 &b = world.verts[world.indices[i + 1]];
+        const glm::vec3 &c = world.verts[world.indices[i + 2]];
+
+        const glm::vec3 e1 = b - a, e2 = c - a;
+        const glm::vec3 h = glm::cross(d, e2);
+        const float det = glm::dot(e1, h);
+        if (std::abs(det) < 1e-7f) continue;
+
+        const float inv = 1.0f / det;
+        const glm::vec3 s = from - a;
+        const float u = glm::dot(s, h) * inv;
+        if (u < 0.0f || u > 1.0f) continue;
+
+        const glm::vec3 q = glm::cross(s, e1);
+        const float v = glm::dot(d, q) * inv;
+        if (v < 0.0f || u + v > 1.0f) continue;
+
+        const float t = glm::dot(e2, q) * inv;
+        if (t > 0.05f && t < dist - 0.05f && t > best) best = t;
+    }
+    return best;
+}
+
 bool FindPlayerSpawn(const std::vector<GameObject> &objects, glm::vec3 &out) {
     for (const GameObject &go : objects) {
         if (go.className != "CPlayerSpawner" || go.atOrigin) continue;

@@ -44,7 +44,14 @@ public:
     void AddMesh(MeshChunk&& mesh) {
         m_meshes.push_back(std::move(mesh));
     }
-    
+
+    // The chunk just added. The decoder uploads through this rather than
+    // through its own local, because AddMesh moves the chunk and m_meshes is a
+    // vector -- the address the decoder held does not survive either the move
+    // or the next reallocation.
+    MeshChunk& LastMesh() { return m_meshes.back(); }
+
+
     std::vector<MeshChunk*> GetMeshes() override;
 
 protected:

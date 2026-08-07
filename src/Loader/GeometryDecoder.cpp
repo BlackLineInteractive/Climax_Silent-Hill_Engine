@@ -1,4 +1,5 @@
 #include "GeometryDecoder.h"
+#include "ClimaxEngine/Render/GPUMesh.h"
 #include <iostream>
 #include "ClimaxEngine/Core/Common.h"
 #include <cstring>
@@ -763,29 +764,11 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
       if (matId >= 0 && matId < (int)localCols.size())
         m.matColor = localCols[matId];
     }
-    glGenVertexArrays(1, &m.vao);
-    glGenBuffers(1, &m.vbo);
-    glBindVertexArray(m.vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
-    glBufferData(GL_ARRAY_BUFFER, (GLsizei)(m.vertices.size() * sizeof(Vertex)),
-                 m.vertices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *)offsetof(Vertex, uv));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *)offsetof(Vertex, color));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *)offsetof(Vertex, boneWeights));
-    glEnableVertexAttribArray(3);
-    // boneIds is an array of uint8_t, but we pass it as float attributes by using glVertexAttribPointer instead of glVertexAttribIPointer? Or we use GL_UNSIGNED_BYTE and normalize=false? Yes, GL_UNSIGNED_BYTE. Wait, if we use GL_UNSIGNED_BYTE, it might normalize them to 0-1 if GL_TRUE is passed, but we want integer values. We can pass GL_UNSIGNED_BYTE and GL_FALSE.
-    // Or we can use glVertexAttribIPointer, but glVertexAttribPointer with GL_UNSIGNED_BYTE, GL_FALSE will convert them to float without normalizing.
-    glVertexAttribPointer(4, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex),
-                          (void *)offsetof(Vertex, boneIds));
-    glEnableVertexAttribArray(4);
+    // Uploaded through the owner's copy, not this local one: AddMesh moves the
+    // chunk, and the GPU handle has to end up on the object that survives.
     destObj->AddMesh(std::move(m));
+    GpuFor(destObj->LastMesh()).Upload(destObj->LastMesh());
+
   };
 
   // Reads the BinMesh split table and the matching native VIF blocks.
@@ -1265,11 +1248,8 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                   auto ch = meshes[k];
                   for (auto &v : ch->vertices)
                     v.pos = glm::vec3(fm * glm::vec4(v.pos, 1.0f));
-                  // The VBO was filled before the transform, so refresh it.
-                  glBindBuffer(GL_ARRAY_BUFFER, ch->vbo);
-                  glBufferData(GL_ARRAY_BUFFER,
-                               (GLsizeiptr)(ch->vertices.size() * sizeof(Vertex)),
-                               ch->vertices.data(), GL_STATIC_DRAW);
+                  // The buffer was filled before the transform, so refresh it.
+                  GpuFor(*ch).Upload(*ch);
                 }
               }
               geomIndex++;

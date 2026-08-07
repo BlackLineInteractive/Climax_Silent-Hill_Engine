@@ -2,6 +2,7 @@
 #include "ClimaxEngine/Core/RWS/RwStream.h"
 #include "ClimaxEngine/SG/SceneObject.h"
 #include "ClimaxEngine/Loader/Loader.h"
+#include "ClimaxEngine/Render/GPUMesh.h"
 #include "ClimaxEngine/Game/CameraLinks.h"
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
@@ -193,28 +194,8 @@ static void ApplyAlphaMasks() {
 // vertex arrays and leaves the upload to here.
 static void UploadChunks() {
   for (auto &m : g_Chunks) {
-    if (m.vao || m.vertices.empty()) continue;
-    glGenVertexArrays(1, &m.vao);
-    glGenBuffers(1, &m.vbo);
-    glBindVertexArray(m.vao);
-    glBindBuffer(GL_ARRAY_BUFFER, m.vbo);
-    glBufferData(GL_ARRAY_BUFFER, (GLsizei)(m.vertices.size() * sizeof(Vertex)),
-                 m.vertices.data(), GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *)offsetof(Vertex, uv));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *)offsetof(Vertex, color));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex),
-                          (void *)offsetof(Vertex, boneWeights));
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(4, 4, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex),
-                          (void *)offsetof(Vertex, boneIds));
-    glEnableVertexAttribArray(4);
-    glBindVertexArray(0);
+    if (GpuPeek(m) || m.vertices.empty()) continue;
+    GpuFor(m).Upload(m);
   }
 }
 
@@ -249,7 +230,7 @@ static void ParseShsmContainer(const std::vector<uint8_t> &d) {
   g_Clumps.clear();
   g_GameObjects.clear();
   g_Sounds.clear();
-  g_Collision.Free();
+  ResetCollision(g_Collision);
 
   auto le = [&](size_t o) -> uint32_t {
     if (o + 4 > d.size()) return 0;
@@ -1021,7 +1002,7 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
   g_Clumps.clear();
   g_GameObjects.clear();
   g_Sounds.clear();
-  g_Collision.Free();
+  ResetCollision(g_Collision);
 
   const size_t sz = data.size();
   if (sz < 16)
@@ -1595,7 +1576,7 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
 
   // ── 3. Upload collision mesh to GPU ───────────────────────────
   if (!g_Collision.verts.empty())
-    g_Collision.Upload();
+    GpuFor(g_Collision).Upload(g_Collision);
 
   // ── 3b. Resolve GUID references: place re-usable model sections ─
   //

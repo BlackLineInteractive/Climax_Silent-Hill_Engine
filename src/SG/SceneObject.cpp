@@ -1,4 +1,5 @@
 #include "ClimaxEngine/SG/SceneObject.h"
+#include "ClimaxEngine/Render/GPUMesh.h"
 #include <GL/glew.h>
 #include <iostream>
 #include <glm/gtc/type_ptr.hpp>
@@ -33,8 +34,7 @@ void CWorldObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
     glUniformMatrix4fv(ctx.uModel, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0f)));
     glUniform1i(ctx.uUseSkinning, 0);
 
-    glBindVertexArray(chunk->vao);
-    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk->vertices.size());
+    GpuFor(*chunk).Draw();
 }
 
 // PS2 characters are segmented, not vertex-skinned.
@@ -153,8 +153,7 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
     glUniformMatrix4fv(ctx.uModel, 1, GL_FALSE, glm::value_ptr(model));
     glUniform1i(ctx.uUseSkinning, skinned ? 1 : 0);
 
-    glBindVertexArray(chunk->vao);
-    glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk->vertices.size());
+    GpuFor(*chunk).Draw();
 }
 
 } // namespace SG

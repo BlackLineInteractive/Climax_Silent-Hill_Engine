@@ -1,5 +1,7 @@
 #include "ClimaxEngine/Game/CameraLinks.h"
 
+#include "ClimaxEngine/Game/CharacterController.h"
+
 #include <cmath>
 
 namespace ClimaxEngine {
@@ -15,8 +17,9 @@ int FindCameraByName(const std::vector<LevelCamera> &cameras,
   return -1;
 }
 
-glm::vec3 CameraAim(const LevelCamera &cam, const glm::vec3 &subject) {
-  glm::vec3 v = subject - cam.position;
+glm::vec3 CameraAim(const LevelCamera &cam, const glm::vec3 &eye,
+                    const glm::vec3 &subject) {
+  glm::vec3 v = subject - eye;
   if (glm::length(v) < 1e-3f)
     return cam.forward;
   v = glm::normalize(v);
@@ -49,6 +52,26 @@ glm::vec3 CameraAim(const LevelCamera &cam, const glm::vec3 &subject) {
     v = glm::vec3(h.x, minY, h.y);
   }
   return v;
+}
+
+void ResolveCameraView(const CollisionMesh &world, const LevelCamera &cam,
+                       const glm::vec3 &subject, glm::vec3 &eyeOut,
+                       glm::vec3 &lookOut) {
+  eyeOut = cam.position;
+
+  const glm::vec3 v = subject - eyeOut;
+  const float dist = glm::length(v);
+  if (dist > 1e-3f && !world.indices.empty()) {
+    const float t = LastBlockerAlong(world, eyeOut, subject);
+    // Clear the surface just crossed, and never step so far that the camera
+    // lands on top of the player -- a shot needs room to be a shot.
+    const float kClear = 0.25f;
+    const float kMinShot = 1.5f;
+    if (t > 0.0f && t + kClear < dist - kMinShot)
+      eyeOut += (v / dist) * (t + kClear);
+  }
+
+  lookOut = CameraAim(cam, eyeOut, subject);
 }
 
 std::vector<CameraSwitch> BuildCameraSwitches(

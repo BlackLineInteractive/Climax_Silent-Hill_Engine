@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "ClimaxEngine/Core/Common.h"
+#include "ClimaxEngine/Core/Types.h"
 
 // Level logic recovered from the object graph, with no dependency on the
 // viewer: no ImGui, no AppState, no render types. This is the part meant to
@@ -55,7 +55,22 @@ int FindCameraByName(const std::vector<LevelCamera> &cameras,
 // what "constraint camera" means. Its 21-property table holds the real tracking
 // limits and none of them are decoded yet, so here it simply follows the
 // player, stopped only from tipping further than a camera plausibly would.
-glm::vec3 CameraAim(const LevelCamera &cam, const glm::vec3 &subject);
+glm::vec3 CameraAim(const LevelCamera &cam, const glm::vec3 &eye,
+                    const glm::vec3 &subject);
+
+// The eye position and look direction to render a camera with, given where the
+// player is and what the level is built of.
+//
+// A fixed camera is routinely placed behind the room it films -- camEntrance in
+// HO_1_Hallway1 stands at z = 3.20 while the floor stops at z = 2.00. From
+// there a part of the frustum falls outside the level's geometry entirely and
+// shows the void past the floor and the wall. So the eye is stepped through the
+// last surface between it and the player, putting it in the same room he is in.
+// How far it moves comes from the collision mesh, so a thick wall moves it
+// further than a thin one without anything being tuned.
+void ResolveCameraView(const CollisionMesh &world, const LevelCamera &cam,
+                       const glm::vec3 &subject, glm::vec3 &eyeOut,
+                       glm::vec3 &lookOut);
 
 // Tracks which side of each switch plane the player is on, and reports the
 // camera to cut to when one is crossed.
