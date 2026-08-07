@@ -37,6 +37,11 @@ struct Bone {
   int parent = -1;
   glm::mat4 restLocal = glm::mat4(1.0f);
   glm::mat4 invBind = glm::mat4(1.0f);
+  // From the frame's HAnim PLG (0x011E). `boneId` is the identity the animation
+  // data refers to; `trackIndex` is this bone's position in the hierarchy table,
+  // which is the order the clip's keyframe tracks come in.
+  int boneId = -1;
+  int trackIndex = -1;
 };
 
 struct AnimTrack {

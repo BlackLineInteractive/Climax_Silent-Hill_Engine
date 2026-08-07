@@ -379,7 +379,8 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                               clumpObj->skeleton.bones[i].parent = parentId;
                           }
                           
-                          // Now parse the extensions for bone names
+                          // Now parse the extensions for bone ids and names
+                          std::vector<int32_t> hanimOrder;
                           size_t extOff = st + 12 + ru32(st + 4);
                           std::cout << "[scene] Clump " << destObj->GetName() << " got skeleton with " << n << " bones!\n";
                           for (uint32_t i = 0; i < n; i++) {
@@ -395,6 +396,32 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                                   uint32_t childSize = ru32(child + 4);
                                   if (childSize == 0 || child + 12 + childSize > extEnd) break;
                                   
+                                  if (childType == 0x011E) {
+                                      // HAnim PLG. Every frame carries its own
+                                      // bone id; exactly one -- the hierarchy
+                                      // root -- also carries the whole table,
+                                      // and the order of that table is the
+                                      // order the clip's tracks come in.
+                                      size_t d = child + 12;
+                                      if (d + 12 <= extEnd) {
+                                          int32_t boneId = 0;
+                                          uint32_t boneCount = 0;
+                                          memcpy(&boneId, &payload[d + 4], 4);
+                                          memcpy(&boneCount, &payload[d + 8], 4);
+                                          clumpObj->skeleton.bones[i].boneId = boneId;
+                                          if (boneCount && boneCount < 1024 &&
+                                              d + 20 + (size_t)boneCount * 12 <= extEnd) {
+                                              hanimOrder.clear();
+                                              hanimOrder.reserve(boneCount);
+                                              for (uint32_t bx = 0; bx < boneCount; ++bx) {
+                                                  int32_t id = 0;
+                                                  memcpy(&id, &payload[d + 20 + (size_t)bx * 12], 4);
+                                                  hanimOrder.push_back(id);
+                                              }
+                                          }
+                                      }
+                                  }
+
                                   if (childType == 0x011F) { // UserData PLG (bone names)
                                       size_t d = child + 12;
                                       if (d + 4 <= extEnd) {
@@ -423,6 +450,34 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                                   clumpObj->skeleton.bones[i].name = (i == 0) ? "RootBone" : "Bone" + std::to_string(i);
                               }
                               extOff += 12 + extSize;
+                          }
+
+                          // The hierarchy table's order is the track order, so
+                          // a bone's position in it is the index of its clip
+                          // track. Without this the tracks would be applied to
+                          // whatever frame happened to sit at the same index.
+                          if (!hanimOrder.empty()) {
+                              for (auto &bone : clumpObj->skeleton.bones) {
+                                  for (size_t t = 0; t < hanimOrder.size(); ++t) {
+                                      if (hanimOrder[t] == bone.boneId) {
+                                          bone.trackIndex = (int)t;
+                                          break;
+                                      }
+                                  }
+                              }
+                              // Every frame but the clump root binds to a
+                              // track; anything else means the table and the
+                              // frame list disagree and the pose would be
+                              // applied to the wrong bones.
+                              size_t bound = 0;
+                              for (auto &bone : clumpObj->skeleton.bones)
+                                  if (bone.trackIndex >= 0) bound++;
+                              if (bound != hanimOrder.size())
+                                  std::cout << "[hanim] " << destObj->GetName()
+                                            << ": table has " << hanimOrder.size()
+                                            << " bones but " << bound << " of "
+                                            << clumpObj->skeleton.bones.size()
+                                            << " frames bound\n";
                           }
                       }
                   }

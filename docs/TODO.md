@@ -135,14 +135,41 @@ and MatFX (character materials carry no `0x0120`). Material `0x011F` UserData is
 still unused and still names a second texture (`n1` = `Env02`, an environment
 map) on some materials, so dual-layer characters remain undrawn.
 
-### 2. Animation
+### 2. Animation — clips now decode
 
-Specified in [ANIMATION_SPEC.md](ANIMATION_SPEC.md) and not implemented. The
-riskiest unknown is settled: skin weights are **not** in the VIF packets — all
-104 packets of `CIGCCharacter.Alessa` carry exactly four streams at VU addresses
-0–3 — so they live in `Skin PLG (0x0116)` in its native layout, and step 1 of
-the spec can be skipped. Start from the skeleton (FrameList + HAnim) drawn as a
-bone overlay in the rest pose.
+See [ANIMATION_SPEC.md](ANIMATION_SPEC.md). Two of the four pieces are done.
+
+**Clips are read.** `CPlayerBehaviour.Travis` yields **147 clips**, and there
+are **3029** across the archive. Two traps had to be cleared first:
+
+* Clips are `0x1B` chunks sitting **directly in the stream**, not inside a
+  `0x716` shell, so the section walk never reached them and the existing decoder
+  never ran. They are also **not word aligned** — the same pair of traps the UV
+  animations sprang.
+* The layout is confirmed by arithmetic over all 3029: every clip satisfies
+  `chunkSize == 20 + 24 + records*20` — the `RtAnimAnimation` header, six floats
+  of translation offset and scale, then one 20-byte record per keyframe.
+
+**Track roots are marked by a saved pointer, not by a zero.** Each record holds
+a byte offset back to the previous keyframe of its track, but the *first* record
+of each track keeps the runtime pointer the file was written with. Those read as
+large negatives stepping by exactly the 20-byte stride. Testing `prevOffset == 0`
+for a root — which the old code did — finds nothing at all. The rule that works
+is "anything that does not resolve to an earlier record in this clip".
+
+**The counts cross-check.** Travis's clips carry 34–53 tracks; his skeleton has
+54 frames. The one-frame difference is the clump root, which HAnim does not
+animate. The 53 also matches the number of pointer-valued records counted
+independently in the raw data.
+
+One decoding bug fixed on the way: `glm::quat` takes the scalar **first**, and
+the old code passed `(x, y, z, w)`, which put `-qx` into `w` and `qw` into `z` —
+a different rotation entirely.
+
+**Still to do:** map tracks to bones through the HAnim PLG (`0x011E`) bone
+table, read `Skin PLG (0x0116)` for the inverse bind matrices and per-vertex
+weights, then evaluate and skin. The player UI already has the transport and a
+timeline; it drives nothing until those two land.
 
 ### 3. Fire — done, with two loose ends
 
