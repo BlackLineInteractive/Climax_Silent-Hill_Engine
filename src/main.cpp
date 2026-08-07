@@ -919,23 +919,36 @@ void main(){
                     const glm::vec3 head(body.position.x,
                                          body.position.y + state.eyeHeight * 0.6f,
                                          body.position.z);
-                    const bool blocked =
-                        state.activeCamera < 0 ||
-                        state.activeCamera >= (int)g_Cameras.size() ||
-                        !ClimaxEngine::Game::HasLineOfSight(
-                            g_Collision, g_Cameras[(size_t)state.activeCamera].position,
-                            head);
-                    if (blocked) {
-                        int best = -1;
-                        float bestDist = 1e9f;
+                    // Too close is as bad as blocked: standing almost on top
+                    // of a camera turns the look direction nearly vertical and
+                    // the shot becomes a study of the ceiling.
+                    const float kMinFraming = 1.8f;
+                    auto usable = [&](int idx) {
+                        if (idx < 0 || idx >= (int)g_Cameras.size()) return false;
+                        const glm::vec3 &cp = g_Cameras[(size_t)idx].position;
+                        if (glm::length(cp - head) < kMinFraming) return false;
+                        return ClimaxEngine::Game::HasLineOfSight(g_Collision, cp, head);
+                    };
+
+                    if (!usable(state.activeCamera)) {
+                        // Prefer the closest camera that frames the player
+                        // properly; falling back to any that merely sees him
+                        // keeps a shot on screen in rooms where every camera is
+                        // tight.
+                        int best = -1, anySight = -1;
+                        float bestDist = 1e9f, anyDist = 1e9f;
                         for (size_t k = 0; k < g_Cameras.size(); ++k) {
-                            if (!ClimaxEngine::Game::HasLineOfSight(
-                                    g_Collision, g_Cameras[k].position, head))
+                            const glm::vec3 &cp = g_Cameras[k].position;
+                            if (!ClimaxEngine::Game::HasLineOfSight(g_Collision, cp, head))
                                 continue;
-                            const float dd = glm::length(g_Cameras[k].position - head);
-                            if (dd < bestDist) { bestDist = dd; best = (int)k; }
+                            const float dd = glm::length(cp - head);
+                            if (dd < anyDist) { anyDist = dd; anySight = (int)k; }
+                            if (dd >= kMinFraming && dd < bestDist) {
+                                bestDist = dd; best = (int)k;
+                            }
                         }
                         if (best >= 0) state.activeCamera = best;
+                        else if (anySight >= 0) state.activeCamera = anySight;
                     }
                 }
 
