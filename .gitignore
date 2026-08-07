@@ -6,7 +6,6 @@ vendor/
 
 # Build outputs
 build/
-SHOViewer
 *.o
 *.a
 *.so
@@ -25,12 +24,10 @@ compile_commands.json
 install_manifest.txt
 
 # Game assets (do not redistribute)
-Motel/
 *.txd
 *.TXD
 
-game/
-original_iso/
+game-iso/
 
 # Editor / IDE
 .vscode/

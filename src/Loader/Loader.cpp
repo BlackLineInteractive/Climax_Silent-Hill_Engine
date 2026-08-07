@@ -442,6 +442,18 @@ void LoadLevelData(const std::string &displayName,
           std::cout << "         " << sw[k].nameA << " (" << sw[k].cameraA << ")  ->  "
                     << sw[k].nameB << " (" << sw[k].cameraB << ")\n";
       }
+      if (!g_Collision.indices.empty()) {
+        double maxEdge = 0.0, sum = 0.0; size_t tris = g_Collision.indices.size()/3;
+        for (size_t k = 0; k + 2 < g_Collision.indices.size(); k += 3) {
+          const glm::vec3 &A = g_Collision.verts[g_Collision.indices[k]];
+          const glm::vec3 &B = g_Collision.verts[g_Collision.indices[k+1]];
+          const glm::vec3 &C = g_Collision.verts[g_Collision.indices[k+2]];
+          double e = std::max({glm::length(B-A), glm::length(C-B), glm::length(A-C)});
+          maxEdge = std::max(maxEdge, e); sum += e;
+        }
+        std::cout << "[coll] verts=" << g_Collision.verts.size() << " tris=" << tris
+                  << " meanEdge=" << (sum/tris) << " maxEdge=" << maxEdge << "\n";
+      }
       std::cout << "[scene] blend modes:";
       for (auto &kv : bm)
         std::cout << " " << kv.first << "=" << kv.second
@@ -1281,27 +1293,39 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
           uint32_t numNodes = ru32(doff + 12); // BSP node count (8 bytes each)
           if (numVerts > 0 && numVerts < 4096 &&
               doff + 32 + numVerts * 16 <= cs + co + 12) {
+            // Indices below are local to this block, but every block appends
+            // into one shared vertex array, so they have to be rebased. Without
+            // this, the second and later blocks index into the first block's
+            // vertices and the mesh collapses into a fan of long spikes.
+            const uint32_t vertBase = (uint32_t)g_Collision.verts.size();
             // Extract vertices (x,y,z, flags) 16 bytes each
             size_t vbase = doff + 32;
             for (uint32_t vi = 0; vi < numVerts; ++vi) {
               float x = rf32(vbase + vi * 16 + 0);
               float y = rf32(vbase + vi * 16 + 4);
               float z = rf32(vbase + vi * 16 + 8);
-              if (std::isfinite(x) && std::isfinite(z))
-                g_Collision.verts.push_back({x, y, z});
+              // Every vertex must occupy its slot even when it is garbage:
+              // dropping one shifts every later index in the block by one, so
+              // a single bad value used to smear the whole mesh.
+              if (!std::isfinite(x) || !std::isfinite(y) || !std::isfinite(z))
+                x = y = z = 0.0f;
+              g_Collision.verts.push_back({x, y, z});
             }
             // Triangle indices (u8 packed: a,b,c,flags) after vert+node data
             size_t faceOff = vbase + numVerts * 16 + numNodes * 8;
             size_t faceEnd = co + 12 + cs;
-            uint32_t nv = (uint32_t)g_Collision.verts.size();
+            // Bounds are checked against this block's own vertex count, not
+            // the running total, so a stray index cannot silently alias onto an
+            // earlier block's geometry.
             while (faceOff + 4 <= faceEnd) {
               uint8_t a = data[faceOff], b = data[faceOff + 1],
                       c = data[faceOff + 2];
               faceOff += 4;
-              if (a < nv && b < nv && c < nv && a != b && b != c && a != c) {
-                g_Collision.indices.push_back(a);
-                g_Collision.indices.push_back(b);
-                g_Collision.indices.push_back(c);
+              if (a < numVerts && b < numVerts && c < numVerts && a != b &&
+                  b != c && a != c) {
+                g_Collision.indices.push_back(vertBase + a);
+                g_Collision.indices.push_back(vertBase + b);
+                g_Collision.indices.push_back(vertBase + c);
               }
             }
           }
