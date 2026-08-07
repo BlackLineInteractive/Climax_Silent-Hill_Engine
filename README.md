@@ -54,12 +54,21 @@ Opens proprietary Climax Engine container files (no file extension — named lik
   nested archives, labels entries from their contents (the archive stores no names),
   and renders them: GX display-list geometry for levels, props and characters, plus
   the GameCube/Wii textures — CMPR, RGBA8, RGB5A3, I4/I8/IA4/IA8, RGB565
-- **Audio player** — the level's own sound bank (footsteps, doors, room tone), the 75 music
-  streams from `MUSIC/`, and the 35 cutscene tracks from `IGC.ARC`, with seeking, looping
-  and WAV export
+- **Playback panel** — sound, skeletal animation and UV animation in one window:
+  the level's own sound bank (footsteps, doors, room tone), the 75 music streams from
+  `MUSIC/` and the 35 cutscene tracks from `IGC.ARC`, with seeking, looping and WAV export
+- **Material blend modes from the asset** — the `0x0A01` material extension carries the
+  mode the engine reads through `ClimaxT1MaterialGetFrameBlendMode`: standard alpha,
+  additive, subtractive, and `NONE`, which writes the surface straight out and ignores
+  alpha entirely. That last one is what character skin relies on
+- **Animated fire** — the `0x2B` sections hold RenderWare UV animations, and the flame
+  materials name one. Two tiled sheets scroll past each other at different rates; without
+  it a flame is a still rectangle
 - Parse and render SHO container files with embedded geometry, materials, and PS2 textures
 - Decode native PS2 PSMT4 / PSMT8 / PSMCT32 texture formats via software unswizzle
-- Seven render modes: Textured, Vertex Color, Flat Shaded, Normals, Depth, Checkerboard, Unlit
+- Eight render modes: Textured, Vertex Color, Flat Shaded, Normals, Depth, Checkerboard, Unlit
+- Skeletal animation clips decoded — 3029 across the archive, with the bone table read from
+  the HAnim plugin; evaluation and skinning are not wired up yet
 - Collision mesh overlay with optional semi-transparent fill
 - Clump object markers (octahedron wireframe + projected labels)
 - ImGuizmo translate gizmo for interactive pivot repositioning

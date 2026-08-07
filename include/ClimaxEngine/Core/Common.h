@@ -320,6 +320,11 @@ struct ViewerState {
 
   // Animation player
   bool showAnimPlayer = false;
+  // UI settings, kept with the rest of the viewer state so one Settings section
+  // owns them instead of them being scattered across the panel.
+  float uiScale     = 1.0f;   // font/global scale
+  float uiAnimSpeed = 1.0f;   // ImAnim global time scale; 0 disables motion
+  bool  uiTooltips  = true;
   // UV animation runs off the scene clock; these only pause and rescale it.
   bool  uvAnimRun = true;
   float uvAnimSpeed = 1.0f;

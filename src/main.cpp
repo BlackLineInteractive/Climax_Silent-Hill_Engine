@@ -336,7 +336,7 @@ int main(int argc, char* argv[]) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    SDL_Window* win = SDL_CreateWindow("Climax Silent Hill Engine Toolkit 0.2",
+    SDL_Window* win = SDL_CreateWindow("Climax Silent Hill Engine Toolkit 0.5",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!win) {
@@ -409,46 +409,78 @@ int main(int argc, char* argv[]) {
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr; // don't write imgui.ini
 
-    // ---- Dark theme (Unity-like) ----
+    // ---- Theme ----
+    //
+    // Everything used to be the same grey, so nothing told you what was on,
+    // what was interactive and what was just a label. One warm accent now
+    // carries state -- checkmarks, slider grabs, the active tab, selection --
+    // against a cool neutral chrome, which is enough hierarchy without turning
+    // the tool into a paintbox.
     ImGui::StyleColorsDark();
     ImGuiStyle& style = ImGui::GetStyle();
-    style.WindowRounding    = 6.0f;
-    style.ChildRounding     = 4.0f;
-    style.FrameRounding     = 4.0f;
-    style.PopupRounding     = 4.0f;
-    style.ScrollbarRounding = 4.0f;
-    style.GrabRounding      = 4.0f;
-    style.TabRounding       = 4.0f;
-    style.WindowPadding     = ImVec2(10, 10);
-    style.FramePadding      = ImVec2(6, 4);
-    style.ItemSpacing       = ImVec2(8, 5);
-    style.IndentSpacing     = 16.0f;
+    style.WindowRounding    = 7.0f;
+    style.ChildRounding     = 5.0f;
+    style.FrameRounding     = 5.0f;
+    style.PopupRounding     = 5.0f;
+    style.ScrollbarRounding = 6.0f;
+    style.GrabRounding      = 5.0f;
+    style.TabRounding       = 5.0f;
+    style.WindowPadding     = ImVec2(12, 11);
+    style.FramePadding      = ImVec2(8, 5);
+    style.ItemSpacing       = ImVec2(8, 7);
+    style.ItemInnerSpacing  = ImVec2(7, 5);
+    style.IndentSpacing     = 18.0f;
     style.ScrollbarSize     = 12.0f;
+    style.GrabMinSize       = 11.0f;
+    style.WindowBorderSize  = 1.0f;
+    style.FrameBorderSize   = 0.0f;
+    style.SeparatorTextBorderSize = 2.0f;
+    style.SeparatorTextPadding    = ImVec2(18, 4);
+
+    const ImVec4 accent      = ImVec4(0.85f, 0.51f, 0.24f, 1.00f);  // rust
+    const ImVec4 accentHi    = ImVec4(0.95f, 0.62f, 0.33f, 1.00f);
+    const ImVec4 accentDim   = ImVec4(0.52f, 0.31f, 0.15f, 1.00f);
+
     ImVec4* c = style.Colors;
-    c[ImGuiCol_WindowBg]          = ImVec4(0.09f, 0.09f, 0.10f, 0.97f);
-    c[ImGuiCol_ChildBg]           = ImVec4(0.07f, 0.07f, 0.08f, 0.90f);
-    c[ImGuiCol_PopupBg]           = ImVec4(0.09f, 0.09f, 0.11f, 0.97f);
-    c[ImGuiCol_Border]            = ImVec4(0.28f, 0.28f, 0.32f, 0.55f);
-    c[ImGuiCol_FrameBg]           = ImVec4(0.14f, 0.14f, 0.16f, 1.00f);
-    c[ImGuiCol_FrameBgHovered]    = ImVec4(0.20f, 0.20f, 0.24f, 1.00f);
-    c[ImGuiCol_FrameBgActive]     = ImVec4(0.26f, 0.26f, 0.30f, 1.00f);
-    c[ImGuiCol_TitleBg]           = ImVec4(0.07f, 0.07f, 0.08f, 1.00f);
-    c[ImGuiCol_TitleBgActive]     = ImVec4(0.11f, 0.11f, 0.13f, 1.00f);
-    c[ImGuiCol_Header]            = ImVec4(0.16f, 0.16f, 0.20f, 0.80f);
-    c[ImGuiCol_HeaderHovered]     = ImVec4(0.22f, 0.22f, 0.26f, 1.00f);
-    c[ImGuiCol_HeaderActive]      = ImVec4(0.28f, 0.28f, 0.34f, 1.00f);
-    c[ImGuiCol_Button]            = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
-    c[ImGuiCol_ButtonHovered]     = ImVec4(0.26f, 0.26f, 0.30f, 1.00f);
-    c[ImGuiCol_ButtonActive]      = ImVec4(0.34f, 0.34f, 0.40f, 1.00f);
-    c[ImGuiCol_SliderGrab]        = ImVec4(0.42f, 0.42f, 0.50f, 1.00f);
-    c[ImGuiCol_SliderGrabActive]  = ImVec4(0.54f, 0.54f, 0.62f, 1.00f);
-    c[ImGuiCol_CheckMark]         = ImVec4(0.80f, 0.80f, 0.86f, 1.00f);
-    c[ImGuiCol_Tab]               = ImVec4(0.11f, 0.11f, 0.13f, 1.00f);
-    c[ImGuiCol_TabHovered]        = ImVec4(0.22f, 0.22f, 0.26f, 1.00f);
-    c[ImGuiCol_TabActive]         = ImVec4(0.16f, 0.16f, 0.20f, 1.00f);
-    c[ImGuiCol_Separator]         = ImVec4(0.28f, 0.28f, 0.34f, 0.80f);
-    c[ImGuiCol_ScrollbarBg]       = ImVec4(0.06f, 0.06f, 0.07f, 0.80f);
-    c[ImGuiCol_ScrollbarGrab]     = ImVec4(0.24f, 0.24f, 0.28f, 1.00f);
+    c[ImGuiCol_WindowBg]          = ImVec4(0.075f, 0.075f, 0.085f, 0.98f);
+    c[ImGuiCol_ChildBg]           = ImVec4(0.055f, 0.055f, 0.065f, 0.92f);
+    c[ImGuiCol_PopupBg]           = ImVec4(0.085f, 0.085f, 0.098f, 0.99f);
+    c[ImGuiCol_Border]            = ImVec4(0.24f, 0.24f, 0.28f, 0.60f);
+    c[ImGuiCol_FrameBg]           = ImVec4(0.135f, 0.135f, 0.155f, 1.00f);
+    c[ImGuiCol_FrameBgHovered]    = ImVec4(0.195f, 0.195f, 0.225f, 1.00f);
+    c[ImGuiCol_FrameBgActive]     = ImVec4(0.245f, 0.245f, 0.285f, 1.00f);
+    c[ImGuiCol_TitleBg]           = ImVec4(0.065f, 0.065f, 0.075f, 1.00f);
+    c[ImGuiCol_TitleBgActive]     = ImVec4(0.105f, 0.105f, 0.125f, 1.00f);
+    c[ImGuiCol_MenuBarBg]         = ImVec4(0.095f, 0.095f, 0.110f, 1.00f);
+    c[ImGuiCol_Header]            = ImVec4(accentDim.x, accentDim.y, accentDim.z, 0.55f);
+    c[ImGuiCol_HeaderHovered]     = ImVec4(accent.x, accent.y, accent.z, 0.45f);
+    c[ImGuiCol_HeaderActive]      = ImVec4(accent.x, accent.y, accent.z, 0.62f);
+    c[ImGuiCol_Button]            = ImVec4(0.165f, 0.165f, 0.195f, 1.00f);
+    c[ImGuiCol_ButtonHovered]     = ImVec4(0.245f, 0.245f, 0.285f, 1.00f);
+    c[ImGuiCol_ButtonActive]      = ImVec4(accent.x, accent.y, accent.z, 0.75f);
+    c[ImGuiCol_SliderGrab]        = accent;
+    c[ImGuiCol_SliderGrabActive]  = accentHi;
+    c[ImGuiCol_CheckMark]         = accentHi;
+    c[ImGuiCol_Tab]               = ImVec4(0.105f, 0.105f, 0.125f, 1.00f);
+    c[ImGuiCol_TabHovered]        = ImVec4(accent.x, accent.y, accent.z, 0.50f);
+    c[ImGuiCol_TabActive]         = ImVec4(0.185f, 0.165f, 0.150f, 1.00f);
+    c[ImGuiCol_Separator]         = ImVec4(0.24f, 0.24f, 0.28f, 0.70f);
+    c[ImGuiCol_SeparatorHovered]  = accent;
+    c[ImGuiCol_ScrollbarBg]       = ImVec4(0.050f, 0.050f, 0.058f, 0.85f);
+    c[ImGuiCol_ScrollbarGrab]     = ImVec4(0.215f, 0.215f, 0.250f, 1.00f);
+    c[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.290f, 0.290f, 0.330f, 1.00f);
+    c[ImGuiCol_ScrollbarGrabActive]  = accent;
+    c[ImGuiCol_ResizeGrip]        = ImVec4(0.24f, 0.24f, 0.28f, 0.50f);
+    c[ImGuiCol_ResizeGripHovered] = ImVec4(accent.x, accent.y, accent.z, 0.60f);
+    c[ImGuiCol_ResizeGripActive]  = accent;
+    c[ImGuiCol_Text]              = ImVec4(0.88f, 0.88f, 0.90f, 1.00f);
+    c[ImGuiCol_TextDisabled]      = ImVec4(0.48f, 0.48f, 0.53f, 1.00f);
+    c[ImGuiCol_TextSelectedBg]    = ImVec4(accent.x, accent.y, accent.z, 0.35f);
+    c[ImGuiCol_NavHighlight]      = accent;
+    c[ImGuiCol_TableHeaderBg]     = ImVec4(0.125f, 0.125f, 0.145f, 1.00f);
+    c[ImGuiCol_TableBorderStrong] = ImVec4(0.24f, 0.24f, 0.28f, 0.80f);
+    c[ImGuiCol_TableBorderLight]  = ImVec4(0.18f, 0.18f, 0.21f, 0.60f);
+    c[ImGuiCol_TableRowBgAlt]     = ImVec4(1.00f, 1.00f, 1.00f, 0.020f);
 
     ImGui_ImplSDL2_InitForOpenGL(win, ctx);
     ImGui_ImplOpenGL3_Init("#version 330");
@@ -1351,7 +1383,8 @@ void main(){
         if (state.showUI) {
         ImGui::SetNextWindowPos(ImVec2(10, 10), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(256, (float)winH - 20.0f), ImGuiCond_Always);
-        ImGui::Begin("SHO Viewer", nullptr,
+        // The tool covers both games, so the panel is not "SHO" anything.
+        ImGui::Begin("Climax Toolkit", nullptr,
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
         if (ImGui::Button("Open SH.ARC", ImVec2(-1, 0))) g_FileBrowser.Open(FileBrowserMode::Arc);
@@ -1364,18 +1397,36 @@ void main(){
         }
         if (ImGui::Button("Open Loose File", ImVec2(-1, 0))) g_FileBrowser.Open(FileBrowserMode::Mesh);
 
+        // What is loaded, stated once and clearly. This used to be two dim
+        // lines that read like a caption; it is the single most useful thing
+        // on the panel, so it gets a framed block of its own.
         if (!g_CurrentMeshContainer.empty()) {
             ImGui::Spacing();
-            ImGui::TextColored(ImVec4(0.52f, 0.86f, 0.52f, 1.0f), "%s",
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.11f, 0.09f, 0.85f));
+            ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
+            ImGui::BeginChild("##loaded", ImVec2(-1, ImGui::GetTextLineHeightWithSpacing() * 2.5f),
+                              true, ImGuiWindowFlags_NoScrollbar);
+            ImGui::TextColored(ImVec4(0.95f, 0.62f, 0.33f, 1.0f), "%s",
                 fs::path(g_CurrentMeshContainer).filename().string().c_str());
-            ImGui::TextDisabled("%zu meshes  |  %zu textures",
-                totalMeshes, g_TextureMap.size() / 2);
+            ImGui::TextDisabled("%zu meshes   %zu textures", totalMeshes,
+                                g_TextureMap.size() / 2);
+            if (!g_AnimClips.empty()) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("  %zu clips", g_AnimClips.size());
+            }
+            if (!g_UVAnims.empty()) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("  %zu uv", g_UVAnims.size());
+            }
+            ImGui::EndChild();
+            ImGui::PopStyleVar();
+            ImGui::PopStyleColor();
         }
 
-        ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+        ImGui::Spacing();
 
         // ---- Camera --------------------------------------------------
-        ImGui::TextDisabled("Camera");
+        ImGui::SeparatorText("Camera");
         ImGui::SetNextItemWidth(-1);
         ImGui::SliderFloat("##dist", &state.camDist, 1.0f, 200.0f, "Dist %.1f");
 
@@ -1480,10 +1531,10 @@ void main(){
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Software Rasterizer: renders geometry & shading on CPU thread");
 
-        ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+        ImGui::Spacing();
 
         // ---- Render mode ------------------------------------------------
-        ImGui::TextDisabled("Render Mode");
+        ImGui::SeparatorText("Render Mode");
         ImGui::Spacing();
 
         struct ModeBtn { const char* label; RenderMode mode; const char* tip; };
@@ -1498,20 +1549,34 @@ void main(){
         };
         const float BTN_W = (248.0f - 20.0f - 2.0f * 6.0f) / 4.0f;
         int mi = 0;
-        for (auto& mb : MODES) {
-            bool active = (state.renderMode == mb.mode);
-            if (active) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.32f, 0.32f, 0.42f, 1.0f));
-            if (ImGui::Button(mb.label, ImVec2(BTN_W, 22.0f)))
-                state.renderMode = mb.mode;
-            if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", mb.tip);
-            if (active) ImGui::PopStyleColor();
-            if (++mi % 4 != 0) ImGui::SameLine(0, 3.0f);
+        // The selected mode used to pop on and off with a hard colour swap,
+        // which in a grid of eight buttons makes it hard to see which one moved.
+        // Tweening the fill through ImAnim means the eye follows the change.
+        {
+            const float dt = ImGui::GetIO().DeltaTime;
+            const ImVec4 idle = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+            const ImVec4 on   = ImVec4(0.85f, 0.51f, 0.24f, 1.00f);
+            for (auto& mb : MODES) {
+                const bool active = (state.renderMode == mb.mode);
+                const ImGuiID bid = ImGui::GetID(mb.label);
+                const ImVec4 fill = iam_tween_color(
+                    bid, ImGui::GetID("fill"), active ? on : idle, 0.18f,
+                    iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade,
+                    iam_col_oklab, dt);
+                ImGui::PushStyleColor(ImGuiCol_Button, fill);
+                if (ImGui::Button(mb.label, ImVec2(BTN_W, 22.0f)))
+                    state.renderMode = mb.mode;
+                if (ImGui::IsItemHovered() && state.uiTooltips)
+                    ImGui::SetTooltip("%s", mb.tip);
+                ImGui::PopStyleColor();
+                if (++mi % 4 != 0) ImGui::SameLine(0, 3.0f);
+            }
         }
 
-        ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+        ImGui::Spacing();
 
         // ---- Display options ----------------------------------------
-        ImGui::TextDisabled("Display");
+        ImGui::SeparatorText("Display");
         ImGui::Checkbox("Wireframe",   &state.showWireframe); ImGui::SameLine(128);
         ImGui::Checkbox("Linear",      &state.linearFilter);
         ImGui::Checkbox("Vert.Colors", &state.useVertexColors);
@@ -1538,8 +1603,8 @@ void main(){
 
         // ---- Overlay objects (shown when loaded) -------------------
         if (g_Collision.uploaded || !g_Clumps.empty()) {
-            ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
-            ImGui::TextDisabled("Overlay");
+            ImGui::Spacing();
+            ImGui::SeparatorText("Overlay");
             if (g_Collision.uploaded) {
                 ImGui::Checkbox("Collision Wire", &state.showCollision);
                 if (ImGui::IsItemHovered())
@@ -1575,10 +1640,10 @@ void main(){
             }
         }
 
-        ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+        ImGui::Spacing();
 
         // ---- Panels & extras ---------------------------------------
-        ImGui::TextDisabled("Panels");
+        ImGui::SeparatorText("Panels");
         ImGui::Checkbox("Structure", &state.showStructure); ImGui::SameLine(128);
         ImGui::Checkbox("Textures",  &state.showTextures);
         ImGui::Checkbox("Archive",   &state.showArc); ImGui::SameLine(128);
@@ -1665,6 +1730,55 @@ void main(){
                 state.flipU = false; state.flipV = false;
                 state.uvOffsetX = 0; state.uvOffsetY = 0;
                 state.uvScaleX  = 1; state.uvScaleY  = 1;
+            }
+        }
+
+        ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
+
+        if (ImGui::CollapsingHeader("Settings")) {
+            ImGui::SeparatorText("Interface");
+
+            ImGui::SetNextItemWidth(-70.0f);
+            if (ImGui::SliderFloat("##uiscale", &state.uiScale, 0.8f, 1.6f, "%.2f"))
+                ImGui::GetIO().FontGlobalScale = state.uiScale;
+            ImGui::SameLine(); ImGui::TextDisabled("Scale");
+            if (ImGui::IsItemHovered() && state.uiTooltips)
+                ImGui::SetTooltip("Size of every panel and label. Useful on a\n"
+                                  "high-density display where 256 px of panel\n"
+                                  "is a very small 256 px.");
+
+            // ImAnim drives the panel's motion; this is its master rate, so 0
+            // turns every transition off rather than leaving them half-done.
+            ImGui::SetNextItemWidth(-70.0f);
+            if (ImGui::SliderFloat("##uianim", &state.uiAnimSpeed, 0.0f, 2.0f, "%.2fx"))
+                iam_set_global_time_scale(state.uiAnimSpeed);
+            ImGui::SameLine(); ImGui::TextDisabled("Motion");
+            if (ImGui::IsItemHovered() && state.uiTooltips)
+                ImGui::SetTooltip("Speed of button and list transitions.\n"
+                                  "Set to 0 for no animation at all.");
+
+            ImGui::Checkbox("Tooltips", &state.uiTooltips);
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("Turn these explanations off once you know\n"
+                                  "your way around.");
+
+            if (ImGui::Button("Reset interface", ImVec2(-1, 0))) {
+                state.uiScale = 1.0f;
+                state.uiAnimSpeed = 1.0f;
+                state.uiTooltips = true;
+                ImGui::GetIO().FontGlobalScale = 1.0f;
+                iam_set_global_time_scale(1.0f);
+            }
+
+            ImGui::SeparatorText("Paths");
+            {
+                const std::string arc = LoadArcPref();
+                ImGui::TextDisabled("Archive remembered:");
+                ImGui::TextWrapped("%s", arc.empty() ? "(none yet)" : arc.c_str());
+                if (ImGui::IsItemHovered() && !arc.empty() && state.uiTooltips)
+                    ImGui::SetTooltip("%s", arc.c_str());
+                if (!arc.empty() && ImGui::Button("Forget", ImVec2(-1, 0)))
+                    SaveArcPref("");
             }
         }
 

@@ -137,6 +137,17 @@ void DecodePacket(const uint8_t* d, const VifPacket &pk,
     v.color = {1.0f, 1.0f, 1.0f, 1.0f};
   }
 
+  {
+    static std::map<std::string,int> sig;
+    std::string k;
+    for (const auto &st : pk.streams) {
+      char b[48];
+      snprintf(b, sizeof(b), "[a%d v%d l%d b%d]", st.addr, st.vn, st.vl, st.bpv);
+      k += b;
+    }
+    if (++sig[k] == 1)
+      std::cout << "[vif] new packet layout: " << k << "\n";
+  }
   for (const auto &s : pk.streams) {
     const int count = std::min(n, s.num);
     switch (s.addr) {

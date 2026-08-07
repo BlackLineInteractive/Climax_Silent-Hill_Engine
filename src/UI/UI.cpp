@@ -242,7 +242,7 @@ void RenderManualWindow() {
   }
 
   ImGui::TextWrapped(
-      "Climax Silent Hill Engine Toolkit 0.2 — 3D Level Viewer, Asset Decoder "
+      "Climax Silent Hill Engine Toolkit 0.5 — 3D Level Viewer, Asset Decoder "
       "& Archive Extractor "
       "for Silent Hill Origins and Silent Hill: Shattered Memories.");
 
@@ -326,7 +326,7 @@ void RenderManualWindow() {
 
   Head("Sound");
   ImGui::TextWrapped(
-      "The Audio panel opens by itself the first time there is something to "
+      "The Playback panel opens by itself the first time there is something to "
       "play. After that use Panels > Audio to show or hide it. It has three "
       "lists:");
   ImGui::Spacing();
@@ -344,6 +344,33 @@ void RenderManualWindow() {
   ImGui::Spacing();
   ImGui::BulletText("Loop - repeat the sound instead of stopping at the end.");
   ImGui::BulletText("Save WAV - write the sound next to the program.");
+
+  Head("Playback panel");
+  ImGui::TextWrapped("Sound, skeletal animation and UV animation all live in "
+                     "one window now - open it with the \"Playback\" checkbox "
+                     "under Panels.");
+  ImGui::Spacing();
+  ImGui::BulletText("Sound - the player described above.");
+  ImGui::BulletText("Skeletal - character animation. Clips are read from the "
+                    "container but nothing moves yet.");
+  ImGui::BulletText("UV - the scrolling texture animations that drive fire "
+                    "and torches.");
+  ImGui::Spacing();
+  ImGui::TextWrapped("The UV tab lists every clip the level carries and shows, "
+                     "per layer, how fast it scrolls. Fire uses two layers at "
+                     "different speeds; that column is how you tell a stalled "
+                     "clip from a slow one.");
+
+  Head("Settings");
+  ImGui::TextWrapped("The Settings section at the bottom of this panel holds "
+                     "everything about the interface itself.");
+  ImGui::Spacing();
+  Key("Scale", "Size of every panel and label");
+  Key("Motion", "Speed of transitions; 0 turns them off");
+  Key("Tooltips", "These explanations, on or off");
+  ImGui::Spacing();
+  ImGui::TextWrapped("The archive you last opened is remembered and re-opened "
+                     "on the next run. \"Forget\" clears it.");
 
   Head("Exporting to glTF");
   ImGui::TextWrapped("\"Export glTF\" writes a .glb next to the program. The "
@@ -1015,6 +1042,72 @@ void RenderTxdWindow() {
 // One tab of the Playback panel. Sound, skeletal animation and UV animation are
 // three views of the same question -- what is this level playing right now --
 // so they share a window instead of scattering three of them across the screen.
+// Transport buttons, drawn rather than spelled.
+//
+// They used to be the ASCII stand-ins "|<", "||", "[]" and ">|", which read as
+// punctuation until you worked out what they meant. These are vector glyphs on
+// an invisible button, with the hover and press states tweened through ImAnim
+// so the control answers the pointer instead of snapping.
+enum class Transport { Prev, Play, Pause, Stop, Next };
+
+static bool TransportButton(const char *id, Transport kind, float size,
+                            bool enabled = true) {
+  ImGui::PushID(id);
+  const ImVec2 p0 = ImGui::GetCursorScreenPos();
+  const bool pressed = ImGui::InvisibleButton("##t", ImVec2(size, size)) && enabled;
+  const bool hovered = ImGui::IsItemHovered() && enabled;
+  const bool held    = ImGui::IsItemActive() && enabled;
+
+  const float dt = ImGui::GetIO().DeltaTime;
+  const ImGuiID gid = ImGui::GetID("##t");
+  const float lift = iam_tween_float(gid, ImGui::GetID("lift"),
+                                     held ? 1.0f : (hovered ? 0.6f : 0.0f), 0.16f,
+                                     iam_ease_preset(iam_ease_out_cubic),
+                                     iam_policy_crossfade, dt);
+
+  const ImVec4 base = ImGui::GetStyleColorVec4(ImGuiCol_Button);
+  const ImVec4 warm = ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive);
+  const ImVec4 bg(base.x + (warm.x - base.x) * lift,
+                  base.y + (warm.y - base.y) * lift,
+                  base.z + (warm.z - base.z) * lift, enabled ? 1.0f : 0.35f);
+  const ImU32 fg = ImGui::GetColorU32(
+      enabled ? ImVec4(0.92f, 0.92f, 0.94f, 1.0f) : ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+
+  ImDrawList *dl = ImGui::GetWindowDrawList();
+  const ImVec2 c(p0.x + size * 0.5f, p0.y + size * 0.5f);
+  dl->AddCircleFilled(c, size * 0.5f, ImGui::GetColorU32(bg), 32);
+
+  const float r = size * (0.26f + 0.02f * lift);   // glyph grows a hair on hover
+  const float b = r * 0.34f;                       // bar thickness
+  switch (kind) {
+  case Transport::Play:
+    dl->AddTriangleFilled(ImVec2(c.x - r * 0.55f, c.y - r),
+                          ImVec2(c.x - r * 0.55f, c.y + r),
+                          ImVec2(c.x + r * 0.85f, c.y), fg);
+    break;
+  case Transport::Pause:
+    dl->AddRectFilled(ImVec2(c.x - r * 0.62f, c.y - r), ImVec2(c.x - r * 0.62f + b, c.y + r), fg, 1.0f);
+    dl->AddRectFilled(ImVec2(c.x + r * 0.62f - b, c.y - r), ImVec2(c.x + r * 0.62f, c.y + r), fg, 1.0f);
+    break;
+  case Transport::Stop:
+    dl->AddRectFilled(ImVec2(c.x - r * 0.8f, c.y - r * 0.8f),
+                      ImVec2(c.x + r * 0.8f, c.y + r * 0.8f), fg, 2.0f);
+    break;
+  case Transport::Prev:
+    dl->AddRectFilled(ImVec2(c.x - r, c.y - r), ImVec2(c.x - r + b, c.y + r), fg, 1.0f);
+    dl->AddTriangleFilled(ImVec2(c.x + r, c.y - r), ImVec2(c.x + r, c.y + r),
+                          ImVec2(c.x - r + b * 1.4f, c.y), fg);
+    break;
+  case Transport::Next:
+    dl->AddRectFilled(ImVec2(c.x + r - b, c.y - r), ImVec2(c.x + r, c.y + r), fg, 1.0f);
+    dl->AddTriangleFilled(ImVec2(c.x - r, c.y - r), ImVec2(c.x - r, c.y + r),
+                          ImVec2(c.x + r - b * 1.4f, c.y), fg);
+    break;
+  }
+  ImGui::PopID();
+  return pressed;
+}
+
 static void AudioTabBody() {
   auto timecode = [](float sec) {
     const int t = (int)sec;
@@ -1093,13 +1186,16 @@ static void AudioTabBody() {
         }
     };
 
-    if (ImGui::Button("|<", ImVec2(btnSize, btnSize))) { playOffset(-1); }
+    if (TransportButton("prev", Transport::Prev, btnSize, cur.Valid())) playOffset(-1);
     ImGui::SameLine();
-    if (ImGui::Button(state.isAudioPlaying ? "||" : ">", ImVec2(btnSize, btnSize))) ToggleAudioPlayback();
+    if (TransportButton("play",
+                        state.isAudioPlaying ? Transport::Pause : Transport::Play,
+                        btnSize, cur.Valid()))
+      ToggleAudioPlayback();
     ImGui::SameLine();
-    if (ImGui::Button("[]", ImVec2(btnSize, btnSize))) StopAudio();
+    if (TransportButton("stop", Transport::Stop, btnSize, cur.Valid())) StopAudio();
     ImGui::SameLine();
-    if (ImGui::Button(">|", ImVec2(btnSize, btnSize))) { playOffset(1); }
+    if (TransportButton("next", Transport::Next, btnSize, cur.Valid())) playOffset(1);
     ImGui::SameLine();
     
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + (btnSize - ImGui::GetFrameHeight()) * 0.5f);
