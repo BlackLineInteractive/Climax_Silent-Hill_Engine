@@ -919,22 +919,32 @@ void main(){
                     const glm::vec3 head(body.position.x,
                                          body.position.y + state.eyeHeight * 0.6f,
                                          body.position.z);
-                    // Too close is as bad as blocked: standing almost on top
-                    // of a camera turns the look direction nearly vertical and
-                    // the shot becomes a study of the ceiling.
-                    const float kMinFraming = 1.8f;
+                    // A camera is usable when the player is actually in its
+                    // shot: inside the cone the designer's field of view cuts,
+                    // and not behind a wall. Both halves come from the level
+                    // rather than from tuning -- the cone is the camera's own
+                    // aim and FOV, the wall is the collision mesh.
                     auto usable = [&](int idx) {
                         if (idx < 0 || idx >= (int)g_Cameras.size()) return false;
-                        const glm::vec3 &cp = g_Cameras[(size_t)idx].position;
-                        if (glm::length(cp - head) < kMinFraming) return false;
-                        return ClimaxEngine::Game::HasLineOfSight(g_Collision, cp, head);
+                        const LevelCamera &c = g_Cameras[(size_t)idx];
+                        const glm::vec3 v = head - c.position;
+                        const float dist = glm::length(v);
+                        if (dist < 1e-3f) return false;
+                        // Slightly wider than the frustum so the player is not
+                        // dropped the instant he touches the frame edge.
+                        const float halfFov =
+                            glm::radians(glm::min(c.fovDeg * 0.6f, 85.0f));
+                        if (glm::dot(v / dist, c.forward) < cosf(halfFov))
+                            return false;
+                        return ClimaxEngine::Game::HasLineOfSight(g_Collision,
+                                                                  c.position, head);
                     };
 
                     if (!usable(state.activeCamera)) {
-                        // Prefer the closest camera that frames the player
-                        // properly; falling back to any that merely sees him
-                        // keeps a shot on screen in rooms where every camera is
-                        // tight.
+                        // Nearest camera that still has the player in shot.
+                        // Falling back to any that merely sees him keeps a view
+                        // on screen while walking through a gap no camera
+                        // covers, instead of freezing on a wall.
                         int best = -1, anySight = -1;
                         float bestDist = 1e9f, anyDist = 1e9f;
                         for (size_t k = 0; k < g_Cameras.size(); ++k) {
@@ -943,7 +953,7 @@ void main(){
                                 continue;
                             const float dd = glm::length(cp - head);
                             if (dd < anyDist) { anyDist = dd; anySight = (int)k; }
-                            if (dd >= kMinFraming && dd < bestDist) {
+                            if (usable((int)k) && dd < bestDist) {
                                 bestDist = dd; best = (int)k;
                             }
                         }
@@ -963,36 +973,62 @@ void main(){
                     state.camPosZ = lc.position.z;
                     state.camFovDeg = lc.fovDeg;
 
-                    // Aim at the player rather than at the camera's own matrix.
+                    // The aim is authored, and it is in the placement matrix
+                    // after all: row 2 is the look direction, RenderWare's "at".
                     //
-                    // Those matrices carry no orientation: measured across every
-                    // camera in HO_1_Hallway1, all four are orthonormal with
-                    // column 2 exactly (0, 0, -1). The aim lives elsewhere --
-                    // the decompiled CStaticCamera::HandleAttributes shows
-                    // property 1 copying a matrix out of an object referenced
-                    // through field 0x40, so a camera is pointed by a node it
-                    // names rather than by its own record. Which node that is
-                    // has not been identified yet.
-                    //
-                    // Tracking the player is the honest approximation until it
-                    // is: the position and field of view are the game's, and a
-                    // fixed camera in this game does frame the player.
+                    // An earlier reading called those matrices orientation-free
+                    // because all four cameras in HO_1_Hallway1 share one
+                    // rotation. Measured over the whole archive that is a
+                    // coincidence of one small level: 989 cameras carry 358
+                    // distinct rotations, 175 of 229 levels hold more than one,
+                    // and 307 are pitched -- up to 83 degrees down a stairwell.
+                    // Against every walkable marker in the level, +row2 aims
+                    // nearer the playable space than -row2 on 654 cameras to
+                    // 314, mean cosine 0.97, which settles the sign too.
                     const glm::vec3 eye(lc.position);
-                    const glm::vec3 at(body.position.x,
-                                       body.position.y + state.eyeHeight * 0.6f,
-                                       body.position.z);
+                    const glm::vec3 subject(body.position.x,
+                                            body.position.y + state.eyeHeight * 0.6f,
+                                            body.position.z);
+                    glm::vec3 look = lc.forward;
+
+                    // CStaticCamera is nailed down; CConstraintCamera is the
+                    // one that follows the player inside limits, and its
+                    // 21-property table holds those limits. They are not
+                    // decoded yet, so it tracks within a fixed cone off its
+                    // authored aim -- a stand-in for the real constraint, not
+                    // a reading of it.
+                    if (lc.className != "CStaticCamera") {
+                        glm::vec3 toSubject = subject - eye;
+                        const float d = glm::length(toSubject);
+                        if (d > 1e-3f) {
+                            toSubject /= d;
+                            const float cosLimit = cosf(glm::radians(20.0f));
+                            const float c = glm::dot(toSubject, lc.forward);
+                            if (c >= cosLimit) {
+                                look = toSubject;
+                            } else {
+                                // Rotate from the authored aim toward the
+                                // player by exactly the limit, so the camera
+                                // leans after him and then stops.
+                                glm::vec3 tangent = toSubject - lc.forward * c;
+                                if (glm::length(tangent) > 1e-4f) {
+                                    tangent = glm::normalize(tangent);
+                                    const float a = glm::radians(20.0f);
+                                    look = glm::normalize(lc.forward * cosf(a) +
+                                                          tangent * sinf(a));
+                                }
+                            }
+                        }
+                    }
+
                     // The subject, kept current so the near-plane clip below
                     // measures against the player and not a stale orbit pivot.
-                    state.camTargetX = at.x;
-                    state.camTargetY = at.y;
-                    state.camTargetZ = at.z;
-                    glm::vec3 look = at - eye;
-                    if (glm::length(look) > 1e-4f) {
-                        look = glm::normalize(look);
-                        const glm::vec3 back = -look;
-                        state.camPitch = glm::degrees(asinf(glm::clamp(back.y, -1.0f, 1.0f)));
-                        state.camYaw   = glm::degrees(atan2f(back.x, back.z));
-                    }
+                    state.camTargetX = subject.x;
+                    state.camTargetY = subject.y;
+                    state.camTargetZ = subject.z;
+                    const glm::vec3 back = -look;
+                    state.camPitch = glm::degrees(asinf(glm::clamp(back.y, -1.0f, 1.0f)));
+                    state.camYaw   = glm::degrees(atan2f(back.x, back.z));
                 } else {
                     state.camPosX = body.position.x;
                     state.camPosY = body.position.y + state.eyeHeight;

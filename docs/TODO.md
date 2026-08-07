@@ -361,6 +361,35 @@ there; none of it is read yet. Note its component chain starts with
 `CSystemCommands`, not with the camera class, which is why a component-blind
 reader picks up the wrong properties for it.
 
+### 4a. Camera aim — it was in the placement matrix all along
+
+Fixed cameras were aimed at the player rather than where the designer pointed
+them, on the conclusion that the placement matrix carried no orientation. That
+conclusion came from one level: all four cameras in `HO_1_Hallway1` share a
+single rotation, so the matrices looked like placeholders.
+
+Measured across the whole archive they are not:
+
+    989 camera placement matrices
+    358 distinct rotations
+    175 of 229 levels hold more than one
+    307 cameras are pitched, up to 83 degrees down a stairwell
+
+The rows are RenderWare's usual `right / up / at / pos`, so **row 2 is the look
+direction**. The sign is settled by the data as well: measured against every
+walkable marker in each level (spawners, map items, zone and plane triggers),
+`+row2` aims nearer the playable space than `-row2` on 654 cameras to 314, mean
+cosine 0.97.
+
+The lesson is the one this file keeps relearning: a property that looks
+constant may just be constant *in the level you happened to open*. The check
+costs one pass over the archive.
+
+`CBaseCamera` property 1 — the `"...S"` name — is not the aim either. It is the
+event name the camera answers to: `HO_1_Hallway1`'s `PlaneTrigger` names
+`camHallwayS` and `camEntranceS`, while `CMessageRelay` addresses the plain
+`camHallway`. Both names have to resolve or half the level logic goes dark.
+
 ### 4b. The message system — how level logic is actually wired
 
 Everything in RenderWare Studio talks through `RWS::CEventHandler`. The core
@@ -478,10 +507,8 @@ diagnosed.
 
 ### 8. Smaller items
 
-* Collision face indices are read as `uint8`, so nothing past vertex 255 is
-  reachable.
-* `CStaticCamera` properties beyond the transform are not decoded, so
-  jump-to-camera framing is approximate — no FOV, no tilt.
+* `CConstraintCamera`'s 21-property table holds its tracking limits; none of
+  them are read, so the follow cone in the viewer is a fixed 20° stand-in.
 * `baseColorFactor` is not written for untextured materials in the glTF export,
   so they come out white although the viewport has them right.
 * FX sheets in character and enemy containers are full-size particle blanks and
