@@ -29,6 +29,8 @@ install_manifest.txt
 
 game-iso/
 
+dol_out/
+
 # Editor / IDE
 .vscode/
 .idea/
