@@ -1351,79 +1351,96 @@ static void AudioTabBody() {
 }
 
 static void SkeletalTabBody() {
-  {
-    // Find all CClumpObjects with skeletons
-    std::vector<std::shared_ptr<ClimaxEngine::SG::CClumpObject>> clumps;
-    for (auto& obj : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects()) {
-      auto clump = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(obj);
-      if (clump && !clump->skeleton.bones.empty()) {
-        clumps.push_back(clump);
-      }
-    }
-
-    if (clumps.empty()) {
-      ImGui::TextDisabled("No animated objects found in the current level.");
-    } else {
-      static int selectedClump = 0;
-      if (selectedClump >= (int)clumps.size()) selectedClump = 0;
-
-      if (ImGui::BeginCombo("Target Object", clumps[selectedClump]->GetName().c_str())) {
-        for (int i = 0; i < (int)clumps.size(); i++) {
-          bool is_selected = (selectedClump == i);
-          if (ImGui::Selectable(clumps[i]->GetName().c_str(), is_selected)) {
-            selectedClump = i;
-          }
-          if (is_selected) ImGui::SetItemDefaultFocus();
-        }
-        ImGui::EndCombo();
-      }
-
-      auto clump = clumps[selectedClump];
-      
-      ImGui::Separator();
-      
-      if (clump->animClip.duration > 0.0f) {
-        ImGui::Text("Clip: %s", clump->animClip.name.c_str());
-        ImGui::Text("Duration: %.2f sec (%.1f fps)", clump->animClip.duration, clump->animClip.fps);
-        
-        ImGui::Spacing();
-        
-        // Transport
-        ImVec4 play_color = (state.animSpeed > 0) ? ImVec4(0.8f, 0.3f, 0.3f, 1.0f) : ImVec4(0.3f, 0.8f, 0.3f, 1.0f);
-        ImVec4 anim_play = iam_tween_color(ImGui::GetID("play_btn"), ImGui::GetID("color"), play_color, 0.2f, iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, iam_col_srgb, ImGui::GetIO().DeltaTime);
-        ImGui::PushStyleColor(ImGuiCol_Button, anim_play);
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(anim_play.x*1.2f, anim_play.y*1.2f, anim_play.z*1.2f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(anim_play.x*0.8f, anim_play.y*0.8f, anim_play.z*0.8f, 1.0f));
-        
-        if (ImGui::Button(state.animSpeed > 0 ? "Pause###play_btn" : "Play ###play_btn")) {
-           state.animSpeed = (state.animSpeed > 0) ? 0.0f : 1.0f;
-        }
-        ImGui::PopStyleColor(3);
-        ImGui::SameLine();
-        if (ImGui::Button("Stop")) {
-           state.animSpeed = 0.0f;
-           clump->animTime = 0.0f;
-        }
-        ImGui::SameLine();
-        ImGui::Checkbox("Rest Pose", &state.animRestPose);
-
-        ImGui::Spacing();
-        
-        // Timeline scrubber
-        float t = clump->animTime;
-        if (ImGui::SliderFloat("Timeline", &t, 0.0f, clump->animClip.duration, "%.2f s")) {
-           clump->animTime = t;
-        }
-        
-        ImGui::SliderFloat("Speed", &state.animSpeed, 0.0f, 4.0f, "%.1fx");
-      } else {
-        ImGui::TextDisabled("No animation clip attached to this object.");
-      }
-
-      ImGui::Separator();
-      ImGui::Checkbox("Show Bone Overlay", &state.showBoneOverlay);
-    }
+  if (g_AnimClips.empty()) {
+    ImGui::TextDisabled("This container carries no skeletal clips.");
+    ImGui::TextDisabled("Open a character - CPlayerBehaviour.Travis has 147.");
+    return;
   }
+
+  std::vector<std::shared_ptr<ClimaxEngine::SG::CClumpObject>> clumps;
+  for (auto &o : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects())
+    if (auto c = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(o))
+      if (!c->skeleton.bones.empty()) clumps.push_back(c);
+
+  ImGui::Text("%d clips", (int)g_AnimClips.size());
+  ImGui::SameLine();
+  ImGui::TextDisabled("| %d skeletons", (int)clumps.size());
+
+  if (clumps.empty()) {
+    ImGui::TextDisabled("Nothing in the scene has a skeleton to drive.");
+    return;
+  }
+
+  ImGui::Separator();
+
+  const int cur = state.animClipIndex;
+  const std::string label =
+      (cur >= 0 && cur < (int)g_AnimClips.size())
+          ? g_AnimClips[(size_t)cur].name + "  (" +
+                std::to_string(g_AnimClips[(size_t)cur].tracks.size()) + " tracks, " +
+                std::to_string((int)(g_AnimClips[(size_t)cur].duration * 1000) / 1000.0f).substr(0, 4) + "s)"
+          : std::string("Rest pose");
+
+  ImGui::SetNextItemWidth(-1.0f);
+  if (ImGui::BeginCombo("##clip", label.c_str())) {
+    if (ImGui::Selectable("Rest pose", cur < 0)) state.animClipIndex = -1;
+    for (size_t i = 0; i < g_AnimClips.size(); i++) {
+      char buf[96];
+      snprintf(buf, sizeof(buf), "%s   %zu tracks   %.2fs", g_AnimClips[i].name.c_str(),
+               g_AnimClips[i].tracks.size(), g_AnimClips[i].duration);
+      if (ImGui::Selectable(buf, cur == (int)i)) {
+        state.animClipIndex = (int)i;
+        for (auto &c : clumps) c->animTime = 0.0f;
+      }
+    }
+    ImGui::EndCombo();
+  }
+
+  ImGui::Spacing();
+
+  const bool playing = state.animSpeed > 0.0f;
+  if (TransportButton("aprev", Transport::Prev, 32.0f, cur > 0)) {
+    state.animClipIndex = cur - 1;
+    for (auto &c : clumps) c->animTime = 0.0f;
+  }
+  ImGui::SameLine();
+  if (TransportButton("aplay", playing ? Transport::Pause : Transport::Play, 32.0f))
+    state.animSpeed = playing ? 0.0f : 1.0f;
+  ImGui::SameLine();
+  if (TransportButton("astop", Transport::Stop, 32.0f)) {
+    state.animSpeed = 0.0f;
+    for (auto &c : clumps) c->animTime = 0.0f;
+  }
+  ImGui::SameLine();
+  if (TransportButton("anext", Transport::Next, 32.0f,
+                      cur + 1 < (int)g_AnimClips.size())) {
+    state.animClipIndex = cur + 1;
+    for (auto &c : clumps) c->animTime = 0.0f;
+  }
+  ImGui::SameLine();
+  ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6.0f);
+  ImGui::Checkbox("Rest", &state.animRestPose);
+
+  ImGui::Spacing();
+
+  if (cur >= 0 && cur < (int)g_AnimClips.size()) {
+    const float dur = g_AnimClips[(size_t)cur].duration;
+    float t = clumps.front()->animTime;
+    if (dur > 0.0f) t = std::fmod(t, dur);
+    ImGui::SetNextItemWidth(-1.0f);
+    if (ImGui::SliderFloat("##atime", &t, 0.0f, dur > 0.0f ? dur : 1.0f, "%.2f s"))
+      for (auto &c : clumps) c->animTime = t;
+  }
+
+  ImGui::SetNextItemWidth(-60.0f);
+  ImGui::SliderFloat("##aspeed", &state.animSpeed, 0.0f, 3.0f, "%.2fx");
+  ImGui::SameLine(); ImGui::TextDisabled("Speed");
+
+  ImGui::Checkbox("Bone overlay", &state.showBoneOverlay);
+
+  ImGui::Spacing();
+  ImGui::TextDisabled("PS2 characters are segmented, not vertex-skinned:");
+  ImGui::TextDisabled("each piece follows one frame of the hierarchy.");
 }
 
 // UV animation needs no transport of its own -- it is driven by the same clock

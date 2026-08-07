@@ -92,6 +92,12 @@ struct MeshChunk {
   // material has neither.
   std::string uvAnimName;
   std::string layer2Tex;
+  // Which frame of the owning clump this piece hangs off. PS2 characters are
+  // segmented, not vertex-skinned -- every atomic is bound rigidly to one
+  // frame -- so animating means moving whole pieces by their frame's matrix.
+  // The rest-pose matrix is already baked into the vertices, so the renderer
+  // applies the difference between the animated matrix and the rest one.
+  int frameIndex = -1;
   bool additive = false;
   bool unlitGeometry = false; // vertex colours are all zero: no baked light
   bool untextured = false;
@@ -325,6 +331,8 @@ struct ViewerState {
   float uiScale     = 1.0f;   // font/global scale
   float uiAnimSpeed = 1.0f;   // ImAnim global time scale; 0 disables motion
   bool  uiTooltips  = true;
+  // Which clip from g_AnimClips the Playback panel is driving; -1 for none.
+  int   animClipIndex = -1;
   // UV animation runs off the scene clock; these only pause and rescale it.
   bool  uvAnimRun = true;
   float uvAnimSpeed = 1.0f;

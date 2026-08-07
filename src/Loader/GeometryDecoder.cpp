@@ -77,7 +77,10 @@ bool ReadPacket(const uint8_t* d, size_t d_sz, size_t p, size_t end,
       // Streams within a packet all describe the same vertices.
       if (!out.streams.empty() && s.num != out.streams[0].num)
         return false;
-      if (s.addr > 3)
+      // Rejecting the whole packet because one stream lands above VU address 3
+      // threw away the geometry with it. Anything higher is simply not decoded;
+      // DecodePacket already ignores addresses it does not know.
+      if (s.addr > 1023)
         return false;
       // CL=4 with WL=1 means CL >= WL, so every written vector has a source.
       const size_t payload = ((size_t)s.num * s.bpv + 3) & ~size_t(3);
@@ -137,17 +140,6 @@ void DecodePacket(const uint8_t* d, const VifPacket &pk,
     v.color = {1.0f, 1.0f, 1.0f, 1.0f};
   }
 
-  {
-    static std::map<std::string,int> sig;
-    std::string k;
-    for (const auto &st : pk.streams) {
-      char b[48];
-      snprintf(b, sizeof(b), "[a%d v%d l%d b%d]", st.addr, st.vn, st.vl, st.bpv);
-      k += b;
-    }
-    if (++sig[k] == 1)
-      std::cout << "[vif] new packet layout: " << k << "\n";
-  }
   for (const auto &s : pk.streams) {
     const int count = std::min(n, s.num);
     switch (s.addr) {
@@ -1081,6 +1073,12 @@ void DecodeRenderWareGeometry(const std::string& name, const uint8_t* payload, s
                 fm = frameWorld[itF->second];
               const size_t firstChunk = destObj->GetMeshes().size();
               handleOwner(g + 12, g + 12 + gs, geomMats, geomCols, geomBlend);
+              {
+                const int fi = (itF != geomFrame.end()) ? (int)itF->second : -1;
+                auto meshes = destObj->GetMeshes();
+                for (size_t k = firstChunk; k < meshes.size(); k++)
+                  meshes[k]->frameIndex = fi;
+              }
               if (fm != glm::mat4(1.0f)) {
                 auto meshes = destObj->GetMeshes();
                 for (size_t k = firstChunk; k < meshes.size(); k++) {

@@ -437,9 +437,10 @@ int main(int argc, char* argv[]) {
     style.SeparatorTextBorderSize = 2.0f;
     style.SeparatorTextPadding    = ImVec2(18, 4);
 
-    const ImVec4 accent      = ImVec4(0.85f, 0.51f, 0.24f, 1.00f);  // rust
-    const ImVec4 accentHi    = ImVec4(0.95f, 0.62f, 0.33f, 1.00f);
-    const ImVec4 accentDim   = ImVec4(0.52f, 0.31f, 0.15f, 1.00f);
+    // C++ blue.
+    const ImVec4 accent      = ImVec4(0.00f, 0.41f, 0.71f, 1.00f);
+    const ImVec4 accentHi    = ImVec4(0.16f, 0.58f, 0.89f, 1.00f);
+    const ImVec4 accentDim   = ImVec4(0.04f, 0.22f, 0.39f, 1.00f);
 
     ImVec4* c = style.Colors;
     c[ImGuiCol_WindowBg]          = ImVec4(0.075f, 0.075f, 0.085f, 0.98f);
@@ -463,7 +464,7 @@ int main(int argc, char* argv[]) {
     c[ImGuiCol_CheckMark]         = accentHi;
     c[ImGuiCol_Tab]               = ImVec4(0.105f, 0.105f, 0.125f, 1.00f);
     c[ImGuiCol_TabHovered]        = ImVec4(accent.x, accent.y, accent.z, 0.50f);
-    c[ImGuiCol_TabActive]         = ImVec4(0.185f, 0.165f, 0.150f, 1.00f);
+    c[ImGuiCol_TabActive]         = ImVec4(0.135f, 0.165f, 0.205f, 1.00f);
     c[ImGuiCol_Separator]         = ImVec4(0.24f, 0.24f, 0.28f, 0.70f);
     c[ImGuiCol_SeparatorHovered]  = accent;
     c[ImGuiCol_ScrollbarBg]       = ImVec4(0.050f, 0.050f, 0.058f, 0.85f);
@@ -994,6 +995,10 @@ void main(){
             }
             float dt = ImGui::GetIO().DeltaTime;
             if (state.uvAnimRun) state.uvAnimTime += dt * state.uvAnimSpeed;
+            // Every clump shares the transport in the Playback panel.
+            for (auto& o : ClimaxEngine::SG::CSceneObjectRegistrar::GetInstance().GetObjects())
+                if (auto cl = std::dynamic_pointer_cast<ClimaxEngine::SG::CClumpObject>(o))
+                    cl->animTime += dt * state.animSpeed;
             for (auto& go : g_GameObjects) {
                 if (go.currentClipIndex >= 0 && go.currentClipIndex < (int)go.clipSectionIndices.size()) {
                     go.animTime += dt;
@@ -1402,11 +1407,11 @@ void main(){
         // on the panel, so it gets a framed block of its own.
         if (!g_CurrentMeshContainer.empty()) {
             ImGui::Spacing();
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.13f, 0.11f, 0.09f, 0.85f));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.085f, 0.115f, 0.150f, 0.85f));
             ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 5.0f);
             ImGui::BeginChild("##loaded", ImVec2(-1, ImGui::GetTextLineHeightWithSpacing() * 2.5f),
                               true, ImGuiWindowFlags_NoScrollbar);
-            ImGui::TextColored(ImVec4(0.95f, 0.62f, 0.33f, 1.0f), "%s",
+            ImGui::TextColored(ImVec4(0.35f, 0.68f, 0.95f, 1.0f), "%s",
                 fs::path(g_CurrentMeshContainer).filename().string().c_str());
             ImGui::TextDisabled("%zu meshes   %zu textures", totalMeshes,
                                 g_TextureMap.size() / 2);
@@ -1555,7 +1560,7 @@ void main(){
         {
             const float dt = ImGui::GetIO().DeltaTime;
             const ImVec4 idle = ImGui::GetStyleColorVec4(ImGuiCol_Button);
-            const ImVec4 on   = ImVec4(0.85f, 0.51f, 0.24f, 1.00f);
+            const ImVec4 on   = ImVec4(0.00f, 0.41f, 0.71f, 1.00f);
             for (auto& mb : MODES) {
                 const bool active = (state.renderMode == mb.mode);
                 const ImGuiID bid = ImGui::GetID(mb.label);

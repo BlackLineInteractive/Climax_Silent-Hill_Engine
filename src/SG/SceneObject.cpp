@@ -37,73 +37,83 @@ void CWorldObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk->vertices.size());
 }
 
+// PS2 characters are segmented, not vertex-skinned.
+//
+// Measured, not assumed: the Skin PLG carries the inverse bind matrices and
+// then stops -- its tail is 16 bytes of counts and an empty split-data header
+// -- and every VIF packet in a character container uses the same four streams,
+// positions, UVs, colours and normals, with no bone or weight stream anywhere.
+// So each atomic hangs rigidly off one frame, and animating means moving whole
+// pieces by their frame's matrix rather than blending vertices.
+//
+// The rest-pose matrix is already baked into the vertices at load time, so what
+// is applied here is the difference: animated frame matrix times the inverse of
+// the rest one. A piece whose frame has no track stays exactly where it was.
 void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) {
-    // Clumps use the instance transform
-    glm::mat4 m = ctx.viewProj * m_transform;
-    glUniformMatrix4fv(ctx.uM, 1, GL_FALSE, glm::value_ptr(m));
-    glUniformMatrix4fv(ctx.uModel, 1, GL_FALSE, glm::value_ptr(m_transform));
-    
-    bool hasSkin = false;
-    if (!skeleton.bones.empty() && (state.animRestPose || animClip.duration > 0.0f)) {
-        float t = animClip.duration > 0.0f ? fmod(animTime, animClip.duration) : 0.0f;
-        const size_t numBones = std::min(skeleton.bones.size(), (size_t)128);
-        std::vector<glm::mat4> boneMats(numBones, glm::mat4(1.0f));
-        
-        for (size_t b = 0; b < numBones; ++b) {
-            glm::mat4 local = skeleton.bones[b].restLocal;
-            if (!state.animRestPose && b < animClip.tracks.size() && !animClip.tracks[b].times.empty()) {
-                const auto& times = animClip.tracks[b].times;
-                const auto& poss  = animClip.tracks[b].pos;
-                const auto& rots  = animClip.tracks[b].rot;
-                
-                int idx0 = 0, idx1 = 0;
-                float factor = 0.0f;
-                
-                if (t <= times.front()) {
-                    idx0 = idx1 = 0;
-                } else if (t >= times.back()) {
-                    idx0 = idx1 = (int)times.size() - 1;
-                } else {
-                    auto it = std::lower_bound(times.begin(), times.end(), t);
-                    idx1 = (int)std::distance(times.begin(), it);
-                    idx0 = idx1 - 1;
-                    float span = times[idx1] - times[idx0];
-                    factor = (span > 1e-6f) ? (t - times[idx0]) / span : 0.0f;
+    glm::mat4 model = m_transform;
+
+    // Whichever clip is playing: the one bound to this object, or the one the
+    // player picked out of the container's list.
+    const AnimClip* clip = nullptr;
+    if (animClip.duration > 0.0f && !animClip.tracks.empty())
+        clip = &animClip;
+    else if (state.animClipIndex >= 0 &&
+             state.animClipIndex < (int)g_AnimClips.size())
+        clip = &g_AnimClips[(size_t)state.animClipIndex];
+
+    if (!skeleton.bones.empty() && chunk->frameIndex >= 0 &&
+        chunk->frameIndex < (int)skeleton.bones.size() &&
+        (clip || state.animRestPose)) {
+
+        const size_t n = skeleton.bones.size();
+        const float dur = clip ? clip->duration : 0.0f;
+        const float t = dur > 0.0f ? std::fmod(animTime, dur) : 0.0f;
+
+        std::vector<glm::mat4> rest(n), posed(n);
+        for (size_t b = 0; b < n; ++b) {
+            const Bone& bone = skeleton.bones[b];
+            glm::mat4 local = bone.restLocal;
+
+            // The clip's tracks are ordered by the HAnim table, which is not
+            // the frame order -- trackIndex is the bone's place in it.
+            if (clip && !state.animRestPose && bone.trackIndex >= 0 &&
+                bone.trackIndex < (int)clip->tracks.size()) {
+                const AnimTrack& tr = clip->tracks[(size_t)bone.trackIndex];
+                if (!tr.times.empty()) {
+                    size_t i0 = 0, i1 = 0;
+                    float f = 0.0f;
+                    if (t <= tr.times.front()) {
+                        i0 = i1 = 0;
+                    } else if (t >= tr.times.back()) {
+                        i0 = i1 = tr.times.size() - 1;
+                    } else {
+                        auto it = std::lower_bound(tr.times.begin(), tr.times.end(), t);
+                        i1 = (size_t)std::distance(tr.times.begin(), it);
+                        i0 = i1 - 1;
+                        const float span = tr.times[i1] - tr.times[i0];
+                        f = span > 1e-6f ? (t - tr.times[i0]) / span : 0.0f;
+                    }
+                    const glm::vec3 p = glm::mix(tr.pos[i0], tr.pos[i1], f);
+                    const glm::quat q = glm::slerp(tr.rot[i0], tr.rot[i1], f);
+                    local = glm::translate(glm::mat4(1.0f), p) * glm::mat4_cast(q);
                 }
-                
-                glm::vec3 pos = glm::mix(poss[idx0], poss[idx1], factor);
-                glm::quat rot = glm::slerp(rots[idx0], rots[idx1], factor);
-                local = glm::translate(glm::mat4(1.0f), pos) * glm::mat4_cast(rot);
             }
-            
-            int parent = skeleton.bones[b].parent;
-            if (parent >= 0 && parent < (int)b) {
-                boneMats[b] = boneMats[parent] * local;
-            } else {
-                boneMats[b] = local;
-            }
+
+            const int parent = bone.parent;
+            const bool ok = parent >= 0 && parent < (int)b;
+            rest[b]  = ok ? rest[parent]  * skeleton.bones[b].restLocal : skeleton.bones[b].restLocal;
+            posed[b] = ok ? posed[parent] * local : local;
         }
-        
-        currentBoneMats = boneMats;
-        
-        // Compute skinning matrices and upload to GPU
-        std::vector<glm::mat4> shaderTransforms(numBones);
-        for (size_t b = 0; b < numBones; ++b)
-            shaderTransforms[b] = boneMats[b] * skeleton.bones[b].invBind;
-        
-        if (!shaderTransforms.empty()) {
-            GLint prog = 0;
-            glGetIntegerv(GL_CURRENT_PROGRAM, &prog);
-            if (prog) {
-                glUniformMatrix4fv(glGetUniformLocation(prog, "boneMat"),
-                    (GLsizei)shaderTransforms.size(), GL_FALSE,
-                    glm::value_ptr(shaderTransforms[0]));
-                hasSkin = true;
-            }
-        }
+
+        currentBoneMats = posed;
+        const size_t f = (size_t)chunk->frameIndex;
+        model = m_transform * posed[f] * glm::inverse(rest[f]);
     }
-    
-    glUniform1i(ctx.uUseSkinning, hasSkin ? 1 : 0);
+
+    glUniformMatrix4fv(ctx.uM, 1, GL_FALSE, glm::value_ptr(ctx.viewProj * model));
+    glUniformMatrix4fv(ctx.uModel, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform1i(ctx.uUseSkinning, 0);
+
     glBindVertexArray(chunk->vao);
     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)chunk->vertices.size());
 }
