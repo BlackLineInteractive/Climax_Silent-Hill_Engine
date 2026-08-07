@@ -778,11 +778,12 @@ static void ParseUVAnimations(const std::vector<uint8_t> &data) {
     return v;
   };
 
-  size_t o = 0;
-  while (o + 12 <= sz) {
+  // Scanned exhaustively rather than by walking chunk sizes: the 0x2B sections
+  // sit inside the container's shells, so a top-level walk steps straight over
+  // them.
+  for (size_t o = 0; o + 12 <= sz; o += 4) {
     const uint32_t t = ru32(o), s = ru32(o + 4), v = ru32(o + 8);
-    if (v != RW_VER || s == 0 || o + 12 + s > sz) { o += 4; continue; }
-    if (t != 0x2B) { o += 12 + s; continue; }
+    if (t != 0x2B || v != RW_VER || s == 0 || o + 12 + s > sz) continue;
 
     // Struct chunk carrying the animation count, then the animations.
     size_t p = o + 12;
@@ -837,11 +838,10 @@ static void ParseUVAnimations(const std::vector<uint8_t> &data) {
       }
       p += 12 + as;
     }
-    o += 12 + s;
   }
 
-  if (!g_UVAnims.empty()) {
-    std::cout << "[uvanim] " << g_UVAnims.size() << " clips";
+  {
+    std::cout << "[uvanim] scan: " << g_UVAnims.size() << " clips";
     int shown = 0;
     for (auto &kv : g_UVAnims) {
       if (shown++ >= 2) break;

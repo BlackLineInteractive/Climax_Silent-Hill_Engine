@@ -855,9 +855,13 @@ void RenderTxdWindow() {
     ImVec2 rowMax =
         ImVec2(rowMin.x + ImGui::GetContentRegionAvail().x, rowMin.y + ITEM_H);
     bool hovered = ImGui::IsMouseHoveringRect(rowMin, rowMax);
-    if (hovered)
+    
+    float target_alpha = hovered ? 80.0f : 0.0f;
+    float anim_alpha = iam_tween_float(ImGui::GetID(name.c_str()), ImGui::GetID("txd_hover"), target_alpha, 0.2f, iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, ImGui::GetIO().DeltaTime);
+
+    if (anim_alpha > 0.1f)
       ImGui::GetWindowDrawList()->AddRectFilled(
-          rowMin, rowMax, IM_COL32(60, 100, 160, 80), 4.0f);
+          rowMin, rowMax, IM_COL32(60, 100, 160, (int)anim_alpha), 4.0f);
 
     // Thumbnail
     ImGui::Image((ImTextureID)(intptr_t)pi.glID, ImVec2(THUMB, THUMB));
@@ -1237,9 +1241,16 @@ void RenderAnimationPlayer() {
         ImGui::Spacing();
         
         // Transport
-        if (ImGui::Button(state.animSpeed > 0 ? "Pause" : "Play")) {
+        ImVec4 play_color = (state.animSpeed > 0) ? ImVec4(0.8f, 0.3f, 0.3f, 1.0f) : ImVec4(0.3f, 0.8f, 0.3f, 1.0f);
+        ImVec4 anim_play = iam_tween_color(ImGui::GetID("play_btn"), ImGui::GetID("color"), play_color, 0.2f, iam_ease_preset(iam_ease_out_cubic), iam_policy_crossfade, iam_col_srgb, ImGui::GetIO().DeltaTime);
+        ImGui::PushStyleColor(ImGuiCol_Button, anim_play);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(anim_play.x*1.2f, anim_play.y*1.2f, anim_play.z*1.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(anim_play.x*0.8f, anim_play.y*0.8f, anim_play.z*0.8f, 1.0f));
+        
+        if (ImGui::Button(state.animSpeed > 0 ? "Pause" : "Play ")) {
            state.animSpeed = (state.animSpeed > 0) ? 0.0f : 1.0f;
         }
+        ImGui::PopStyleColor(3);
         ImGui::SameLine();
         if (ImGui::Button("Stop")) {
            state.animSpeed = 0.0f;
