@@ -17,6 +17,7 @@
 #include "im_anim.h"
 #include "ClimaxEngine/Game/CameraLinks.h"
 #include "ClimaxEngine/Game/CharacterController.h"
+#include "ClimaxEngine/Game/ZoneLinks.h"
 
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
@@ -151,6 +152,15 @@ std::string LoadArcPref() {
     if (f && std::getline(f, line) && !line.empty()) return line;
     return {};
 }
+
+// ── Doorway state, shared between the step and the overlay ───────────────────
+// Which ZoneLink the player is standing in, and the container it leads to. The
+// overlay reads them to draw the prompt; the step writes them.
+static int         s_zoneLinkHere = -1;
+static std::string s_zonePrompt;
+// Set by the key handler, consumed and cleared by the step, so a single press
+// travels once instead of once per frame it is held.
+static bool        s_useDoorPressed = false;
 
 // Build a view matrix from orbit parameters and return camera world position
 static glm::mat4 BuildView(glm::vec3& outEye) {
@@ -787,6 +797,10 @@ void main(){
                     mouse_captured = !mouse_captured;
                     SDL_SetRelativeMouseMode(mouse_captured ? SDL_TRUE : SDL_FALSE);
                 }
+                // The action button. The trigger asks for MSG_PAD_GRAB, which
+                // is the pad's grab/use input; E is its keyboard stand-in.
+                if (e.key.keysym.sym == SDLK_e && state.playMode)
+                    s_useDoorPressed = true;
             }
 
             // Mouse wheel zoom — proportional so zooming stays usable at any scale
@@ -872,17 +886,30 @@ void main(){
                 // mesh instead of teleporting the camera. Speed is a rate here,
                 // not a per-frame step, because the controller integrates.
                 static ClimaxEngine::Game::CharacterController body;
-                static bool placed = false;
-                static const CollisionMesh* placedFor = nullptr;
+                // Keyed by the container's name, not by &g_Collision: that is a
+                // global whose address never changes, so the old test never
+                // fired and neither the spawn nor the camera links were ever
+                // rebuilt when a level was swapped.
+                static std::string placedFor;
+                static std::string arrivedFrom;   // zone the player came out of
+                static std::vector<ClimaxEngine::Game::ZoneLink> zoneLinks;
 
-                if (!placed || placedFor != &g_Collision) {
-                    glm::vec3 spawn;
-                    if (!ClimaxEngine::Game::FindPlayerSpawn(g_GameObjects, spawn))
-                        spawn = glm::vec3(state.camPosX, state.camPosY, state.camPosZ);
-                    body.position = spawn;
+                if (placedFor != g_CurrentMeshContainer) {
+                    zoneLinks = ClimaxEngine::Game::BuildZoneLinks(g_GameObjects);
+                    glm::vec3 spawn, facing;
+                    if (ClimaxEngine::Game::FindZoneSpawn(g_GameObjects, arrivedFrom,
+                                                          spawn, facing)) {
+                        body.position = spawn;
+                        // Face the way the spawner faces -- walking out of a
+                        // door should not drop the player looking at it.
+                        state.camYaw = glm::degrees(atan2f(-facing.x, -facing.z));
+                    } else {
+                        body.position = glm::vec3(state.camPosX, state.camPosY,
+                                                  state.camPosZ);
+                    }
+                    body.velocity = glm::vec3(0.0f);
                     body.SnapToGround(g_Collision);
-                    placed = true;
-                    placedFor = &g_Collision;
+                    placedFor = g_CurrentMeshContainer;
                 }
 
                 glm::vec3 wish(0.0f);
@@ -900,13 +927,43 @@ void main(){
                 // that side names. Rebuilt when the level changes, which is
                 // what the collision-mesh pointer tracks.
                 static ClimaxEngine::Game::CameraSwitcher switcher;
-                static const CollisionMesh* switchesFor = nullptr;
-                if (switchesFor != &g_Collision) {
+                static std::string switchesFor;
+                if (switchesFor != g_CurrentMeshContainer) {
                     switcher.Reset(ClimaxEngine::Game::BuildCameraSwitches(
                         g_GameObjects, g_Cameras));
-                    switchesFor = &g_Collision;
+                    switchesFor = g_CurrentMeshContainer;
                     state.activeCamera = -1;
                 }
+
+                // ── Doorways ────────────────────────────────────────────────
+                // Standing in a ZoneTrigger box and pressing the action key
+                // loads the container it names and puts Travis on that level's
+                // spawner for the zone he just left. MSG_PAD_GRAB is the button
+                // the trigger asks for; E stands in for it here.
+                s_zoneLinkHere = ClimaxEngine::Game::ZoneLinkAt(zoneLinks,
+                                                                body.position);
+                if (s_zoneLinkHere >= 0) {
+                    s_zonePrompt = zoneLinks[(size_t)s_zoneLinkHere].toZone;
+                    if (s_useDoorPressed) {
+                        const auto &link = zoneLinks[(size_t)s_zoneLinkHere];
+                        auto *arc = ClimaxEngine::RWS::FileSystem::
+                            CArchiveManager::GetInstance().GetFirstArchive();
+                        const int idx = arc ? arc->Find(link.toZone) : -1;
+                        if (idx >= 0) {
+                            arrivedFrom = link.fromZone;
+                            std::cout << "[zone] " << link.fromZone << " -> "
+                                      << link.toZone << "  (" << link.eventName
+                                      << ")\n";
+                            LoadLevelFromArc(idx);
+                        } else {
+                            std::cerr << "[zone] no container named "
+                                      << link.toZone << " in the archive\n";
+                        }
+                    }
+                } else {
+                    s_zonePrompt.clear();
+                }
+                s_useDoorPressed = false;
                 if (state.autoCameras) {
                     const int cut = switcher.Update(body.position);
                     if (cut >= 0 && cut < (int)g_Cameras.size())
@@ -2060,6 +2117,20 @@ void main(){
             auto* dl = ImGui::GetForegroundDrawList();
             dl->AddText(ImVec2(12.0f, (float)winH - 22.0f),
                         IM_COL32(190, 190, 200, 150), "F1 - show interface");
+        }
+
+        // Doorway prompt. Drawn on the foreground list so it survives F1, and
+        // centred low like the game's own use-prompt.
+        if (state.playMode && s_zoneLinkHere >= 0 && !s_zonePrompt.empty()) {
+            char buf[192];
+            snprintf(buf, sizeof(buf), "E  -  %s", s_zonePrompt.c_str());
+            auto* dl = ImGui::GetForegroundDrawList();
+            const ImVec2 sz = ImGui::CalcTextSize(buf);
+            const ImVec2 at((winW - sz.x) * 0.5f, (float)winH * 0.78f);
+            dl->AddRectFilled(ImVec2(at.x - 12.0f, at.y - 6.0f),
+                              ImVec2(at.x + sz.x + 12.0f, at.y + sz.y + 6.0f),
+                              IM_COL32(0, 0, 0, 150), 4.0f);
+            dl->AddText(at, IM_COL32(235, 235, 245, 255), buf);
         }
 
         // Decide who owns the mouse for the *next* frame's event loop. Panels and

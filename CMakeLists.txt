@@ -129,6 +129,7 @@ target_link_libraries(climax-core PUBLIC ZLIB::ZLIB glm::glm)
 add_library(climax-game STATIC
     src/Game/CameraLinks.cpp
     src/Game/CharacterController.cpp
+    src/Game/ZoneLinks.cpp
 )
 target_link_libraries(climax-game PUBLIC climax-core)
 
