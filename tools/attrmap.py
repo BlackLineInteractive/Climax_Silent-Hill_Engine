@@ -67,10 +67,44 @@ class Elf:
 
 
 def demangle_class(sym):
-    """HandleAttributes__14CPhysicsObjectRCQ23RWS16CAttributePacket -> CPhysicsObject"""
+    """Recovers the class name from a GCC 2.x mangled method symbol.
+
+    Two shapes appear, and only handling the first one hid most of the engine:
+
+        HandleAttributes__14CPhysicsObject...        -> CPhysicsObject
+        HandleAttributes__Q28Triggers14AreaTriggerBox... -> AreaTriggerBox
+
+    The `Q` form is a qualified name: `Q`, the number of components, then each
+    component as length-prefixed text. Camera, Triggers, Spawning, Characters
+    and RWS::Audio all live behind it, so without this the cross-reference
+    against the game's own class registry matched 21 of 126 classes instead of
+    most of them.
+    """
     body = sym.split('__', 1)[1] if '__' in sym else sym
     if body.startswith('C'):
         body = body[1:]                       # leading 'C' = const method
+
+    if body.startswith('Q'):
+        i = 1
+        if i < len(body) and body[i] == '_':  # Q_<count>_ for 10 or more parts
+            j = body.index('_', i + 1)
+            count = int(body[i + 1:j])
+            i = j + 1
+        else:
+            count = int(body[i])
+            i += 1
+        last = None
+        for _ in range(count):
+            j = i
+            while j < len(body) and body[j].isdigit():
+                j += 1
+            if j == i:
+                return sym
+            n = int(body[i:j])
+            last = body[j:j + n]
+            i = j + n
+        return last or sym
+
     i = 0
     while i < len(body) and body[i].isdigit():
         i += 1
@@ -134,6 +168,49 @@ def find_table(elf, start, size):
     return None, None
 
 
+def find_case_chain(elf, start, size):
+    """Recovers the dispatch when the compiler emitted comparisons, not a table.
+
+    With only a handful of properties there is no jump table: the index is
+    compared against small constants held in registers and each match branches
+    to its case. `Camera::CBaseCamera` dispatches its field of view exactly this
+    way, through a branch-likely, which is why the table search reports nothing
+    for a third of the classes the game actually uses.
+
+    Returns {index: caseAddress}.
+    """
+    consts = {}
+    cases = {}
+    idx_reg = None
+
+    for va in range(start, start + size, 4):
+        w = elf.insn(va)
+        if w is None:
+            break
+        txt, kind, det = decode(w, va)
+        op = txt.split()[0]
+        rs, rt = (w >> 21) & 0x1F, (w >> 16) & 0x1F
+
+        # addiu $r, $zero, N parks a case label in a register
+        if kind == 'imm' and det[1] == 0 and 0 <= det[2] < 256:
+            consts[det[0]] = det[2]
+            continue
+        # The index is whatever gets loaded then compared; lw $v0, 4($a2) in the
+        # cases seen, but the register is not fixed, so take it from the branch.
+        if op in ('beq', 'beql') and kind == 'branch':
+            if rt == 0:                       # against $zero -> case 0
+                cases.setdefault(0, det)
+                idx_reg = idx_reg or rs
+            elif rt in consts:
+                cases.setdefault(consts[rt], det)
+                idx_reg = idx_reg or rs
+            elif rs in consts:
+                cases.setdefault(consts[rs], det)
+        if op in ('jr', 'j') and cases:
+            break
+    return cases
+
+
 def object_register(elf, start, size):
     """The register the object pointer is parked in (`move $sX, $a0`)."""
     for va in range(start, min(start + 40, start + size), 4):
@@ -150,9 +227,16 @@ TYPES = {'swc1': 'float', 'sw': 'int', 'sh': 'short', 'sb': 'byte',
          'sd': 'long', 'sq': 'vector'}
 
 
-def read_case(elf, va, objreg, limit=24):
-    """Stores this case makes into the object."""
+def read_case(elf, va, objreg, limit=24, syms=None):
+    """What this case does: stores into the object, or a call it makes.
+
+    Half the cases in the engine do not write a field directly -- they hand the
+    value to a setter, as Camera::CBaseCamera does with SetFOV. Reporting only
+    stores labelled those "(no direct store)" and threw away the most useful
+    thing about them, which is the name of the function being called.
+    """
     out = []
+    called = []
     for k in range(limit):
         addr = va + k * 4
         w = elf.insn(addr)
@@ -163,6 +247,8 @@ def read_case(elf, va, objreg, limit=24):
         if op in TYPES and txt.endswith(f'({objreg})'):
             off = txt.split(',')[1].split('(')[0].strip()
             out.append({'offset': off, 'type': TYPES[op]})
+        if op == 'jal' and syms and det in syms:
+            called.append(syms[det])
         if op in ('jr', 'j'):
             break
         if op in ('beq', 'b') and '$zero, $zero' in txt:
@@ -174,6 +260,8 @@ def read_case(elf, va, objreg, limit=24):
                 off = t2.split(',')[1].split('(')[0].strip()
                 out.append({'offset': off, 'type': TYPES[o2]})
             break
+    for c in called:
+        out.append({'calls': c})
     return out
 
 
@@ -181,6 +269,7 @@ def main():
     path = sys.argv[1]
     elf = Elf(path)
     syms = elf.symbols()
+    byaddr = {v[0]: n for n, v in syms.items() if v[0]}
     handlers = {n: v for n, v in syms.items() if n.startswith('HandleAttributes__')}
     if not handlers:
         print('no HandleAttributes symbols; this binary is stripped')
@@ -192,20 +281,32 @@ def main():
             continue
         cls = demangle_class(sym)
         count, table = find_table(elf, va, size)
-        if not count or not table:
-            result[cls] = {'address': f'0x{va:08X}', 'properties': None,
-                           'note': 'no dispatch table found'}
-            continue
         objreg = object_register(elf, va, size)
-        props = []
-        for i in range(count):
-            tgt = elf.word(table + i * 4)
-            props.append({'index': i,
-                          'case': f'0x{tgt:08X}' if tgt else None,
-                          'stores': read_case(elf, tgt, objreg) if tgt else []})
-        result[cls] = {'address': f'0x{va:08X}', 'table': f'0x{table:08X}',
-                       'count': count, 'objectRegister': objreg,
-                       'properties': props}
+
+        if count and table:
+            props = []
+            for i in range(count):
+                tgt = elf.word(table + i * 4)
+                props.append({'index': i,
+                              'case': f'0x{tgt:08X}' if tgt else None,
+                              'stores': read_case(elf, tgt, objreg, syms=byaddr) if tgt else []})
+            result[cls] = {'address': f'0x{va:08X}', 'table': f'0x{table:08X}',
+                           'count': count, 'objectRegister': objreg,
+                           'properties': props, 'form': 'jump table'}
+            continue
+
+        cases = find_case_chain(elf, va, size)
+        if cases:
+            props = [{'index': i, 'case': f'0x{cases[i]:08X}',
+                      'stores': read_case(elf, cases[i], objreg, syms=byaddr)}
+                     for i in sorted(cases)]
+            result[cls] = {'address': f'0x{va:08X}', 'count': len(props),
+                           'objectRegister': objreg, 'properties': props,
+                           'form': 'compare chain'}
+            continue
+
+        result[cls] = {'address': f'0x{va:08X}', 'properties': None,
+                       'note': 'no dispatch found'}
 
     named = sum(1 for v in result.values() if v.get('properties'))
     print(f'{len(result)} classes, {named} with a recovered table\n')
@@ -215,7 +316,7 @@ def main():
             continue
         print(f'{cls:34s} {v["address"]}  {v["count"]} properties')
         for p in v['properties']:
-            s = ', '.join(f'+{x["offset"]} {x["type"]}' for x in p['stores'])
+            s = ', '.join(x.get('calls', '') or f'+{x["offset"]} {x["type"]}' for x in p['stores'])
             print(f'    {p["index"]:3d}  {s or "(no direct store)"}')
 
     if '--json' in sys.argv:

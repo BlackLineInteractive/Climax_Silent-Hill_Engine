@@ -294,7 +294,64 @@ naive Python search over it is too slow to be worth running as written. Indexing
 
 ---
 
-## 3. Next targets
+## 3. The class map for a port
+
+`docs/port_class_map.json` is the cross-reference the port works from: every
+class Origins registers, with its instance size and factory address from
+`SLES_551.47`, and — where Ghost Rider has the same class — the property table
+recovered from its `HandleAttributes`.
+
+**126 classes in Origins, 63 with a recovered property table.** The rest split
+into two very different problems:
+
+* **59 classes do not exist in Ghost Rider at all.** These are the ones Climax
+  wrote for Silent Hill: `CIGCCamera`, `CIGCCharacter`, `CPickupItem`,
+  `CInventoryItemDef`, `CMapItem`, `CFogConfig`, `CPeepholeCamera`,
+  `CCalibanBehaviour`, `CFlaurosBehaviour`, `AnatomyPuzzleTrigger`. No symbol
+  anywhere will name them; they have to be read out of Origins' own stripped
+  binary through its factories.
+* **The remainder are shared but still unread**, mostly triggers.
+
+### Two dispatch shapes, not one
+
+The extractor originally understood only the jump-table form the compiler emits
+for a class with many properties:
+
+    sll $idx, $id, 2 ; lui/addiu base ; addu ; lw ; jr
+
+That found 118 of 213 classes. The others use a **chain of comparisons**
+instead, which is what a handful of properties compiles to — and it is easy to
+miss, because the compare is often a *branch-likely* (`beql`), an instruction
+`tools/mips.py` did not decode at all until this pass. Adding both the
+branch-likely family and a compare-chain reader took recovery to **201 of 213**.
+
+Verified rather than assumed: `Camera::CBaseCamera` property 2 resolves to case
+`0x00114A18`, which is exactly the `jal SetFOV__Q26Camera11CBaseCameraf` found
+by hand when chasing the camera's field of view.
+
+### Cases call as often as they store
+
+Half the cases never write a field — they hand the value to a setter, so
+reporting only stores labelled them "(no direct store)" and discarded the most
+useful fact about them. The extractor now records the callee:
+
+    CBaseCamera    idx 2  -> SetFOV
+    CBaseCamera    idx 3  -> ReplaceLinkedMsg      (this is how events are wired)
+    CPlayerSpawner idx 1  -> +0x40 int, CopyString (a named property)
+    CStaticCamera  idx 4  -> +0xf8 float, +0xfc float, cosf
+
+The `ReplaceLinkedMsg` on a property is worth noting on its own: it confirms
+from the code side what the container data already showed — objects are wired
+to each other by name, through properties, at load time.
+
+### Name demangling
+
+Nested names (`Q28Triggers14AreaTriggerBox`, `Q26Camera17CConstraintCamera`)
+were not demangled, so `Camera`, `Triggers`, `Spawning`, `Characters` and
+`RWS::Audio` — most of the engine — never matched Origins' registry. Handling
+the `Q` form took the cross-reference from 21 shared classes to 67.
+
+## 4. Next targets
 
 In rough order of value:
 

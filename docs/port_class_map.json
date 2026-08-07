@@ -1,0 +1,6585 @@
+{
+ "source": {
+  "sho": "SLES_551.47",
+  "gr": "SLES_543.17"
+ },
+ "classes": {
+  "AccoladeData": {
+   "size": 84,
+   "factory": "0x0017E298",
+   "registry": "0x006BFE90"
+  },
+  "AnatomyPuzzleTrigger": {
+   "size": 168,
+   "factory": "0x00172C00",
+   "registry": "0x006BFC98"
+  },
+  "AreaTrigger2DPoly": {
+   "size": 304,
+   "factory": "0x0016FF60",
+   "registry": "0x006BFC30",
+   "gr_address": "0x001A6130",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A61E4",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A61A8",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "AreaTriggerBattleManager": {
+   "size": 368,
+   "factory": "0x00171068",
+   "registry": "0x006BFC68",
+   "gr_address": "0x001A7048",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A70B4",
+     "stores": [
+      {
+       "offset": "0x100",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001A70C4",
+     "stores": [
+      {
+       "offset": "0x10c",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A70DC",
+     "stores": [
+      {
+       "offset": "0x110",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A70F4",
+     "stores": [
+      {
+       "offset": "0x114",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A710C",
+     "stores": [
+      {
+       "offset": "0x118",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001A7124",
+     "stores": [
+      {
+       "offset": "0x11c",
+       "type": "int"
+      },
+      {
+       "offset": "0x108",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      },
+      {
+       "calls": "strlen"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "AreaTriggerBox": {
+   "size": 288,
+   "factory": "0x00171938",
+   "registry": "0x006BFC78",
+   "gr_address": "0x001A75C0",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A76B0",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A7654",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A7668",
+     "stores": [
+      {
+       "offset": "0xf0",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A7678",
+     "stores": [
+      {
+       "offset": "0xf4",
+       "type": "int"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "AudioGlobalMixer": {
+   "size": 124,
+   "factory": "0x00199CE0",
+   "registry": "0x006F8608",
+   "gr_address": "0x001C90C0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001C926C",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001C9208",
+     "stores": [
+      {
+       "calls": "StopAllVirtualVoices__Q23RWS8RwsAudiov"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001C9218",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x001C9228",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001C9258",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001C9248",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001C911C",
+     "stores": [
+      {
+       "offset": "0x30",
+       "type": "float"
+      },
+      {
+       "calls": "GetOutputObject__Q23RWS8RwsAudiov"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x001C9154",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "float"
+      },
+      {
+       "calls": "GetListener__Q23RWS8RwsAudiov"
+      },
+      {
+       "calls": "GetListener__Q23RWS8RwsAudiov"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001C9180",
+     "stores": [
+      {
+       "offset": "0x38",
+       "type": "float"
+      },
+      {
+       "calls": "GetListener__Q23RWS8RwsAudiov"
+      },
+      {
+       "calls": "GetListener__Q23RWS8RwsAudiov"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001C91B0",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "float"
+      },
+      {
+       "calls": "GetListener__Q23RWS8RwsAudiov"
+      },
+      {
+       "calls": "GetListener__Q23RWS8RwsAudiov"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001C91E0",
+     "stores": [
+      {
+       "calls": "SetSpeakerConfig__Q33RWS5Audio16AudioGlobalMixerUi"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001C91F8",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "AudioGroup": {
+   "size": 104,
+   "factory": "0x0019A650",
+   "registry": "0x006F8638",
+   "gr_address": "0x001C9A98",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001C9B8C",
+     "stores": [
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      },
+      {
+       "calls": "FindById__Q23RWS16CResourceManagerPCQ23RWS7RWSGUIDPPCcPUiT2"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001C9B1C",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x001C9B34",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001C9B4C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    }
+   ]
+  },
+  "AudioReverb": {
+   "size": 180,
+   "factory": "0x0019ADA0",
+   "registry": "0x006F8648",
+   "gr_address": "0x001CA0A0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001CA0FC",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001CA10C",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x001CA11C",
+     "stores": [
+      {
+       "offset": "0x30",
+       "type": "int"
+      },
+      {
+       "calls": "SetEnvironment__Q33RWS5Audio11AudioReverbUiUi"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001CA150",
+     "stores": [
+      {
+       "offset": "0xa0",
+       "type": "int"
+      },
+      {
+       "calls": "UpdateEnvironmentGain__Q33RWS5Audio11AudioReverb"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001CA16C",
+     "stores": []
+    },
+    {
+     "index": 5,
+     "case": "0x001CA17C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001CA1AC",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x001CA19C",
+     "stores": [
+      {
+       "offset": "0x80",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001CA1C8",
+     "stores": [
+      {
+       "offset": "0x64",
+       "type": "int"
+      },
+      {
+       "calls": "OverrideEnvironment__Q33RWS5Audio11AudioReverb"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001CA1E4",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001CA1F8",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001CA20C",
+     "stores": [
+      {
+       "offset": "0x5c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x001CA220",
+     "stores": [
+      {
+       "offset": "0x58",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x001CA234",
+     "stores": [
+      {
+       "offset": "0x60",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x001CA248",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 15,
+     "case": "0x001CA264",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x001CA278",
+     "stores": [
+      {
+       "offset": "0x50",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x001CA294",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x001CA2A8",
+     "stores": [
+      {
+       "offset": "0x38",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 19,
+     "case": "0x001CA2C4",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "float"
+      },
+      {
+       "calls": "GetOutputObject__Q23RWS8RwsAudiov"
+      },
+      {
+       "calls": "_rwaSPU2OutputSetEnvironment"
+      }
+     ]
+    },
+    {
+     "index": 20,
+     "case": "0x001CA304",
+     "stores": [
+      {
+       "offset": "0x68",
+       "type": "int"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "AudioSound3D": {
+   "size": 160,
+   "factory": "0x0019BBA0",
+   "registry": "0x006F8658",
+   "gr_address": "0x001CAC18",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001CAC84",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001CACA8",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x001CACB8",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x001CACC4",
+     "stores": [
+      {
+       "calls": "SelectWave__Q33RWS5Audio12AudioSound3DPCc"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001CACDC",
+     "stores": [
+      {
+       "offset": "0x60",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001CACEC",
+     "stores": []
+    },
+    {
+     "index": 6,
+     "case": "0x001CACFC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x001CAD2C",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001CAD1C",
+     "stores": [
+      {
+       "offset": "0x64",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001CAD48",
+     "stores": []
+    },
+    {
+     "index": 10,
+     "case": "0x001CADAC",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "float"
+      },
+      {
+       "calls": "RwaObjHandleSetParamReal"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001CADF0",
+     "stores": [
+      {
+       "calls": "RwaObjHandleSetParamReal"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x001CAE28",
+     "stores": []
+    },
+    {
+     "index": 13,
+     "case": "0x001CAF08",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x001CAE70",
+     "stores": []
+    },
+    {
+     "index": 15,
+     "case": "0x001CAEB0",
+     "stores": [
+      {
+       "calls": "RwaObjHandleSetParamReal"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x001CAE3C",
+     "stores": [
+      {
+       "offset": "0x58",
+       "type": "float"
+      },
+      {
+       "calls": "SelectSampleRate__Q33RWS5Audio12AudioSound3DUi"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x001CAEF8",
+     "stores": [
+      {
+       "offset": "0x5c",
+       "type": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "AudioStream": {
+   "size": 124,
+   "factory": "0x0019C3D0",
+   "registry": "0x006F8668",
+   "gr_address": "0x001CB8D0",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001CBA08",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001CB944",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001CB95C",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "int"
+      },
+      {
+       "calls": "_rwaSPU2StreamSetPlayState"
+      },
+      {
+       "calls": "RwaObjDestroy"
+      },
+      {
+       "calls": "strlen"
+      },
+      {
+       "calls": "strlen"
+      }
+     ]
+    }
+   ]
+  },
+  "BackdropPropTrigger": {
+   "size": 208,
+   "factory": "0x00173240",
+   "registry": "0x006BFCA8"
+  },
+  "ButtonBoxTrigger": {
+   "size": 272,
+   "factory": "0x001691D8",
+   "registry": "0x006BFB18",
+   "gr_address": "0x001A1A60",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A1BEC",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A1C78",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A1CE0",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A1BF8",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "int"
+      },
+      {
+       "calls": "UnLinkMsg__Q23RWS13CEventHandlerRQ23RWS8CEventId"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A1C94",
+     "stores": [
+      {
+       "offset": "0xe0",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001A1CA8",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001A1CC8",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "ButtonTrigger": {
+   "size": 256,
+   "factory": "0x001698A0",
+   "registry": "0x006BFB20"
+  },
+  "CAnimatedStaticObject": {
+   "size": 784,
+   "factory": "0x0013F810",
+   "registry": "0x006B4D20"
+  },
+  "CAudioLocatorBehaviour": {
+   "size": 92,
+   "factory": "0x0010B368",
+   "registry": "0x006B47F8",
+   "gr_address": "0x0010C038",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0010C108",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x0010C0CC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CAudioLocatorBehaviour2D": {
+   "size": 100,
+   "factory": "0x0010B968",
+   "registry": "0x006B4808"
+  },
+  "CAudioTransitions": {
+   "size": 100,
+   "factory": "0x0010F9F8",
+   "registry": "0x006B4880"
+  },
+  "CAudioUI": {
+   "size": 200,
+   "factory": "0x001115E0",
+   "registry": "0x006B49A0",
+   "gr_address": "0x00110C70",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00110CEC",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x00110D04",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00110D1C",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00110D34",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x00110D4C",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x00110D64",
+     "stores": [
+      {
+       "offset": "0x50",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x00110D7C",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x00110D94",
+     "stores": [
+      {
+       "offset": "0x58",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x00110DAC",
+     "stores": [
+      {
+       "offset": "0x5c",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x00110DC4",
+     "stores": [
+      {
+       "offset": "0x60",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x00110DDC",
+     "stores": [
+      {
+       "offset": "0x64",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x00110DF4",
+     "stores": [
+      {
+       "offset": "0x68",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x00110E0C",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x00110E24",
+     "stores": [
+      {
+       "offset": "0x70",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x00110E3C",
+     "stores": [
+      {
+       "offset": "0x74",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 15,
+     "case": "0x00110E54",
+     "stores": [
+      {
+       "offset": "0x78",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x00110E6C",
+     "stores": [
+      {
+       "offset": "0x7c",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x00110E84",
+     "stores": [
+      {
+       "offset": "0x80",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x00110E9C",
+     "stores": [
+      {
+       "offset": "0x84",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 19,
+     "case": "0x00110EB4",
+     "stores": [
+      {
+       "offset": "0x88",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 20,
+     "case": "0x00110ECC",
+     "stores": [
+      {
+       "offset": "0x90",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 21,
+     "case": "0x00110EE4",
+     "stores": [
+      {
+       "offset": "0x8c",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 22,
+     "case": "0x00110EFC",
+     "stores": [
+      {
+       "offset": "0x94",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 23,
+     "case": "0x00110F14",
+     "stores": [
+      {
+       "offset": "0x98",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 24,
+     "case": "0x00110F2C",
+     "stores": [
+      {
+       "offset": "0x9c",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 25,
+     "case": "0x00110F44",
+     "stores": [
+      {
+       "offset": "0xa0",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 26,
+     "case": "0x00110F5C",
+     "stores": [
+      {
+       "offset": "0xa4",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 27,
+     "case": "0x00110F74",
+     "stores": [
+      {
+       "offset": "0xa8",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 28,
+     "case": "0x00110F8C",
+     "stores": [
+      {
+       "offset": "0xac",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 29,
+     "case": "0x00110FA4",
+     "stores": [
+      {
+       "offset": "0xb0",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 30,
+     "case": "0x00110FBC",
+     "stores": [
+      {
+       "offset": "0xb4",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 31,
+     "case": "0x00110FD4",
+     "stores": [
+      {
+       "offset": "0xb8",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 32,
+     "case": "0x00110FEC",
+     "stores": [
+      {
+       "offset": "0xbc",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 33,
+     "case": "0x00111004",
+     "stores": [
+      {
+       "offset": "0xc0",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 34,
+     "case": "0x0011101C",
+     "stores": [
+      {
+       "offset": "0xc4",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 35,
+     "case": "0x00111034",
+     "stores": [
+      {
+       "offset": "0xc8",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 36,
+     "case": "0x0011104C",
+     "stores": [
+      {
+       "offset": "0xcc",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 37,
+     "case": "0x00111064",
+     "stores": [
+      {
+       "offset": "0xd0",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 38,
+     "case": "0x0011107C",
+     "stores": [
+      {
+       "offset": "0xd4",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CBasicAnimatedObject": {
+   "size": 280,
+   "factory": "0x001041D0",
+   "registry": "0x006B4710"
+  },
+  "CBloomCfg": {
+   "size": 184,
+   "factory": "0x001613F0",
+   "registry": "0x006BFA98",
+   "gr_address": "0x00190FD0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0019103C",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x00191058",
+     "stores": [
+      {
+       "offset": "0x38",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00191068",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00191078",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x00191088",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x00191098",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001910A8",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x001910B8",
+     "stores": [
+      {
+       "offset": "0x50",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001910C8",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001910D8",
+     "stores": [
+      {
+       "offset": "0x58",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001910E8",
+     "stores": []
+    },
+    {
+     "index": 11,
+     "case": "0x00191164",
+     "stores": [
+      {
+       "offset": "0x68",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x00191174",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x00191184",
+     "stores": [
+      {
+       "offset": "0x70",
+       "type": "float"
+      },
+      {
+       "offset": "0x74",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x0019119C",
+     "stores": [
+      {
+       "offset": "0x78",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 15,
+     "case": "0x001911AC",
+     "stores": [
+      {
+       "offset": "0x7c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x001911BC",
+     "stores": [
+      {
+       "offset": "0x80",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x001911CC",
+     "stores": [
+      {
+       "offset": "0x9c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x001911EC",
+     "stores": []
+    },
+    {
+     "index": 19,
+     "case": "0x001911FC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 20,
+     "case": "0x0019121C",
+     "stores": [
+      {
+       "offset": "0x94",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 21,
+     "case": "0x0019122C",
+     "stores": [
+      {
+       "offset": "0x98",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CCalibanBehaviour": {
+   "size": 11712,
+   "factory": "0x0011F298",
+   "registry": "0x006B4AD8"
+  },
+  "CCollisionCapsule": {
+   "size": 100,
+   "factory": "0x00146F08",
+   "registry": "0x006BF348",
+   "gr_address": "0x001547C0",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00154898",
+     "stores": [
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x00154910",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00154904",
+     "stores": [
+      {
+       "offset": "0x38",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00154918",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "float"
+      },
+      {
+       "calls": "OverrideProperties__Q27Physics17CCollisionCapsule"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CColorLight": {
+   "size": 108,
+   "factory": "0x001405E8",
+   "registry": "0x006B4D48",
+   "gr_address": "0x00151CD8",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00151E78",
+     "stores": []
+    }
+   ]
+  },
+  "CConstraintCamera": {
+   "size": 704,
+   "factory": "0x001190E0",
+   "registry": "0x006B4A30",
+   "gr_address": "0x0011D8D8",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0011DA94",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0011DAA4",
+     "stores": [
+      {
+       "offset": "0x70",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0011DAD4",
+     "stores": [
+      {
+       "offset": "0x1ec",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0011DAE4",
+     "stores": [
+      {
+       "offset": "0x20c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0011DAF4",
+     "stores": [
+      {
+       "offset": "0x210",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0011DC0C",
+     "stores": [
+      {
+       "offset": "0x208",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0011DB04",
+     "stores": [
+      {
+       "offset": "0x214",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0011DB14",
+     "stores": [
+      {
+       "offset": "0x218",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x0011DB24",
+     "stores": [
+      {
+       "offset": "0x21c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x0011DB34",
+     "stores": [
+      {
+       "offset": "0x1f0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x0011DB44",
+     "stores": [
+      {
+       "offset": "0x1f4",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x0011DB54",
+     "stores": [
+      {
+       "offset": "0x224",
+       "type": "float"
+      },
+      {
+       "offset": "0x220",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x0011DB68",
+     "stores": [
+      {
+       "offset": "0x228",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x0011DB88",
+     "stores": [
+      {
+       "offset": "0x22c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x0011DB98",
+     "stores": [
+      {
+       "offset": "0x230",
+       "type": "float"
+      },
+      {
+       "offset": "0x234",
+       "type": "float"
+      },
+      {
+       "calls": "cosf"
+      }
+     ]
+    },
+    {
+     "index": 15,
+     "case": "0x0011DAB4",
+     "stores": [
+      {
+       "offset": "0x9c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x0011DAC4",
+     "stores": [
+      {
+       "offset": "0xa0",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x0011DBFC",
+     "stores": [
+      {
+       "offset": "0x1f8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x0011DBCC",
+     "stores": [
+      {
+       "offset": "0x1a0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 19,
+     "case": "0x0011DBDC",
+     "stores": [
+      {
+       "offset": "0x1a4",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 20,
+     "case": "0x0011DBEC",
+     "stores": [
+      {
+       "offset": "0x1a8",
+       "type": "float"
+      }
+     ]
+    }
+   ]
+  },
+  "CControllerCamera": {
+   "size": 192,
+   "factory": "0x00119DA8",
+   "registry": "0x006B4A40",
+   "gr_address": "0x0011E648",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0011E77C",
+     "stores": [
+      {
+       "offset": "0x68",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0011E78C",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0011E79C",
+     "stores": [
+      {
+       "offset": "0x70",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0011E70C",
+     "stores": []
+    },
+    {
+     "index": 4,
+     "case": "0x0011E720",
+     "stores": []
+    },
+    {
+     "index": 5,
+     "case": "0x0011E734",
+     "stores": []
+    },
+    {
+     "index": 6,
+     "case": "0x0011E748",
+     "stores": []
+    },
+    {
+     "index": 7,
+     "case": "0x0011E75C",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    }
+   ]
+  },
+  "CCounter": {
+   "size": 108,
+   "factory": "0x00169CD8",
+   "registry": "0x006BFB30",
+   "gr_address": "0x001A2018",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A2084",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A2094",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A20B0",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A20D0",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A20E0",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "int"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CDeathSpawnEffectManager": {
+   "size": 568,
+   "factory": "0x0015D440",
+   "registry": "0x006BF5A0",
+   "gr_address": "0x0018FCF8",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0018FE84",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x0018FE98",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x0018FEAC",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x0018FEC0",
+     "stores": []
+    },
+    {
+     "index": 4,
+     "case": "0x0018FED4",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CDistortionTrigger": {
+   "size": 88,
+   "factory": "0x0016A5C8",
+   "registry": "0x006BFB50",
+   "gr_address": "0x001A2B08",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A2BD0",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A2B94",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A2B9C",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CDynamicFire": {
+   "size": 928,
+   "factory": "0x0015A3F0",
+   "registry": "0x006BF590",
+   "gr_address": "0x0018BF80",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0018BFEC",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "LinkMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcUs"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0018C024",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x0018C0B0",
+     "stores": [
+      {
+       "offset": "0x28c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0018C0C0",
+     "stores": [
+      {
+       "offset": "0x2b0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0018C0D0",
+     "stores": [
+      {
+       "offset": "0x2a8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0018C0E0",
+     "stores": [
+      {
+       "offset": "0x2a0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0018C0F0",
+     "stores": [
+      {
+       "offset": "0x2a4",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0018C100",
+     "stores": [
+      {
+       "offset": "0x2b8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x0018C110",
+     "stores": [
+      {
+       "offset": "0x2bc",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x0018C120",
+     "stores": [
+      {
+       "offset": "0x2ac",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x0018C14C",
+     "stores": [
+      {
+       "offset": "0x35c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x0018C15C",
+     "stores": [
+      {
+       "offset": "0x360",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x0018C16C",
+     "stores": [
+      {
+       "offset": "0x364",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x0018C17C",
+     "stores": [
+      {
+       "offset": "0x368",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x0018C18C",
+     "stores": [
+      {
+       "offset": "0x36c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 15,
+     "case": "0x0018C19C",
+     "stores": [
+      {
+       "offset": "0x370",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x0018C1AC",
+     "stores": [
+      {
+       "offset": "0x374",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x0018C1BC",
+     "stores": [
+      {
+       "offset": "0x378",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x0018C1CC",
+     "stores": [
+      {
+       "offset": "0x37c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 19,
+     "case": "0x0018C1DC",
+     "stores": [
+      {
+       "offset": "0x380",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 20,
+     "case": "0x0018C130",
+     "stores": [
+      {
+       "offset": "0x358",
+       "type": "float"
+      },
+      {
+       "calls": "CalculateFixed__Q27Effects12CDynamicFire"
+      }
+     ]
+    },
+    {
+     "index": 21,
+     "case": "0x0018C1EC",
+     "stores": [
+      {
+       "offset": "0x384",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 22,
+     "case": "0x0018C20C",
+     "stores": [
+      {
+       "offset": "0x388",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 23,
+     "case": "0x0018C22C",
+     "stores": [
+      {
+       "offset": "0x38c",
+       "type": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "CDynamicHealthItem": {
+   "size": 304,
+   "factory": "0x0018BD98",
+   "registry": "0x006CC258"
+  },
+  "CEndingMovieRelay": {
+   "size": 124,
+   "factory": "0x0016AC90",
+   "registry": "0x006BFB60"
+  },
+  "CEnemyBehaviour": {
+   "size": 11664,
+   "factory": "0x0012B630",
+   "registry": "0x006B4B78",
+   "gr_address": "0x001294A0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0012962C",
+     "stores": [
+      {
+       "offset": "0x11a0",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0012963C",
+     "stores": [
+      {
+       "offset": "0x1120",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0012964C",
+     "stores": [
+      {
+       "offset": "0xf7c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0012965C",
+     "stores": [
+      {
+       "offset": "0x1124",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0012966C",
+     "stores": [
+      {
+       "offset": "0x1128",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0012967C",
+     "stores": [
+      {
+       "offset": "0x112c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0012968C",
+     "stores": [
+      {
+       "offset": "0x1130",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x0012969C",
+     "stores": [
+      {
+       "offset": "0x1134",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001296BC",
+     "stores": [
+      {
+       "offset": "0x1138",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001296DC",
+     "stores": [
+      {
+       "offset": "0x12bc",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 15,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 19,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 20,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 21,
+     "case": "0x00129940",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 22,
+     "case": "0x0012974C",
+     "stores": []
+    },
+    {
+     "index": 23,
+     "case": "0x00129760",
+     "stores": []
+    },
+    {
+     "index": 24,
+     "case": "0x00129774",
+     "stores": []
+    },
+    {
+     "index": 25,
+     "case": "0x00129788",
+     "stores": []
+    },
+    {
+     "index": 26,
+     "case": "0x0012979C",
+     "stores": []
+    },
+    {
+     "index": 27,
+     "case": "0x001297B0",
+     "stores": []
+    },
+    {
+     "index": 28,
+     "case": "0x001297C4",
+     "stores": []
+    },
+    {
+     "index": 29,
+     "case": "0x001297D8",
+     "stores": []
+    },
+    {
+     "index": 30,
+     "case": "0x001297EC",
+     "stores": []
+    },
+    {
+     "index": 31,
+     "case": "0x00129800",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 32,
+     "case": "0x00129830",
+     "stores": [
+      {
+       "offset": "0x12d0",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 33,
+     "case": "0x00129840",
+     "stores": [
+      {
+       "offset": "0x12d4",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 34,
+     "case": "0x00129850",
+     "stores": [
+      {
+       "offset": "0xedc",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 35,
+     "case": "0x00129870",
+     "stores": [
+      {
+       "offset": "0x1344",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 36,
+     "case": "0x0012988C",
+     "stores": [
+      {
+       "offset": "0xef0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 37,
+     "case": "0x0012989C",
+     "stores": [
+      {
+       "offset": "0xef4",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 38,
+     "case": "0x001298AC",
+     "stores": [
+      {
+       "offset": "0xefc",
+       "type": "int"
+      },
+      {
+       "calls": "GetCueHandle__CQ25Audio11CAudioRelayPCc"
+      }
+     ]
+    },
+    {
+     "index": 39,
+     "case": "0x00129820",
+     "stores": [
+      {
+       "offset": "0x12cc",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 40,
+     "case": "0x001298C4",
+     "stores": [
+      {
+       "offset": "0xfac",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 41,
+     "case": "0x001298E4",
+     "stores": [
+      {
+       "offset": "0x131c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 42,
+     "case": "0x001298F4",
+     "stores": [
+      {
+       "offset": "0x1324",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 43,
+     "case": "0x00129904",
+     "stores": [
+      {
+       "offset": "0x1320",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 44,
+     "case": "0x00129914",
+     "stores": [
+      {
+       "offset": "0x1330",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 45,
+     "case": "0x001296FC",
+     "stores": [
+      {
+       "offset": "0x13a0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 46,
+     "case": "0x0012972C",
+     "stores": [
+      {
+       "offset": "0x12f8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 47,
+     "case": "0x0012973C",
+     "stores": [
+      {
+       "offset": "0x12fc",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 48,
+     "case": "0x0012970C",
+     "stores": [
+      {
+       "offset": "0x1300",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 49,
+     "case": "0x0012971C",
+     "stores": [
+      {
+       "offset": "0x1304",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 50,
+     "case": "0x00129924",
+     "stores": [
+      {
+       "offset": "0x13a8",
+       "type": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "CEnemySpecificPlayerAnim": {
+   "size": 88,
+   "factory": "0x00106CC8",
+   "registry": "0x006B4728",
+   "gr_address": "0x0010A490",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0010A514",
+     "stores": [
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      },
+      {
+       "calls": "_S_refill__t24__default_alloc_template2b0i0Ui"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0010A61C",
+     "stores": [
+      {
+       "calls": "_SendMsg__3RWSRQ23RWS4CMsg"
+      },
+      {
+       "calls": "AddAnims__24CEnemySpecificPlayerAnimPQ29Animation14CAnimBehaviour"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0010A6D0",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "int"
+      },
+      {
+       "offset": "0x38",
+       "type": "int"
+      },
+      {
+       "calls": "LinkMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcUs"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x0010A64C",
+     "stores": [
+      {
+       "calls": "AddAnims__24CEnemySpecificPlayerAnimPQ29Animation14CAnimBehaviour"
+      }
+     ]
+    }
+   ]
+  },
+  "CFMABorder": {
+   "size": 336,
+   "factory": "0x001529C0",
+   "registry": "0x006BF4E0",
+   "gr_address": "0x00182950",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001829BC",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001829D8",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x001829F4",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "float"
+      },
+      {
+       "offset": "0x48",
+       "type": "float"
+      },
+      {
+       "calls": "GetRt2dDeviceCoords__Q22UI5UtilsPfN31b"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00182A28",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      },
+      {
+       "offset": "0x50",
+       "type": "float"
+      },
+      {
+       "calls": "GetRt2dDeviceCoords__Q22UI5UtilsPfN31b"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x00182A5C",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "float"
+      },
+      {
+       "offset": "0x58",
+       "type": "float"
+      },
+      {
+       "calls": "GetRt2dDeviceCoords__Q22UI5UtilsPfN31b"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x00182A90",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "float"
+      },
+      {
+       "offset": "0x38",
+       "type": "float"
+      },
+      {
+       "calls": "GetRt2dDeviceCoords__Q22UI5UtilsPfN31b"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x00182AC4",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "float"
+      },
+      {
+       "offset": "0x40",
+       "type": "float"
+      },
+      {
+       "calls": "GetRt2dDeviceCoords__Q22UI5UtilsPfN31b"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x00182AF8",
+     "stores": [
+      {
+       "offset": "0x74",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x00182B08",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CFMAController": {
+   "size": 80,
+   "factory": "0x0017D498",
+   "registry": "0x006BFE60",
+   "gr_address": "0x001B6408",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001B64C0",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001B6484",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CFMAPlayerAnim": {
+   "size": 92,
+   "factory": "0x0017D8E8",
+   "registry": "0x006BFE70",
+   "gr_address": "0x001B6890",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001B6914",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001B6964",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x001B696C",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "int"
+      },
+      {
+       "calls": "LinkMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcUs"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    }
+   ]
+  },
+  "CFMAPlayerMover": {
+   "size": 76,
+   "factory": "0x0017DC90",
+   "registry": "0x006BFE80",
+   "gr_address": "0x001B6CE8",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001B6D80",
+     "stores": []
+    }
+   ]
+  },
+  "CFRainDropManager": {
+   "size": 2048,
+   "factory": "0x0015E038",
+   "registry": "0x006BF5D8"
+  },
+  "CFadeTrigger": {
+   "size": 108,
+   "factory": "0x0016B2C0",
+   "registry": "0x006BFB70"
+  },
+  "CFastLightSource": {
+   "size": 224,
+   "factory": "0x00141748",
+   "registry": "0x006B4D58",
+   "gr_address": "0x001534B8",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0015359C",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001535AC",
+     "stores": [
+      {
+       "offset": "0x38",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001535BC",
+     "stores": [
+      {
+       "offset": "0xa0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001535CC",
+     "stores": [
+      {
+       "offset": "0xa4",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001535DC",
+     "stores": [
+      {
+       "offset": "0xa8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001535EC",
+     "stores": [
+      {
+       "offset": "0xac",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CFlaurosBehaviour": {
+   "size": 11664,
+   "factory": "0x0012BF08",
+   "registry": "0x006B4B88"
+  },
+  "CFmaCamera": {
+   "size": 288,
+   "factory": "0x0011B890",
+   "registry": "0x006B4A58",
+   "gr_address": "0x0011FA00",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0011FA6C",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x0011FA80",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0011FAA0",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0011FAC0",
+     "stores": [
+      {
+       "offset": "0x68",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0011FAB0",
+     "stores": [
+      {
+       "offset": "0x70",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0011FAD0",
+     "stores": [
+      {
+       "offset": "0xec",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0011FAE0",
+     "stores": [
+      {
+       "offset": "0xf0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0011FAF0",
+     "stores": [
+      {
+       "offset": "0xf4",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x0011FB00",
+     "stores": [
+      {
+       "offset": "0xf8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x0011FB10",
+     "stores": [
+      {
+       "offset": "0xcc",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x0011FB30",
+     "stores": [
+      {
+       "offset": "0xd0",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CFmaCameraNode": {
+   "size": 152,
+   "factory": "0x0011B848",
+   "registry": "0x006B4A60",
+   "gr_address": "0x0011EA80",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0011EAEC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0011EB10",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x0011EB24",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0011EB44",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0011EB54",
+     "stores": [
+      {
+       "offset": "0x50",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0011EB64",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CFogConfig": {
+   "size": 184,
+   "factory": "0x00160770",
+   "registry": "0x006BFA88"
+  },
+  "CFollowCamera": {
+   "size": 156,
+   "factory": "0x0011C058",
+   "registry": "0x006B4A70",
+   "gr_address": "0x001209A8",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00120A78",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x00120A34",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00120A3C",
+     "stores": [
+      {
+       "offset": "0x70",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00120A44",
+     "stores": [
+      {
+       "offset": "0x74",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CForceItemTrigger": {
+   "size": 88,
+   "factory": "0x0018C0A8",
+   "registry": "0x006CC268"
+  },
+  "CFullScreenRain": {
+   "size": 7596,
+   "factory": "0x00162B18",
+   "registry": "0x006BFAD0",
+   "gr_address": "0x00199F58",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00199FCC",
+     "stores": [
+      {
+       "offset": "0x1cf8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x00199FDC",
+     "stores": [
+      {
+       "offset": "0x1cfc",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00199FEC",
+     "stores": [
+      {
+       "offset": "0x1d00",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00199FFC",
+     "stores": [
+      {
+       "offset": "0x1d04",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0019A00C",
+     "stores": [
+      {
+       "offset": "0x1d08",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0019A01C",
+     "stores": [
+      {
+       "offset": "0x1d0c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0019A02C",
+     "stores": [
+      {
+       "offset": "0x1d10",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0019A03C",
+     "stores": [
+      {
+       "offset": "0x1d14",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x0019A04C",
+     "stores": [
+      {
+       "offset": "0x1d18",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x0019A06C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x0019A08C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    }
+   ]
+  },
+  "CGenericSpawner": {
+   "size": 96,
+   "factory": "0x00149B98",
+   "registry": "0x006BF398",
+   "gr_address": "0x00158280",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00158314",
+     "stores": []
+    }
+   ]
+  },
+  "CHitEffectManager": {
+   "size": 100,
+   "factory": "0x00161F30",
+   "registry": "0x006BFAB0",
+   "gr_address": "0x00198ED8",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00199054",
+     "stores": []
+    }
+   ]
+  },
+  "CIGCCamera": {
+   "size": 184,
+   "factory": "0x00183CE0",
+   "registry": "0x006C4110"
+  },
+  "CIGCCharacter": {
+   "size": 5344,
+   "factory": "0x00184650",
+   "registry": "0x006C4120"
+  },
+  "CIGCTrigger": {
+   "size": 152,
+   "factory": "0x00187D50",
+   "registry": "0x006CC1E8"
+  },
+  "CInventoryItemDef": {
+   "size": 236,
+   "factory": "0x0018C8A8",
+   "registry": "0x006CC278"
+  },
+  "CMapAnchorPoint": {
+   "size": 84,
+   "factory": "0x001898E0",
+   "registry": "0x006CC238"
+  },
+  "CMapItem": {
+   "size": 224,
+   "factory": "0x00189C68",
+   "registry": "0x006CC248"
+  },
+  "CMessageRelay": {
+   "size": 220,
+   "factory": "0x0016CE80",
+   "registry": "0x006BFBA8",
+   "gr_address": "0x001A37E0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A38AC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001A38CC",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x001A38D8",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x001A38E4",
+     "stores": []
+    },
+    {
+     "index": 4,
+     "case": "0x001A38F0",
+     "stores": []
+    },
+    {
+     "index": 5,
+     "case": "0x001A38FC",
+     "stores": []
+    },
+    {
+     "index": 6,
+     "case": "0x001A3908",
+     "stores": []
+    },
+    {
+     "index": 7,
+     "case": "0x001A3914",
+     "stores": []
+    },
+    {
+     "index": 8,
+     "case": "0x001A3920",
+     "stores": []
+    },
+    {
+     "index": 9,
+     "case": "0x001A392C",
+     "stores": []
+    },
+    {
+     "index": 10,
+     "case": "0x001A3938",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001A384C",
+     "stores": [
+      {
+       "offset": "0xb4",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x001A3864",
+     "stores": [
+      {
+       "offset": "0xb8",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x001A3878",
+     "stores": [
+      {
+       "offset": "0xa0",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x001A388C",
+     "stores": []
+    },
+    {
+     "index": 15,
+     "case": "0x001A389C",
+     "stores": []
+    },
+    {
+     "index": 16,
+     "case": "0x001A3954",
+     "stores": [
+      {
+       "offset": "0x90",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x001A3964",
+     "stores": [
+      {
+       "offset": "0x8c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x001A3974",
+     "stores": [
+      {
+       "offset": "0x9c",
+       "type": "int"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CMotionBlurCfg": {
+   "size": 112,
+   "factory": "0x00161438",
+   "registry": "0x006BFAA0",
+   "gr_address": "0x001917B0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0019181C",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0019182C",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0019184C",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x0019188C",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0019185C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0019189C",
+     "stores": [
+      {
+       "offset": "0x50",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0019187C",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "CMoverNode": {
+   "size": 96,
+   "factory": "0x00147698",
+   "registry": "0x006BF358",
+   "gr_address": "0x00154E80",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00154EEC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x00154F10",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "int"
+      },
+      {
+       "calls": "__builtin_delete"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00154F30",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "int"
+      },
+      {
+       "calls": "__builtin_delete"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00154F50",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x00154F60",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x00154F70",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CPSX2StndController": {
+   "size": 372,
+   "factory": "0x001944C8",
+   "registry": "0x006CC308",
+   "gr_address": "0x001C4328",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001C4394",
+     "stores": [
+      {
+       "offset": "0x58",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001C43A4",
+     "stores": [
+      {
+       "offset": "0x5c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001C43D8",
+     "stores": [
+      {
+       "offset": "0x60",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001C43B4",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001C43EC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001C4410",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001C4434",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x001C4458",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001C447C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001C44A0",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001C44C4",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001C44E8",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x001C450C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x001C4530",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x001C4554",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 15,
+     "case": "0x001C45C0",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x001C45E4",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x001C4608",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x001C462C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 19,
+     "case": "0x001C4578",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 20,
+     "case": "0x001C459C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 21,
+     "case": "0x001C4650",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 22,
+     "case": "0x001C4674",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 23,
+     "case": "0x001C4698",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 24,
+     "case": "0x001C46BC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 25,
+     "case": "0x001C46E0",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 26,
+     "case": "0x001C4704",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 27,
+     "case": "0x001C4728",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CPadRumbleTrigger": {
+   "size": 112,
+   "factory": "0x0016D988",
+   "registry": "0x006BFBC8",
+   "gr_address": "0x001A3FB0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A401C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001A403C",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A404C",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A405C",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A406C",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001A407C",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CPathFollower": {
+   "size": 340,
+   "factory": "0x001481A0",
+   "registry": "0x006BF370",
+   "gr_address": "0x00155598",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00155604",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x00155618",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x0015562C",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x0015563C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0015565C",
+     "stores": []
+    },
+    {
+     "index": 5,
+     "case": "0x00155670",
+     "stores": []
+    },
+    {
+     "index": 6,
+     "case": "0x00155684",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x001556A4",
+     "stores": [
+      {
+       "offset": "0x120",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001556C4",
+     "stores": [
+      {
+       "offset": "0x124",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001556E4",
+     "stores": [
+      {
+       "offset": "0x128",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CPeepholeCamera": {
+   "size": 288,
+   "factory": "0x0011C850",
+   "registry": "0x006B4A80"
+  },
+  "CPhysicsObject": {
+   "size": 416,
+   "factory": "0x0013D490",
+   "registry": "0x006B4CC8",
+   "gr_address": "0x0014E900",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0014E96C",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x0014E97C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0014E99C",
+     "stores": [
+      {
+       "offset": "0xdc",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0014E9BC",
+     "stores": [
+      {
+       "offset": "0x130",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0014E9CC",
+     "stores": [
+      {
+       "offset": "0x15c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0014E9DC",
+     "stores": [
+      {
+       "offset": "0x160",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0014E9EC",
+     "stores": [
+      {
+       "offset": "0x164",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0014E9FC",
+     "stores": [
+      {
+       "offset": "0x168",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x0014EA1C",
+     "stores": [
+      {
+       "offset": "0x16c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x0014EA3C",
+     "stores": [
+      {
+       "offset": "0x170",
+       "type": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "CPickupItem": {
+   "size": 288,
+   "factory": "0x00191FD8",
+   "registry": "0x006CC2A0"
+  },
+  "CPlaceHolderMsgTrigger": {
+   "size": 96,
+   "factory": "0x0016DDD0",
+   "registry": "0x006BFBD8"
+  },
+  "CPlayerBehaviour": {
+   "size": 7152,
+   "factory": "0x00136CC8",
+   "registry": "0x006B4C50",
+   "gr_address": "0x00136D50",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00137524",
+     "stores": [
+      {
+       "offset": "0x1378",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001374F4",
+     "stores": [
+      {
+       "offset": "0x1378",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00137500",
+     "stores": [
+      {
+       "offset": "0x1378",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0013750C",
+     "stores": [
+      {
+       "offset": "0x1378",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x00137518",
+     "stores": [
+      {
+       "offset": "0x1378",
+       "type": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "CPlayerCheckpoint": {
+   "size": 120,
+   "factory": "0x0014A2C8",
+   "registry": "0x006BF3C8",
+   "gr_address": "0x00158CF0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00158D5C",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x00158D6C",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x00158D7C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00158D9C",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x00158DB8",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x00158DCC",
+     "stores": [
+      {
+       "offset": "0x5c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x00158DE0",
+     "stores": [
+      {
+       "offset": "0x60",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x00158DF4",
+     "stores": [
+      {
+       "calls": "SetupSpawnPoints__Q28Spawning17CPlayerCheckpointf"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "GetNumPlayersPresent__11Multiplayerv"
+      }
+     ]
+    }
+   ]
+  },
+  "CPlayerLight": {
+   "size": 160,
+   "factory": "0x00141CB8",
+   "registry": "0x006B4D68"
+  },
+  "CPlayerReflector": {
+   "size": 468,
+   "factory": "0x0013A148",
+   "registry": "0x006B4CA0"
+  },
+  "CPlayerSpawner": {
+   "size": 108,
+   "factory": "0x0014ACE0",
+   "registry": "0x006BF448",
+   "gr_address": "0x00159770",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00159818",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001597DC",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CPointTrigger": {
+   "size": 192,
+   "factory": "0x00189150",
+   "registry": "0x006CC228"
+  },
+  "CRecyclerSpawner": {
+   "size": 108,
+   "factory": "0x0014B4D0",
+   "registry": "0x006BF458"
+  },
+  "CRotator": {
+   "size": 400,
+   "factory": "0x00148EA0",
+   "registry": "0x006BF380",
+   "gr_address": "0x00156078",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001560E4",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001560F8",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x00156108",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00156128",
+     "stores": []
+    },
+    {
+     "index": 4,
+     "case": "0x0015613C",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0015615C",
+     "stores": [
+      {
+       "offset": "0xf8",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0015617C",
+     "stores": [
+      {
+       "offset": "0xfc",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0015619C",
+     "stores": [
+      {
+       "offset": "0x100",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001561BC",
+     "stores": [
+      {
+       "offset": "0x104",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001561CC",
+     "stores": [
+      {
+       "offset": "0x108",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001561DC",
+     "stores": [
+      {
+       "offset": "0x10c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001561EC",
+     "stores": [
+      {
+       "offset": "0x110",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CSadDaddyBehaviour": {
+   "size": 11728,
+   "factory": "0x0013B040",
+   "registry": "0x006B4CB0"
+  },
+  "CSceneObject": {
+   "size": 220,
+   "factory": "0x0013D7C0",
+   "registry": "0x006B4CD8"
+  },
+  "CScreenShakeTrigger": {
+   "size": 96,
+   "factory": "0x0016EC10",
+   "registry": "0x006BFBF0",
+   "gr_address": "0x001A4CA8",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A4D14",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001A4D34",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A4D44",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A4D54",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A4D64",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001A4D74",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "int"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CSequenceObject": {
+   "size": 284,
+   "factory": "0x0013DF78",
+   "registry": "0x006B4CE8",
+   "gr_address": "0x0014F4A8",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0014F514",
+     "stores": [
+      {
+       "offset": "0xc8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0014F524",
+     "stores": [
+      {
+       "offset": "0xcc",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0014F534",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x0014F544",
+     "stores": []
+    },
+    {
+     "index": 4,
+     "case": "0x0014F554",
+     "stores": []
+    },
+    {
+     "index": 5,
+     "case": "0x0014F564",
+     "stores": []
+    },
+    {
+     "index": 6,
+     "case": "0x0014F574",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0014F594",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CSettingsManager": {
+   "size": 72,
+   "factory": "0x00180410",
+   "registry": "0x006BFF30",
+   "gr_address": "0x001B7338",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001B739C",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001B73B0",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x001B73C4",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x001B73D8",
+     "stores": []
+    },
+    {
+     "index": 4,
+     "case": "0x001B73EC",
+     "stores": []
+    },
+    {
+     "index": 5,
+     "case": "0x001B7400",
+     "stores": []
+    },
+    {
+     "index": 6,
+     "case": "0x001B7414",
+     "stores": []
+    },
+    {
+     "index": 7,
+     "case": "0x001B7428",
+     "stores": []
+    },
+    {
+     "index": 8,
+     "case": "0x001B743C",
+     "stores": []
+    },
+    {
+     "index": 9,
+     "case": "0x001B7450",
+     "stores": []
+    },
+    {
+     "index": 10,
+     "case": "0x001B7464",
+     "stores": []
+    },
+    {
+     "index": 11,
+     "case": "0x001B7478",
+     "stores": []
+    },
+    {
+     "index": 12,
+     "case": "0x001B748C",
+     "stores": []
+    },
+    {
+     "index": 13,
+     "case": "0x001B74A0",
+     "stores": []
+    },
+    {
+     "index": 14,
+     "case": "0x001B74B4",
+     "stores": []
+    },
+    {
+     "index": 15,
+     "case": "0x001B74C8",
+     "stores": []
+    },
+    {
+     "index": 16,
+     "case": "0x001B74DC",
+     "stores": []
+    },
+    {
+     "index": 17,
+     "case": "0x001B74F0",
+     "stores": []
+    },
+    {
+     "index": 18,
+     "case": "0x001B7504",
+     "stores": []
+    },
+    {
+     "index": 19,
+     "case": "0x001B7518",
+     "stores": []
+    },
+    {
+     "index": 20,
+     "case": "0x001B752C",
+     "stores": []
+    },
+    {
+     "index": 21,
+     "case": "0x001B7540",
+     "stores": []
+    },
+    {
+     "index": 22,
+     "case": "0x001B7554",
+     "stores": []
+    },
+    {
+     "index": 23,
+     "case": "0x001B7568",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CSkyDome": {
+   "size": 132,
+   "factory": "0x0017D090",
+   "registry": "0x006BFE40"
+  },
+  "CSlowMoTrigger": {
+   "size": 108,
+   "factory": "0x0016EF10",
+   "registry": "0x006BFC00",
+   "gr_address": "0x001A5040",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A50AC",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A50BC",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A50DC",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A50EC",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A50FC",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001A510C",
+     "stores": [
+      {
+       "offset": "0x50",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001A511C",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "int"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CSmashableObject": {
+   "size": 480,
+   "factory": "0x0013E7D0",
+   "registry": "0x006B4CF8",
+   "gr_address": "0x0014FA28",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0014FAD8",
+     "stores": [
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0014FA9C",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      },
+      {
+       "calls": "__Q23RWS25CAttributeCommandIteratorRCQ23RWS16CAttributePacketPCc"
+      }
+     ]
+    }
+   ]
+  },
+  "CSolidObject": {
+   "size": 944,
+   "factory": "0x0013F1E8",
+   "registry": "0x006B4D08"
+  },
+  "CSpotLight": {
+   "size": 496,
+   "factory": "0x00146708",
+   "registry": "0x006B4D88"
+  },
+  "CSpotLightSurface": {
+   "size": 88,
+   "factory": "0x00146758",
+   "registry": "0x006B4D90"
+  },
+  "CStaticCamera": {
+   "size": 352,
+   "factory": "0x0011D7C0",
+   "registry": "0x006B4A90",
+   "gr_address": "0x00121440",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001215B4",
+     "stores": [
+      {
+       "offset": "0xf0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x00121608",
+     "stores": [
+      {
+       "offset": "0x100",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00121618",
+     "stores": [
+      {
+       "offset": "0x104",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001215C4",
+     "stores": [
+      {
+       "offset": "0xf4",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001215D4",
+     "stores": [
+      {
+       "offset": "0xf8",
+       "type": "float"
+      },
+      {
+       "offset": "0xfc",
+       "type": "float"
+      },
+      {
+       "calls": "cosf"
+      }
+     ]
+    }
+   ]
+  },
+  "CStaticInit": {
+   "size": 76,
+   "factory": "0x0016F360",
+   "registry": "0x006BFC10",
+   "gr_address": "0x001A5510",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A55A8",
+     "stores": []
+    }
+   ]
+  },
+  "CStaticObject": {
+   "size": 216,
+   "factory": "0x0013F720",
+   "registry": "0x006B4D18"
+  },
+  "CStyledSceneObject": {
+   "size": 216,
+   "factory": "0x0013FB88",
+   "registry": "0x006B4D30",
+   "gr_address": "0x00151438",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001514F8",
+     "stores": []
+    }
+   ]
+  },
+  "CSwirlTrigger": {
+   "size": 84,
+   "factory": "0x0016F7C8",
+   "registry": "0x006BFC20",
+   "gr_address": "0x001A5988",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A5A40",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A5A04",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "CThreatConfig": {
+   "size": 344,
+   "factory": "0x00168198",
+   "registry": "0x006BFB00"
+  },
+  "CTnfCamera": {
+   "size": 304,
+   "factory": "0x0011E9F8",
+   "registry": "0x006B4AC8"
+  },
+  "CVirtualController": {
+   "size": 312,
+   "factory": "0x00194DE0",
+   "registry": "0x006CC448",
+   "gr_address": "0x001C4E58",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001C4F68",
+     "stores": []
+    },
+    {
+     "index": 4,
+     "case": "0x001C4EF4",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    }
+   ]
+  },
+  "CZone": {
+   "size": 324,
+   "factory": "0x001787C8",
+   "registry": "0x006BFD58",
+   "gr_address": "0x001A8CD0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A8D3C",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001A8D54",
+     "stores": [
+      {
+       "offset": "0x7c",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A8D6C",
+     "stores": [
+      {
+       "offset": "0x80",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A8D84",
+     "stores": [
+      {
+       "offset": "0x78",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A8DA8",
+     "stores": [
+      {
+       "offset": "0x94",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001A8DC0",
+     "stores": [
+      {
+       "offset": "0x98",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001A8DD8",
+     "stores": []
+    },
+    {
+     "index": 7,
+     "case": "0x001A917C",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001A8F18",
+     "stores": [
+      {
+       "offset": "0xb8",
+       "type": "float"
+      },
+      {
+       "offset": "0xb8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001A8F48",
+     "stores": [
+      {
+       "offset": "0xbc",
+       "type": "float"
+      },
+      {
+       "offset": "0xbc",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001A8F78",
+     "stores": [
+      {
+       "offset": "0xd0",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001A8F88",
+     "stores": [
+      {
+       "offset": "0xd4",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x001A8F98",
+     "stores": [
+      {
+       "offset": "0xd8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x001A8FA8",
+     "stores": [
+      {
+       "offset": "0xdc",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x001A8FB8",
+     "stores": []
+    },
+    {
+     "index": 15,
+     "case": "0x001A90EC",
+     "stores": []
+    },
+    {
+     "index": 16,
+     "case": "0x001A90FC",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "LinkMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcUs"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x001A9134",
+     "stores": [
+      {
+       "calls": "SetGlowColor__10CFastLightG6RwRGBA"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 18,
+     "case": "0x001A90C8",
+     "stores": [
+      {
+       "offset": "0xfc",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 19,
+     "case": "0x001A90DC",
+     "stores": [
+      {
+       "offset": "0x100",
+       "type": "float"
+      }
+     ]
+    }
+   ]
+  },
+  "CZoneCollision": {
+   "size": 204,
+   "factory": "0x00178818",
+   "registry": "0x006BFD60"
+  },
+  "CalenderTrigger": {
+   "size": 100,
+   "factory": "0x001736E0",
+   "registry": "0x006BFCB8"
+  },
+  "CameraPair": {
+   "size": 256,
+   "factory": "0x00114A68",
+   "registry": "0x006B4A20",
+   "gr_address": "0x00119D98",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x00119EFC",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x00119F10",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x00119F30",
+     "stores": [
+      {
+       "offset": "0xc8",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x00119F40",
+     "stores": [
+      {
+       "offset": "0xcc",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x00119F60",
+     "stores": [
+      {
+       "offset": "0xd4",
+       "type": "int"
+      }
+     ]
+    }
+   ]
+  },
+  "CircuitBreakerTrigger": {
+   "size": 108,
+   "factory": "0x00173AC8",
+   "registry": "0x006BFCC8"
+  },
+  "DataTrigger": {
+   "size": 88,
+   "factory": "0x0016A210",
+   "registry": "0x006BFB40",
+   "gr_address": "0x001A2498",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A2588",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A252C",
+     "stores": [
+      {
+       "offset": "0x38",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A2538",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A2550",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "int"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "FMVTrigger": {
+   "size": 144,
+   "factory": "0x0016B930",
+   "registry": "0x006BFB80"
+  },
+  "FlaurosTrigger": {
+   "size": 236,
+   "factory": "0x00173FE8",
+   "registry": "0x006BFCD8"
+  },
+  "GameMessage": {
+   "size": 204,
+   "factory": "0x001536B8",
+   "registry": "0x006BF508"
+  },
+  "HospitalLiftTrigger": {
+   "size": 116,
+   "factory": "0x001745D8",
+   "registry": "0x006BFCE8"
+  },
+  "IGCBorder": {
+   "size": 88,
+   "factory": "0x00183490",
+   "registry": "0x006C4100"
+  },
+  "IronLungTrigger": {
+   "size": 132,
+   "factory": "0x00174CB8",
+   "registry": "0x006BFCF8"
+  },
+  "LaundryTrigger": {
+   "size": 128,
+   "factory": "0x001753B0",
+   "registry": "0x006BFD08"
+  },
+  "LifeBox": {
+   "size": 208,
+   "factory": "0x00172458",
+   "registry": "0x006BFC88",
+   "gr_address": "0x001A8358",
+   "dispatch": "compare chain",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A848C",
+     "stores": []
+    }
+   ]
+  },
+  "MapTrigger": {
+   "size": 84,
+   "factory": "0x0016BFC8",
+   "registry": "0x006BFB90"
+  },
+  "MaterialMap": {
+   "size": 144,
+   "factory": "0x0010EF20",
+   "registry": "0x006B4868"
+  },
+  "MessageBoxTrigger": {
+   "size": 272,
+   "factory": "0x0016C710",
+   "registry": "0x006BFB98",
+   "gr_address": "0x001A30F0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A327C",
+     "stores": []
+    },
+    {
+     "index": 1,
+     "case": "0x001A330C",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001A3328",
+     "stores": [
+      {
+       "offset": "0xe0",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A333C",
+     "stores": [
+      {
+       "offset": "0xe4",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A339C",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001A328C",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "int"
+      },
+      {
+       "calls": "UnLinkMsg__Q23RWS13CEventHandlerRQ23RWS8CEventId"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001A3350",
+     "stores": [
+      {
+       "offset": "0xe8",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x001A3364",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001A3384",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "MusicTrigger": {
+   "size": 80,
+   "factory": "0x0016D450",
+   "registry": "0x006BFBB8"
+  },
+  "OrganBoxTrigger": {
+   "size": 112,
+   "factory": "0x001757D0",
+   "registry": "0x006BFD18"
+  },
+  "PillDollTrigger": {
+   "size": 112,
+   "factory": "0x00175BC8",
+   "registry": "0x006BFD28"
+  },
+  "PlaneTrigger": {
+   "size": 208,
+   "factory": "0x0016E790",
+   "registry": "0x006BFBE0",
+   "gr_address": "0x001A46B0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001A48BC",
+     "stores": [
+      {
+       "offset": "0xbc",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001A48D0",
+     "stores": []
+    },
+    {
+     "index": 2,
+     "case": "0x001A48E0",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001A4994",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001A49B0",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001A49C4",
+     "stores": [
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001A4900",
+     "stores": [
+      {
+       "offset": "0x34",
+       "type": "int"
+      },
+      {
+       "calls": "UnLinkMsg__Q23RWS13CEventHandlerRQ23RWS8CEventId"
+      }
+     ]
+    }
+   ]
+  },
+  "PuzzleTrigger": {
+   "size": 92,
+   "factory": "0x00175FA8",
+   "registry": "0x006BFD38"
+  },
+  "SavePoint": {
+   "size": 144,
+   "factory": "0x001D6888",
+   "registry": "0x006F8D48"
+  },
+  "ScreenText": {
+   "size": 144,
+   "factory": "0x001B3218",
+   "registry": "0x006F8B28"
+  },
+  "TillTrigger": {
+   "size": 108,
+   "factory": "0x001763C0",
+   "registry": "0x006BFD48"
+  },
+  "TimerHUD": {
+   "size": 76,
+   "factory": "0x001541A8",
+   "registry": "0x006BF518"
+  },
+  "UnlockableData": {
+   "size": 76,
+   "factory": "0x0017E340",
+   "registry": "0x006BFE98"
+  },
+  "Waypoint": {
+   "size": 92,
+   "factory": "0x001A5298",
+   "registry": "0x006F86A0"
+  },
+  "WeaponHUD": {
+   "size": 268,
+   "factory": "0x00156358",
+   "registry": "0x006BF560"
+  },
+  "ZoneTrigger": {
+   "size": 368,
+   "factory": "0x0017C5F8",
+   "registry": "0x006BFDE0",
+   "gr_address": "0x001AD8D0",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001AD93C",
+     "stores": [
+      {
+       "offset": "0xe0",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001AD954",
+     "stores": [
+      {
+       "offset": "0xe4",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001AD96C",
+     "stores": []
+    },
+    {
+     "index": 3,
+     "case": "0x001AD97C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001AD99C",
+     "stores": [
+      {
+       "calls": "ReplaceRegisteredMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x001AD9B8",
+     "stores": [
+      {
+       "offset": "0x114",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x001AD9C8",
+     "stores": [
+      {
+       "offset": "0x100",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x001AD9F0",
+     "stores": [
+      {
+       "offset": "0x130",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001ADA00",
+     "stores": [
+      {
+       "offset": "0x134",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001ADA18",
+     "stores": [
+      {
+       "offset": "0x138",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001AD9DC",
+     "stores": [
+      {
+       "offset": "0x104",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001ADA30",
+     "stores": [
+      {
+       "offset": "0x13c",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x001ADA60",
+     "stores": [
+      {
+       "offset": "0x108",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x001ADA74",
+     "stores": [
+      {
+       "offset": "0x10c",
+       "type": "int"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x001ADA48",
+     "stores": [
+      {
+       "offset": "0x140",
+       "type": "int"
+      },
+      {
+       "calls": "CopyString__Q23RWS5UtilsPCci"
+      }
+     ]
+    }
+   ]
+  },
+  "cBlackOutFSE": {
+   "size": 184,
+   "factory": "0x00156A50",
+   "registry": "0x006BF570",
+   "gr_address": "0x001886A8",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x0018872C",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x0018873C",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x0018874C",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x0018875C",
+     "stores": [
+      {
+       "offset": "0x50",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x0018876C",
+     "stores": [
+      {
+       "offset": "0x54",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x0018877C",
+     "stores": [
+      {
+       "offset": "0x78",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x0018878C",
+     "stores": [
+      {
+       "offset": "0x7c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x0018879C",
+     "stores": [
+      {
+       "offset": "0x80",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x001887AC",
+     "stores": [
+      {
+       "offset": "0x84",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x001887BC",
+     "stores": [
+      {
+       "offset": "0x68",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x001887CC",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x001887DC",
+     "stores": [
+      {
+       "offset": "0x70",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x001887EC",
+     "stores": [
+      {
+       "offset": "0x74",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x00188714",
+     "stores": [
+      {
+       "calls": "Enable__12cBlackOutFSEb"
+      }
+     ]
+    },
+    {
+     "index": 14,
+     "case": "0x0018881C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      }
+     ]
+    },
+    {
+     "index": 15,
+     "case": "0x0018883C",
+     "stores": [
+      {
+       "calls": "ReplaceLinkedMsg__Q23RWS13CEventHandlerRQ23RWS8CEventIdPCcT2"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    },
+    {
+     "index": 16,
+     "case": "0x001887FC",
+     "stores": [
+      {
+       "offset": "0x88",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 17,
+     "case": "0x0018880C",
+     "stores": [
+      {
+       "offset": "0x8c",
+       "type": "float"
+      }
+     ]
+    }
+   ]
+  },
+  "cFlexFilter": {
+   "size": 160,
+   "factory": "0x0015EDD8",
+   "registry": "0x006BF608"
+  },
+  "cPenanceFSE": {
+   "size": 148,
+   "factory": "0x001622F0",
+   "registry": "0x006BFAC0",
+   "gr_address": "0x00199338",
+   "dispatch": "jump table",
+   "properties": [
+    {
+     "index": 0,
+     "case": "0x001993A4",
+     "stores": [
+      {
+       "offset": "0x3c",
+       "type": "int"
+      }
+     ]
+    },
+    {
+     "index": 1,
+     "case": "0x001993C4",
+     "stores": [
+      {
+       "offset": "0x40",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 2,
+     "case": "0x001993D4",
+     "stores": [
+      {
+       "offset": "0x44",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 3,
+     "case": "0x001993E4",
+     "stores": [
+      {
+       "offset": "0x48",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 4,
+     "case": "0x001993F4",
+     "stores": [
+      {
+       "offset": "0x4c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 5,
+     "case": "0x00199404",
+     "stores": [
+      {
+       "offset": "0x50",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 6,
+     "case": "0x00199414",
+     "stores": [
+      {
+       "offset": "0x74",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 7,
+     "case": "0x00199424",
+     "stores": [
+      {
+       "offset": "0x78",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 8,
+     "case": "0x00199434",
+     "stores": [
+      {
+       "offset": "0x7c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 9,
+     "case": "0x00199444",
+     "stores": [
+      {
+       "offset": "0x80",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 10,
+     "case": "0x00199454",
+     "stores": [
+      {
+       "offset": "0x64",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 11,
+     "case": "0x00199464",
+     "stores": [
+      {
+       "offset": "0x68",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 12,
+     "case": "0x00199474",
+     "stores": [
+      {
+       "offset": "0x6c",
+       "type": "float"
+      }
+     ]
+    },
+    {
+     "index": 13,
+     "case": "0x00199484",
+     "stores": [
+      {
+       "offset": "0x70",
+       "type": "float"
+      },
+      {
+       "calls": "SkipToNextAttributeCommand__Q23RWS25CAttributeCommandIteratorb"
+      }
+     ]
+    }
+   ]
+  },
+  "cThreatController": {
+   "size": 132,
+   "factory": "0x00168630",
+   "registry": "0x006BFB10"
+  }
+ }
+}
