@@ -135,76 +135,54 @@ and MatFX (character materials carry no `0x0120`). Material `0x011F` UserData is
 still unused and still names a second texture (`n1` = `Env02`, an environment
 map) on some materials, so dual-layer characters remain undrawn.
 
-### 2. Animation — clips now decode
+### 2. Animation — working
 
-See [ANIMATION_SPEC.md](ANIMATION_SPEC.md). Two of the four pieces are done.
+Characters animate. Clips are read, the pose is evaluated, rigid pieces follow
+their frame and weighted pieces go through the shader's skinning branch.
 
-**Clips are read.** `CPlayerBehaviour.Travis` yields **147 clips**, and there
-are **3029** across the archive. Two traps had to be cleared first:
-
-* Clips are `0x1B` chunks sitting **directly in the stream**, not inside a
-  `0x716` shell, so the section walk never reached them and the existing decoder
-  never ran. They are also **not word aligned** — the same pair of traps the UV
-  animations sprang.
-* The layout is confirmed by arithmetic over all 3029: every clip satisfies
-  `chunkSize == 20 + 24 + records*20` — the `RtAnimAnimation` header, six floats
-  of translation offset and scale, then one 20-byte record per keyframe.
+**Finding the clips.** They are `0x1B` chunks sitting directly in the stream,
+not inside a `0x716` shell, and they are not word aligned — the same pair of
+traps the UV animations sprang, which is why the existing decoder had never once
+run. `CPlayerBehaviour.Travis` yields 147 clips; the archive holds 3029. The
+layout is confirmed by arithmetic over all of them: every clip satisfies
+`chunkSize == 20 + 24 + records*20`.
 
 **Track roots are marked by a saved pointer, not by a zero.** Each record holds
-a byte offset back to the previous keyframe of its track, but the *first* record
-of each track keeps the runtime pointer the file was written with. Those read as
-large negatives stepping by exactly the 20-byte stride. Testing `prevOffset == 0`
-for a root — which the old code did — finds nothing at all. The rule that works
-is "anything that does not resolve to an earlier record in this clip".
+a byte offset back to the previous keyframe of its track, but the first record
+of each track keeps the runtime pointer the file was written with — large
+negatives stepping by exactly the 20-byte stride. Testing `prevOffset == 0` for
+a root finds nothing at all. The rule that works is "anything that does not
+resolve to an earlier record in this clip". The track count that falls out
+matches the HAnim table: 53 tracks against 54 frames, the odd one being the
+clump root.
 
-**The counts cross-check.** Travis's clips carry 34–53 tracks; his skeleton has
-54 frames. The one-frame difference is the clump root, which HAnim does not
-animate. The 53 also matches the number of pointer-valued records counted
-independently in the raw data.
+**Where the weights are.** Not in the Skin PLG — Ghost Rider settles it, since
+`_rpSkinGeometryNativeRead` never writes `skin[0x14]` or `skin[0x18]`, the two
+fields `RpSkinGetVertexBoneIndices` and `RpSkinGetVertexBoneWeights` return. They
+ride with the native geometry instead, immediately after the VIF packets: four
+floats per vertex, each float's lowest byte holding the bone matrix's address in
+VU memory. A matrix spans four quadwords, so the index is `byte / 4`.
 
-One decoding bug fixed on the way: `glm::quat` takes the scalar **first**, and
-the old code passed `(x, y, z, w)`, which put `-qx` into `w` and `qw` into `z` —
-a different rotation entirely.
+**The two defects that actually mattered**, both found by measurement after
+guessing at the bone index three times and getting nowhere:
 
-**Bone table done.** Every frame's HAnim PLG (`0x011E`) gives its bone id, and
-the hierarchy root carries the table whose order is the clip's track order.
-Travis: 53 bones in the table, 53 of 54 frames bound, the odd one out being the
-clump root. That mapping is now `Bone::trackIndex`.
+* *Weights slipped two places at every packet seam.* There is one record per
+  **unique** vertex, but a triangle strip runs on across packet boundaries, so
+  every packet after the first restates the two vertices that closed the one
+  before it. A six-packet geometry uploads 220 vertices for 210 records —
+  exactly +2 per join. Reading the records straight through accumulated that
+  slip and tore the model apart. Each packet after the first now starts two
+  records back.
+* *The rotations were conjugated.* The reference stores them that way and the
+  spec says to reproduce it, then check: if the model inverts, drop it. It
+  inverted — Travis faced backwards — so the components go in as they are.
 
-**Evaluation and rigid binding done.** Each mesh records the frame it hangs off,
-and the renderer applies the animated frame matrix times the inverse of the rest
-one (the rest pose is baked into the vertices at load). Pieces bound to a single
-bone animate correctly — the head moves.
+Also fixed along the way: a VIF packet whose stream addressed a VU slot above 3
+was discarded **together with its geometry**, and `glm::quat` takes the scalar
+first, where the old code passed `(x, y, z, w)`.
 
-**Where the per-vertex weights actually are.** Not in the Skin PLG: Ghost Rider
-settles it, `RpSkinGetVertexBoneIndices` returns `skin[0x14]` and
-`RpSkinGetVertexBoneWeights` returns `skin[0x18]`, and
-`_rpSkinGeometryNativeRead` writes `0x00, 0x04, 0x08, 0x0C, 0x10, 0x44` and
-reads 16 bytes into `0x1C` — it never touches `0x14` or `0x18`, so both stay
-null. The chunk's own tail is 16 bytes of counts and an empty split-data header
-`[0, 0, 0]`.
-
-They ride with the native geometry instead, as **four floats per vertex** where
-each float's lowest byte is the bone's VU address. A bone matrix occupies four
-quadwords, so the index is `byte / 4` — which is why those bytes never looked
-like bone numbers. Confirmed in our own data by signature search over
-`CPlayerBehaviour.Travis`: six runs of consecutive records, the largest 2667
-long, every low byte a multiple of four, every weight set summing to 1.0, and a
-mix of rigid `[1,0,0,0]` and blended `[0,0.5,0,0.5]` entries.
-
-    @655412   2667 records   [1.0,0,0,0]     low bytes [140,0,0,0]  -> bone 35
-    @2645872    18 records   [0,0.5,0,0.5]   low bytes [12,0,12,0]  -> bones 3,3
-
-**Still to do:** tie each run to its geometry and vertex order (the reference
-walks them per material through `matIdNumFaceList`), fill `Vertex::boneIds` and
-`boneWeights`, and switch multi-bone pieces from the rigid path to the shader's
-skinning branch, which already exists. Rigid pieces keep the frame binding.
-
-Ruled out along the way, each by measurement rather than argument: weights in
-the VIF streams (one four-stream layout across the whole container), one packet
-per bone (39 used bones against 109 packets), and packets lost to the parser
-(zero rejected). One real defect was found and fixed there: a packet whose
-stream addressed a VU slot above 3 was discarded together with its geometry.
+**Still open:** facial animation (`rwID_DMORPHANIMATION`), and clips are named
+`Clip_N` because the section tag carries the type, not the source filename.
 
 ### 3. Fire — done, with two loose ends
 
