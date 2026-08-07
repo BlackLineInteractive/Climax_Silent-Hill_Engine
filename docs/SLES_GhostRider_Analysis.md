@@ -1,57 +1,74 @@
 # SLES Analysis: Ghost Rider vs. Silent Hill (SHO / SHSM)
 
-Ми проаналізували головні виконувані файли (ELF / `SLES`) для трьох ігор:
+Symbol survey of the main executables (ELF / `SLES`) for three Climax titles:
 
 1. **Silent Hill Origins (SHO)**: `SLES_551.47`
 2. **Silent Hill Shattered Memories (SHSM)**: `SLES_555.69`
 3. **Ghost Rider (GR)**: `SLES_543.17`
 
-## Results of Symbol Extraction
+## Results of symbol extraction
 
-- **SHO**: `stripped` (символи та дебаг-інформація видалені компілятором під час релізу).
-- **SHSM**: `stripped` (аналогічно).
-- **Ghost Rider**: `not stripped`! Файл містить повну таблицю символів (майже **14 000 унікальних C++ символів**, включаючи простори імен, класи та методи).
+- **SHO**: `stripped` — symbols and debug information removed at release.
+- **SHSM**: `stripped` — likewise.
+- **Ghost Rider**: **not stripped**. It carries a full symbol table, roughly
+  **14 000 unique C++ symbols**, including namespaces, classes and methods.
 
-Ви мали абсолютну рацію! Ghost Rider — це справжній **"Розеттський камінь" (Rosetta Stone)** для рушія Climax. Оскільки всі три ігри використовують одну й ту саму архітектуру, ми можемо використовувати символи з Ghost Rider, щоб відновити логіку, яка прихована у SHO та SHSM.
+Ghost Rider is therefore the Rosetta Stone for the Climax engine. All three
+games share the same architecture, so its symbols recover logic that is
+anonymous in SHO and SHSM. See [EXECUTABLES.md](EXECUTABLES.md) for the
+disassembly work built on top of this, and `tools/attrmap.py` for the property
+table extractor.
 
-## Key Findings from Ghost Rider Symbols
+## Key findings from the Ghost Rider symbols
 
-Я розпакував та розпарсив мангльовані імена C++ (mangled names) і знайшов класи, які відповідають за ті самі речі, які ми намагаємось відтворити у вашому тулкіті.
+Demangling the C++ names turns up the classes responsible for exactly the
+things this toolkit re-implements.
 
-### 1. RenderWare FileSystem & ARC Parsing
+### 1. RenderWare FileSystem and ARC parsing
 
-Як ви і припускали, обробка `.ARC` файлів лежить у головному процесорі (EE). Ось структура класів, яку нам розкрив Ghost Rider:
+`.ARC` handling lives on the EE (main processor), not in the IOP module:
 
-- `RWS::FileSystem` (Головний клас файлової системи)
-- `RWS::FileSystem::CArchiveManager` (Керує ARC-архівами)
-- `RWS::FileSystem::CArchive` (Представляє один змонтований `.ARC` архів)
+- `RWS::FileSystem` — the file system root
+- `RWS::FileSystem::CArchiveManager` — manages mounted ARC archives
+- `RWS::FileSystem::CArchive` — one mounted `.ARC`
 
-**Методи CArchiveManager:**
+`CArchiveManager` methods:
 
-- `FindAchive(char const*)`
+- `FindAchive(char const*)` — spelled that way in the binary
 - `Mount(char const*)`
 - `FindEntry(char const*, RWS::FileSystem::CArchive**)`
 
-Також є `MemoryFileSystem` (можливо для стрімінгу у пам'ять) та `AssetTracker`. Це підтверджує, що `RTFSSIOP.IRX` лише постачає сирі байти для `RWS::FileSystem::CArchiveManager`.
+There is also a `MemoryFileSystem` (likely for streaming into memory) and an
+`AssetTracker`. This confirms that `RTFSSIOP.IRX` only supplies raw bytes to
+`RWS::FileSystem::CArchiveManager` — see [IRX_RTFSSIOP.md](IRX_RTFSSIOP.md).
 
-### 2. Audio & RWA
+### 2. Audio and RWA
 
-Ми знайшли простори імен `Audio::` та `RWS::`:
+Both an `Audio::` and an `RWS::` namespace are present:
 
-- `Audio::CAudioRelay` (Керує чергами аудіо)
+- `Audio::CAudioRelay` — audio queueing
 - `RWS::RwsAudio::AddDictionary(RwaWaveDict*)`
 - `RWS::RwsAudio::AllocateVirtualVoice()`
 - `RWS::RwsAudio::FadeEnvironment(int, unsigned int)`
 
-Ці символи показують, що RenderWare Audio (`RWA.IRX`) тісно спілкується з класом `RwsAudio` на стороні EE, використовуючи "Virtual Voices".
+RenderWare Audio (`RWA.IRX`, see [IRX_RWA.md](IRX_RWA.md)) talks to the EE-side
+`RwsAudio` class through "virtual voices".
 
-### 3. Engine Core
+### 3. Engine core
 
-Видно сотні методів з префіксом `ClimaxP1...` (що підтверджує внутрішню назву рушія "Climax P1"):
+Hundreds of methods carry a `ClimaxP1...` prefix, confirming the engine's
+internal name as "Climax P1":
 
 - `ClimaxP1AtomicDataReadStream()`
 - `ClimaxP1DictionarySchemaCreateChainGraphFromDict()`
 
-## What does this mean for our Toolkit?
+A parallel `ClimaxT1...` family covers the material, animation and skinning
+plugins that [TODO.md](TODO.md) documents in detail.
 
-Знаючи точну архітектуру рушія, ми можемо перейменувати наші власні класи в Тулкіті (`Loader.cpp`, `Arc.cpp`), щоб вони відповідали оригінальній архітектурі Climax Engine (`RWS::FileSystem::CArchiveManager`, `RWS::FileSystem::CArchive` і т.д.). Це зробить наш "Native Port" (реверс-версію) максимально автентичним оригінальному коду!
+## What this means for the toolkit
+
+Knowing the original architecture, the toolkit's own classes can mirror it
+(`RWS::FileSystem::CArchiveManager`, `RWS::FileSystem::CArchive`, and so on)
+rather than inventing a parallel vocabulary. That keeps the reverse-engineered
+implementation aligned with the original code and makes every future symbol
+lookup translate directly onto our own structure.
