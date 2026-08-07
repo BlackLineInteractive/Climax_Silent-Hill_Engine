@@ -300,24 +300,50 @@ nothing at all.
   match still succeeds, but a fire can pick up a same-prefixed neighbour's clip.
   Whether the engine disambiguates these is not known.
 
-### 4. Rooms with no lighting
+### 4. Camera FOV — found and applied
+
+Level cameras had placement but no field of view; the viewport always used a
+fixed guess.
+
+Ghost Rider's `HandleAttributes__Q26Camera13CStaticCameraRCQ23RWS16CAttributePacket`
+gives `CStaticCamera` a 5-entry property table, but a first attempt to read the
+matching field in SHO's own `0x0704` records gave the same bit pattern
+(-1.498) on every camera in every level -- a dead giveaway of a bug, not a
+constant, since framing varies per camera by design.
+
+The bug: a `0x0704` object is not one flat property list. It is several
+**named components back to back**, each restarting its own index at 0 --
+`CStaticCamera`, then `CBaseCamera`, then `CBaseBehaviour`, then
+`CSystemCommands` (which owns the placement matrix at its own index 1, already
+read elsewhere). The scan flattened every component's index space into one
+dict and later components overwrote earlier ones, so what looked like
+`CStaticCamera` property 0 was actually `CBaseBehaviour` property 0 -- the
+same near-constant on every object because it is a base class most cameras
+never touch.
+
+Once components are kept separate, `CStaticCamera` index 4 across 473 objects
+in the archive gives: 420 at the 90 degree default, and a real spread of
+authored values -- 20, 30, 38, 45, 50, 60, 75, 85. That is field of view in
+degrees, confirmed by variance, not by a single decode.
+
+### 5. Rooms with no lighting
 
 `HO_1_WomensRoom` and others render unlit. Vertex colours are present in every
 packet, so it is not a missing stream; suspect the world's own light data, or a
 section whose colours are genuinely zero.
 
-### 5. Textures missing versus materials with no texture
+### 6. Textures missing versus materials with no texture
 
 A mesh whose `texName` resolves but whose texture is absent renders black, and
 so does a material that legitimately has no texture — the big black wall panel
 in `HO_1_Lobby`. These two cases have to be told apart before either can be
 diagnosed.
 
-### 6. Native fog
+### 7. Native fog
 
 `CFogConfig`, one instance per level, visible in the type table and not read.
 
-### 7. Smaller items
+### 8. Smaller items
 
 * Collision face indices are read as `uint8`, so nothing past vertex 255 is
   reachable.

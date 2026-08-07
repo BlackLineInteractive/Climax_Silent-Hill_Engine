@@ -431,6 +431,20 @@ void LoadLevelData(const std::string &displayName,
           bm[mc->blendMode]++;
           if (mc->blendMode) ex[mc->blendMode] = mc->texName;
         }
+      {
+        int nonDefault = 0;
+        for (const auto &cm : g_Cameras) if (cm.fovDeg != 60.0f) nonDefault++;
+        if (!g_Cameras.empty()) {
+          std::cout << "[camfov] " << g_Cameras.size() << " cameras, "
+                    << nonDefault << " with an authored FOV:";
+          int shown = 0;
+          for (const auto &cm : g_Cameras) {
+            if (shown++ >= 6) break;
+            std::cout << "  " << cm.name << "=" << cm.fovDeg;
+          }
+          std::cout << "\n";
+        }
+      }
       std::cout << "[scene] blend modes:";
       for (auto &kv : bm)
         std::cout << " " << kv.first << "=" << kv.second
@@ -673,6 +687,13 @@ static void ParseGameObject(const std::vector<uint8_t> &data, size_t off,
       // two 64-byte properties are exactly (CSystemCommands, CZone) pairs.
       memcpy(&go.volume[0][0], &data[payOff], 64);
       go.haveVolume = true;
+    } else if (kind == 0x00 && idx == 4 && payLen == 4 &&
+               component == "CStaticCamera") {
+      // Field of view in degrees. See GameObject::fovDeg for how this was
+      // confirmed -- it is not the same index CBaseCamera or CBaseBehaviour
+      // use, and those two overwriting it in an earlier, component-blind scan
+      // is what made every camera look like it carried the same fixed value.
+      memcpy(&go.fovDeg, &data[payOff], 4);
     } else if (kind == 0x00 && idx == 1 && payLen == 64 &&
                component == "CSystemCommands" && !haveXform) {
       // The placement matrix always lives here: property 1 of the
@@ -1592,6 +1613,8 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
     glm::vec3 up = glm::vec3(go.transform[1]);
     cam.up =
         (glm::length(up) > 1e-4f) ? glm::normalize(up) : glm::vec3(0, 1, 0);
+    if (go.fovDeg > 0.0f && go.fovDeg < 179.0f)
+      cam.fovDeg = go.fovDeg;
     g_Cameras.push_back(std::move(cam));
   }
 

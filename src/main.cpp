@@ -889,7 +889,7 @@ void main(){
         // Build matrices
         glm::vec3 eye;
         glm::mat4 view = BuildView(eye);
-        glm::mat4 proj = glm::perspective(glm::radians(60.0f), aspect, 0.1f, 2000.0f);
+        glm::mat4 proj = glm::perspective(glm::radians(state.camFovDeg), aspect, 0.1f, 2000.0f);
         glm::mat4 mvp  = proj * view;
 
         // --- Render 3-D scene ---
@@ -907,7 +907,7 @@ void main(){
         // Key 1 → reset camera, F1 → hide/show the whole interface
         if (!io.WantCaptureKeyboard && ImGui::IsKeyPressed(ImGuiKey_1, false)) {
             state.camTargetX = 0; state.camTargetY = 2; state.camTargetZ = 0;
-            state.camYaw = 0; state.camPitch = 20; state.camDist = 15;
+            state.camYaw = 0; state.camPitch = 20; state.camDist = 15; state.camFovDeg = 60.0f;
         }
         if (ImGui::IsKeyPressed(ImGuiKey_F1, false)) state.showUI = !state.showUI;
         if (ImGui::IsKeyPressed(ImGuiKey_F2, false)) state.showManual = !state.showManual;
@@ -1469,13 +1469,17 @@ void main(){
         if (ImGui::Button("Reset Camera", ImVec2(-1, 0))) {
             state.camTargetX = 0; state.camTargetY = 2; state.camTargetZ = 0;
             state.camPosX = 0; state.camPosY = 2; state.camPosZ = 15;
-            state.camYaw = 0; state.camPitch = 20; state.camDist = 15;
+            state.camYaw = 0; state.camPitch = 20; state.camDist = 15; state.camFovDeg = 60.0f;
         }
 
         // ---- Level cameras ------------------------------------------
         if (!g_Cameras.empty()) {
             ImGui::Spacing();
             ImGui::TextDisabled("Level cameras (%zu)", g_Cameras.size());
+            if (state.camFovDeg != 60.0f) {
+                ImGui::SameLine();
+                ImGui::TextDisabled("FOV %.0f°", state.camFovDeg);
+            }
             ImGui::SetNextItemWidth(-1);
             if (ImGui::BeginCombo("##camsel", "Jump to camera...")) {
                 for (size_t i = 0; i < g_Cameras.size(); i++) {
@@ -1493,10 +1497,12 @@ void main(){
                         glm::vec3 back   = -c.forward;
                         state.camPitch   = glm::degrees(asinf(glm::clamp(back.y, -1.0f, 1.0f)));
                         state.camYaw     = glm::degrees(atan2f(back.x, back.z));
+                        state.camFovDeg  = c.fovDeg;
                     }
                     if (ImGui::IsItemHovered())
-                        ImGui::SetTooltip("(%.2f, %.2f, %.2f)",
-                                          c.position.x, c.position.y, c.position.z);
+                        ImGui::SetTooltip("(%.2f, %.2f, %.2f)   FOV %.0f°",
+                                          c.position.x, c.position.y, c.position.z,
+                                          c.fovDeg);
                     ImGui::PopID();
                 }
                 ImGui::EndCombo();

@@ -20,7 +20,6 @@ Opens proprietary Climax Engine container files (no file extension — named lik
 
 ![Dhalia House](media/s2-v0.2.png)
 ![Pool Area](media/poolarea-s0-v0.2.png)
-![Intro Road](media/v0.2.png)
 ![Intro Road 2](media/s1-v0.2.png)
 ![Motel](media/MO_1_Courtyard.png)
 ![Butcher's Great Sword](media/ButchersGreatSword.png)

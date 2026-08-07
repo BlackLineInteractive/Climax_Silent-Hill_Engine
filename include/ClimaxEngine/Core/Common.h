@@ -237,6 +237,13 @@ struct GameObject {
   float lightAngle = 45.0f; // >180 means omnidirectional
   int lightType = 0;
 
+  // CStaticCamera property 4 -- field of view in degrees. Confirmed against
+  // the real data: 473 cameras in the archive, 420 at the 90-degree default
+  // and a real authored spread (20, 30, 38, 45, 50, 60, 75, 85), which is what
+  // ruled out it being a fixed constant. -1 means not present (object is not
+  // a camera, or the record is missing).
+  float fovDeg = -1.0f;
+
   // Animation playback state
   int currentClipIndex = -1;
   float animTime = 0.0f;
@@ -278,6 +285,9 @@ struct ViewerState {
   float camYaw = 0.0f;    // horizontal rotation, degrees
   float camPitch = 20.0f; // vertical   rotation, degrees  (-89..89)
   float camDist = 15.0f;  // zoom distance
+  // Active field of view, degrees. Set from a level camera's own CStaticCamera
+  // property when jumped to; otherwise the viewer's default.
+  float camFovDeg = 60.0f;
 
   // Free flight camera
   bool useWASD = false;
