@@ -161,10 +161,20 @@ riskiest unknown is settled: skin weights are **not** in the VIF packets — all
 the spec can be skipped. Start from the skeleton (FrameList + HAnim) drawn as a
 bone overlay in the rest pose.
 
-### 3. Fire renders as a static rectangle
+### 3. Fire is static (hard edges fixed)
 
-Flames show as a flat rectangular patch. Everything that could have caused it in
-the material path has been measured and ruled out:
+Flames showed as flat slabs with hard polygon borders, and they do not animate.
+
+**The hard border is fixed.** The shader dropped the vertex colour entirely on
+additive materials, to stop baked room lighting from driving effect sheets to
+black. That also threw away the vertex *alpha*, which on the flame meshes runs
+the full 0..1 across the mesh and is the artist's fade — the thing that keeps a
+flame from ending in a straight polygon edge. The fix takes the alpha and leaves
+the RGB alone: with `SRC_ALPHA/ONE` it scales the additive contribution to
+nothing at the edges without darkening the sheet.
+
+**The animation is still missing**; the rest of this entry is the recovered
+format for it. Everything else in the material path was measured and ruled out:
 
 * **Blend mode is correct.** Every fire material declares mode 1 — additive —
   and the runtime receives it (`[scene] blend modes: 0=322 1=150

@@ -563,10 +563,22 @@ void main(){
         // whole soft edge of a gradient and left a hard jagged border where the
         // game fades out smoothly; the rest is handled by alpha blending.
         if(tex.a < 0.02) discard;
-        // Additive effect sheets carry their own brightness. Multiplying them by
-        // the baked vertex lighting drives them to black in a dark room, which
-        // is why they only showed up with vertex colours switched off.
-        vec4 col = (useVertexColors && !additive && !unlitGeometry) ? tex * VC : tex;
+        // Additive effect sheets carry their own brightness. Multiplying their
+        // RGB by the baked vertex lighting drives them to black in a dark room,
+        // which is why they only showed up with vertex colours switched off.
+        //
+        // Their vertex *alpha* is a different thing entirely: on the flame
+        // sheets it runs the full 0..1 across the mesh, and it is the artist's
+        // fade — the thing that stops a flame from ending in a hard polygon
+        // edge. Dropping the whole vertex colour threw that away too, so the
+        // fire came out as flat slabs with visible borders. Take the alpha and
+        // leave the RGB alone: with SRC_ALPHA/ONE it scales the additive
+        // contribution to nothing at the edges, without darkening the sheet.
+        vec4 col;
+        if(useVertexColors && !unlitGeometry)
+            col = additive ? vec4(tex.rgb, tex.a * VC.a) : tex * VC;
+        else
+            col = tex;
         col.rgb *= brightness;
         FragColor = col;
     }
