@@ -16,6 +16,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <map>
 #include <memory>
 #include <string>
@@ -27,6 +28,10 @@
 #include "ClimaxEngine/Core/UI/StringTable.h"
 #include "ClimaxEngine/Game/FrontEnd.h"
 #include "ClimaxEngine/Platform/PS2/PS2Texture.h"
+
+#ifdef CLIMAX_HAVE_FFMPEG
+#include "ClimaxEngine/Rendering/VideoPlayer.h"
+#endif
 
 using namespace ClimaxEngine;
 
@@ -282,10 +287,14 @@ static void LoadStartupJpegs(const std::vector<uint8_t> &buf,
                                         GL_CLAMP_TO_EDGE);
                         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
                                         GL_CLAMP_TO_EDGE);
+                        // Read before freeing: this printed "0x0" for every
+                        // background before the fix -- rgba->w/h off a surface
+                        // already handed to SDL_FreeSurface.
+                        const int rw = rgba->w, rh = rgba->h;
                         SDL_FreeSurface(rgba);
                         textures[key] = id;
                         std::fprintf(stderr, "[play] bg '%s' %dx%d\n",
-                                     key.c_str(), rgba->w, rgba->h);
+                                     key.c_str(), rw, rh);
                     }
                 } else {
                     std::fprintf(stderr, "[play] IMG failed '%s': %s\n",
@@ -351,16 +360,64 @@ const uint8_t *FindSection(const std::vector<uint8_t> &buf, const char *type,
     return nullptr;
 }
 
+#ifdef CLIMAX_HAVE_FFMPEG
+bool FileExists(const std::string &p) {
+    std::ifstream f(p);
+    return f.good();
+}
+
+// Letter suffix a language adds to a movie's base name -- LOGOWF, GOMOVNS --
+// matching the disc's own naming (F/G/I/S; no suffix is English). Not every
+// base name has every language: MENU ships only MENUW/MENUN.
+std::string MovieLangSuffix(Game::Language l) {
+    switch (l) {
+    case Game::Language::French:  return "F";
+    case Game::Language::German:  return "G";
+    case Game::Language::Italian: return "I";
+    case Game::Language::Spanish: return "S";
+    default: return "";
+    }
+}
+
+// Resolves `base` ("LOGO", "MENU") plus aspect and language to a converted
+// clip under moviesDir, mirroring the disc's own <first letter>/<name>.mp4
+// layout (see tools/convert_movies.py). Falls back to the unsuffixed, then to
+// the opposite-aspect file, so a still-incomplete conversion degrades instead
+// of leaving the stage with nothing to show.
+std::string ResolveMoviePath(const std::string &moviesDir, const std::string &base,
+                             bool wide, Game::Language lang) {
+    const std::string aspect = wide ? "W" : "N";
+    auto pathFor = [&](const std::string &name) {
+        return moviesDir + "/" + name.substr(0, 1) + "/" + name + ".mp4";
+    };
+    std::string name = base + aspect + MovieLangSuffix(lang);
+    std::string path = pathFor(name);
+    if (FileExists(path)) return path;
+
+    name = base + aspect;   // no per-language cut for this base (e.g. MENU)
+    path = pathFor(name);
+    if (FileExists(path)) return path;
+
+    name = base + (wide ? "N" : "W");   // whatever aspect was actually converted
+    path = pathFor(name);
+    if (FileExists(path)) return path;
+
+    return {};
+}
+#endif
+
 } // namespace
 
 int main(int argc, char **argv) {
     const char *arcPath = "game-iso/SHO/SH.ARC";
+    std::string moviesDir = "SHO-port/MOVIES";   // tools/convert_movies.py's output
     // --check loads everything and reports, without opening a window. The data
     // half is worth testing on its own: it is the half that can be wrong
     // quietly, and it is the half a build machine can run.
     bool checkOnly = false;
     for (int i = 1; i < argc; ++i) {
         if (std::strcmp(argv[i], "--check") == 0) checkOnly = true;
+        else if (std::strcmp(argv[i], "--movies") == 0 && i + 1 < argc) moviesDir = argv[++i];
         else arcPath = argv[i];
     }
 
@@ -540,6 +597,23 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    // ── video ───────────────────────────────────────────────────────────────
+    // The idents, the content notice and the menu background are movies in the
+    // retail game (`bgmovie="Menu"` in mainmenu.xml; LOGOW/LOGON covers both the
+    // idents and the notice as one 16.76 s clip -- there is no separate warning
+    // asset anywhere in the archive). Played from tools/convert_movies.py's
+    // output, which corrects the aspect the PS2 stretches on output and the
+    // .PSS files do not record.
+#ifdef CLIMAX_HAVE_FFMPEG
+    VideoPlayer logoVideo, menuVideo;
+    bool haveVideoSupport = true;
+#else
+    bool haveVideoSupport = false;
+    std::fprintf(stderr, "[play] built without FFmpeg -- boot movies will not play\n");
+#endif
+    Game::BootStage lastStage = front.Stage();
+    bool lastWide = true;
+
     // ── loop ────────────────────────────────────────────────────────────────
     bool run = true;
     uint64_t last = SDL_GetPerformanceCounter();
@@ -566,20 +640,67 @@ int main(int argc, char **argv) {
         const float dt = (float)((now - last) / (double)SDL_GetPerformanceFrequency());
         last = now;
 
+        int w, h;
+        SDL_GL_GetDrawableSize(win, &w, &h);
+        // Author-space to window-space. The game ships both a widescreen and a
+        // 4:3 layout, and picks by display mode; this picks the same way.
+        const bool wide = (float)w / (float)h > 1.5f;
+
+#ifdef CLIMAX_HAVE_FFMPEG
+        // Advance whichever clip is current *before* FrontEnd::Update, so a
+        // clip that just finished can end the Logo stage this same frame
+        // instead of one frame late.
+        if (front.Stage() == Game::BootStage::Logo && haveVideoSupport) {
+            if (!logoVideo.IsOpen() || lastWide != wide) {
+                const std::string p = ResolveMoviePath(moviesDir, "LOGO", wide, front.language);
+                if (!p.empty() && logoVideo.Open(p))
+                    std::fprintf(stderr, "[play] logo video: %s (%dx%d)\n",
+                                 p.c_str(), logoVideo.Width(), logoVideo.Height());
+                else
+                    std::fprintf(stderr, "[play] no logo video at '%s' for base LOGO\n",
+                                 moviesDir.c_str());
+            }
+            if (logoVideo.IsOpen()) {
+                logoVideo.Update(dt);
+                in.mediaEnded = logoVideo.Finished();
+            }
+        }
+#endif
+
         const std::string cmd = front.Update(dt, in);
         if (!cmd.empty())
             std::fprintf(stderr, "[play] command: %s\n", cmd.c_str());
 
-        int w, h;
-        SDL_GL_GetDrawableSize(win, &w, &h);
+#ifdef CLIMAX_HAVE_FFMPEG
+        if (haveVideoSupport) {
+            // Enter the menu's looping background the moment the stage
+            // changes, rather than waiting to be asked -- mainmenu.xml itself
+            // says loop_movie="true".
+            if (front.Stage() == Game::BootStage::MainMenu &&
+                (lastStage != Game::BootStage::MainMenu || !menuVideo.IsOpen())) {
+                const std::string p = ResolveMoviePath(moviesDir, "MENU", wide, front.language);
+                if (!p.empty() && menuVideo.Open(p))
+                    std::fprintf(stderr, "[play] menu video: %s (%dx%d)\n",
+                                 p.c_str(), menuVideo.Width(), menuVideo.Height());
+            }
+            if (front.Stage() == Game::BootStage::MainMenu && menuVideo.IsOpen()) {
+                menuVideo.Update(dt);
+                if (menuVideo.Finished())
+                    menuVideo.Restart();
+            }
+        }
+#endif
+        if (front.Stage() != lastStage)
+            std::fprintf(stderr, "[play] stage %s -> %s\n",
+                         Game::BootStageName(lastStage), Game::BootStageName(front.Stage()));
+        lastStage = front.Stage();
+        lastWide = wide;
+
         glViewport(0, 0, w, h);
         glClearColor(0.02f, 0.02f, 0.03f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         painter.Begin(w, h);
 
-        // Author-space to window-space. The game ships both a widescreen and a
-        // 4:3 layout, and picks by display mode; this picks the same way.
-        const bool wide = (float)w / (float)h > 1.5f;
         // Only the PAL sets are loaded, so the mode suffix picks between its
         // two aspects. An NTSC build would load UiDataN* and use "nw"/"n4".
         const char *texMode = wide ? "pw" : "p4";
@@ -589,13 +710,29 @@ int main(int argc, char **argv) {
         if (front.Stage() == Game::BootStage::MainMenu) {
             const UI::Element *scr = front.Menu().Screen();
             if (scr) {
-                // Whatever the screen names as its backdrop, behind everything.
-                if (const std::string bg = scr->Attr("bgtexture"); !bg.empty()) {
-                    const std::string n = ResolveTextureName(bg, texMode);
-                    if (auto it = textures.find(n); it != textures.end())
-                        painter.Quad(0, 0, (float)w, (float)h, it->second,
-                                     1, 1, 1, 1);
+                // `bgmovie="Menu"` is what the screen actually asks for; the
+                // static `bgtexture` (when a screen has one at all -- mainmenu
+                // does not) is the fallback for when no decoder is built in.
+                bool drewBg = false;
+#ifdef CLIMAX_HAVE_FFMPEG
+                if (haveVideoSupport && menuVideo.IsOpen()) {
+                    painter.Quad(0, 0, (float)w, (float)h, menuVideo.Texture(),
+                                1, 1, 1, 1);
+                    drewBg = true;
                 }
+#endif
+                if (!drewBg) {
+                    if (const std::string bg = scr->Attr("bgtexture"); !bg.empty()) {
+                        const std::string n = ResolveTextureName(bg, texMode);
+                        if (auto it = textures.find(n); it != textures.end()) {
+                            painter.Quad(0, 0, (float)w, (float)h, it->second,
+                                        1, 1, 1, 1);
+                            drewBg = true;
+                        }
+                    }
+                }
+                if (!drewBg)
+                    painter.Quad(0, 0, (float)w, (float)h, 0, 0.02f, 0.02f, 0.03f, 1.0f);
 
                 for (const UI::Element &b : scr->children) {
                     const float bx = (wide ? b.Float("xpos") : b.Float("xpos4x3")) * sx;
@@ -679,16 +816,48 @@ int main(int argc, char **argv) {
                 return true;
             };
 
+            // Same fit as `fullscreen`, but for a decoded video frame -- its
+            // own GLuint, not one looked up in `textures` by name -- letterboxed
+            // to the clip's real decoded size rather than the display aspect,
+            // since a video's aspect is a property of the frame, already
+            // correct, and not of the display mode the way a stretched still is.
+            auto fullscreenVideo = [&](GLuint id, int texW, int texH) {
+                if (!id || texW <= 0 || texH <= 0) return false;
+                const float texAR = (float)texW / (float)texH;
+                const float winAR = (float)w / (float)h;
+                float dw, dh, dx, dy;
+                if (winAR >= texAR) {
+                    dh = (float)h; dw = dh * texAR;
+                    dy = 0.0f; dx = ((float)w - dw) * 0.5f;
+                } else {
+                    dw = (float)w; dh = dw / texAR;
+                    dx = 0.0f; dy = ((float)h - dh) * 0.5f;
+                }
+                painter.Quad(dx, dy, dw, dh, id, 1, 1, 1, 1);
+                return true;
+            };
+
             switch (front.Stage()) {
-            case Game::BootStage::Logo:
-                centre(cx, h * 0.45f, sc * 1.4f, "CLIMAX", 0.8f, 0.8f, 0.85f, 1.0f);
-                centre(cx, h * 0.55f, sc, "Silent Hill Origins", 0.5f, 0.5f, 0.55f, 1.0f);
-                break;
-            case Game::BootStage::Warning: {
-                // The health notice is a movie in the retail game, not a
-                // string, so this stands in for it until FMV plays.
-                centre(cx, h * 0.40f, sc, "WARNING", 0.75f, 0.75f, 0.8f, 1.0f);
-                centre(cx, h * 0.58f, sc * 0.8f, "Press ENTER", 0.4f, 0.4f, 0.45f, 1.0f);
+            case Game::BootStage::Logo: {
+                // LOGOW/LOGON is one clip covering both the publisher/developer
+                // idents and the content notice -- there is no separate warning
+                // asset in the archive, so there is no separate drawing path
+                // for it either.
+                bool drew = false;
+#ifdef CLIMAX_HAVE_FFMPEG
+                if (haveVideoSupport && logoVideo.IsOpen())
+                    drew = fullscreenVideo(logoVideo.Texture(), logoVideo.Width(),
+                                           logoVideo.Height());
+#endif
+                if (!drew) {
+                    // No video decoder in this build, or the clip failed to
+                    // open: say so rather than drawing an invented logo, which
+                    // read as the toolkit's own branding rather than the game's.
+                    centre(cx, h * 0.48f, sc, "Silent Hill Origins",
+                          0.55f, 0.55f, 0.6f, 1.0f);
+                    centre(cx, h * 0.58f, sc * 0.6f, "(LOGOW.mp4 not found)",
+                          0.35f, 0.35f, 0.4f, 1.0f);
+                }
                 break;
             }
             case Game::BootStage::AspectSelect: {

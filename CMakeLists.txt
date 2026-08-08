@@ -92,6 +92,18 @@ else()
     endif()
 endif()
 
+# FFmpeg's libav*: decodes the boot/menu movies (converted to MP4 by
+# tools/convert_movies.py) for climax-play. Optional -- without it the video
+# stages fall back to a plain colour, they do not fail to build.
+find_package(PkgConfig QUIET)
+set(SHO_HAVE_FFMPEG FALSE)
+if(PkgConfig_FOUND)
+    pkg_check_modules(FFMPEG QUIET libavformat libavcodec libavutil libswscale)
+    if(FFMPEG_FOUND)
+        set(SHO_HAVE_FFMPEG TRUE)
+    endif()
+endif()
+
 # glm is header-only; fetch it when the system does not provide it so Windows
 # builds do not need a separate install step.
 find_package(glm CONFIG QUIET)
@@ -256,7 +268,11 @@ if(BUILD_CLIMAX_PLAY)
     # Only its own main, plus the two libraries. The toolkit's renderer is not
     # here: it is bound to ViewerState and to ImGui, and dragging it in would
     # defeat the point of this target.
-    add_executable(climax-play src/play_main.cpp)
+    set(CLIMAX_PLAY_SOURCES src/play_main.cpp)
+    if(SHO_HAVE_FFMPEG)
+        list(APPEND CLIMAX_PLAY_SOURCES src/Rendering/VideoPlayer.cpp)
+    endif()
+    add_executable(climax-play ${CLIMAX_PLAY_SOURCES})
     target_link_libraries(climax-play
         climax-game
         OpenGL::GL GLEW::GLEW
@@ -266,6 +282,14 @@ if(BUILD_CLIMAX_PLAY)
     )
     if(SDL2_INCLUDE_DIRS)
         target_include_directories(climax-play PRIVATE ${SDL2_INCLUDE_DIRS})
+    endif()
+    if(SHO_HAVE_FFMPEG)
+        target_include_directories(climax-play PRIVATE ${FFMPEG_INCLUDE_DIRS})
+        target_link_directories(climax-play PRIVATE ${FFMPEG_LIBRARY_DIRS})
+        target_link_libraries(climax-play ${FFMPEG_LIBRARIES})
+        target_compile_definitions(climax-play PRIVATE CLIMAX_HAVE_FFMPEG=1)
+    else()
+        message(STATUS "libavformat/libavcodec/libswscale not found: climax-play will build without movie playback")
     endif()
     # Explicit sentinel: any accidental imgui include will cause an
     # undefined-symbol error at link time.

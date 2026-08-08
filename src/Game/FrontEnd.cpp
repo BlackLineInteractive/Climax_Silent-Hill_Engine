@@ -32,7 +32,6 @@ int LanguageCount() { return 6; }
 const char *BootStageName(BootStage s) {
     switch (s) {
     case BootStage::Logo: return "Logo";
-    case BootStage::Warning: return "Warning";
     case BootStage::AspectSelect: return "AspectSelect";
     case BootStage::LanguageSelect: return "LanguageSelect";
     case BootStage::MainMenu: return "MainMenu";
@@ -179,14 +178,12 @@ std::string FrontEnd::Update(float dt, const MenuInput &in) {
 
     switch (m_stage) {
     case BootStage::Logo:
-        if (m_elapsed >= logoSeconds || in.anyKey || in.accept)
-            Enter(BootStage::Warning);
-        return {};
-
-    case BootStage::Warning:
-        // The warning is the one screen the original will not let you skip
-        // instantly; a press still shortens it, but only after a beat.
-        if (m_elapsed >= warningSeconds || ((in.anyKey || in.accept) && m_elapsed > 1.0f)) {
+        // Advances when the LOGOW/LOGON clip actually ends, or -- once it has
+        // had a moment to be seen -- on a keypress, the same as the original.
+        // `logoSeconds` only fires if no video is playing at all, so the boot
+        // sequence can never hang on a missing asset.
+        if (in.mediaEnded || m_elapsed >= logoSeconds ||
+            ((in.anyKey || in.accept) && m_elapsed > 1.0f)) {
             if (!aspectChosen) Enter(BootStage::AspectSelect);
             else if (!languageChosen) Enter(BootStage::LanguageSelect);
             else Enter(BootStage::MainMenu);

@@ -74,7 +74,11 @@ def main():
             skipped += 1
             continue
 
-        out = os.path.join(args.dst, stem + '.mp4')
+        # Mirrors the disc layout: MOVIES/<first letter>/<name>.mp4, the same
+        # split the original uses (B/, C/, E/, G/, L/, M/, S/).
+        subdir = os.path.join(args.dst, stem[0].upper())
+        os.makedirs(subdir, exist_ok=True)
+        out = os.path.join(subdir, stem + '.mp4')
         if os.path.exists(out) and not args.force:
             # Only skip if it already has the right display aspect.
             probe = subprocess.run(

@@ -531,13 +531,28 @@ diagnosed.
 
 `CFogConfig`, one instance per level, visible in the type table and not read.
 
-### 7a. Video
+### 7a. Video — playing, audio still open
 
-`MOVIES/*.PSS` is MPEG-2 program stream — 58 files, 1.7 GB, including the menu
-background the front end names and the logo idents. Nothing plays them. This
-needs a decoder dependency; it belongs in the platform layer, and `climax-core`
-must stay free of it. Format and naming are in
-[formats/SH_FORMAT.md](formats/SH_FORMAT.md).
+`MOVIES/*.PSS` (58 files, 1.7 GB) is converted by `tools/convert_movies.py` to
+MP4 at the aspect the PS2 actually displays them at (see
+[formats/SH_FORMAT.md](formats/SH_FORMAT.md) for why the source files' own
+512×512 square dimensions are wrong), and `climax-play` decodes and plays the
+result through `src/Rendering/VideoPlayer.{h,cpp}` (FFmpeg, optional at
+configure time). The logo/notice clip and the menu background both play for
+real now, not as a drawn placeholder.
+
+Open:
+
+* No audio. None of the `.PSS` files carry an audio stream at all (checked
+  with `ffprobe`), so the movies themselves have nothing to play back, but
+  `bgaudio="menu.rws"` on `mainmenu.xml` names a separate asset that is not
+  wired up.
+* Only `LOGO` and `MENU` are hooked into the boot sequence. The other 56 clips
+  (cutscenes, endings, credits, statistics) decode with the same class but have
+  no caller yet — they belong wherever the game-over and ending states end up.
+* The language-select screen's flag positions are not in any of the 40 XML
+  files (that screen is built in code), so the layout `climax-play` uses for it
+  is a guess, unlike every other screen it draws.
 
 ### 7b. Archive and container browsing as a tree
 

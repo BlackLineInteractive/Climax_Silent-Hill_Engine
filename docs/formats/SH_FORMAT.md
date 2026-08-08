@@ -1333,3 +1333,57 @@ backgrounds resolve to nothing.
 The rest come from `GlobalStream` (13: arrows, frames, cursors) and from the
 per-language `LocaleUI*` (4 each: the main menu's four buttons, which carry
 their words as pixels rather than as text).
+
+### Conversion — `tools/convert_movies.py`
+
+Every `.PSS` is stored 512×512 with a square sample, both for the widescreen
+`W` files and the 4:3 `N` files — measured, not assumed: `ffprobe` reports
+`910,512,SAR 1:1,DAR 1:1` for `LOGOW.PSS` itself. The PS2 corrects this on
+output; nothing in the container says to.
+
+Scaling the pixels alone is not enough. A first pass here used `scale=910:512`
+without clearing the sample aspect, and ffmpeg picked a compensating SAR
+(`256:455`) that put the display aspect straight back to 1:1 — squeezed exactly
+like the original. `setsar=1` after the scale is what makes the corrected
+aspect stick:
+
+    ffmpeg -i in.PSS -vf "scale=910:512,setsar=1" -c:v libx264 -crf 18 out.mp4
+
+910×512 for the `W` files (16:9), 682×512 for the `N` files (4:3), both even
+widths as H.264 requires. All 58 files converted this way, verified by
+`ffprobe`'s own `display_aspect_ratio`: `455:256` (≈1.778) throughout the `W`
+set, `341:256` (≈1.332) throughout the `N` set. 1.7 GB of source becomes 855 MB
+at CRF 18.
+
+### Playback — `climax-play` and `VideoPlayer`
+
+The boot sequence and the menu now play the converted clips instead of drawn
+placeholders. `src/Rendering/VideoPlayer.{h,cpp}` decodes an MP4 via FFmpeg's
+libavformat/libavcodec/libswscale into an RGB24 GL texture, PTS-paced against
+real time; `tools/convert_movies.py`'s output is what it reads.
+
+**LOGOW/LOGON is one clip covering both the idents and the content notice.**
+Playing it back showed both as frames of the same 16.76 s video -- there is no
+separate warning asset anywhere in the archive, so the two-stage split guessed
+earlier (`BootStage::Warning`) was wrong and has been removed. `BootStage::Logo`
+now advances on `MenuInput::mediaEnded`, set from `VideoPlayer::Finished()`; a
+fixed 17 s timeout remains only as a fallback for a build with no video
+decoder, so the boot sequence cannot hang on a missing file.
+
+`mainmenu.xml`'s `bgmovie="Menu"` maps directly to `MENUW.mp4` / `MENUN.mp4`
+and loops, matching the XML's own `loop_movie="true"`.
+
+Movie resolution (`ResolveMoviePath` in `play_main.cpp`) mirrors the disc's own
+layout -- `<dir>/<first letter>/<NAME><W|N><lang>.mp4` -- and falls back through
+the unsuffixed file, then the opposite aspect, so a partially converted set
+still shows something rather than nothing. `--movies <dir>` overrides the
+default `SHO-port/MOVIES`.
+
+FFmpeg is optional at configure time (`pkg_check_modules(... libavformat
+libavcodec libavutil libswscale)`); without it `climax-play` still builds, and
+the Logo stage falls back to plain text saying the clip was not found rather
+than drawing invented branding.
+
+Known gap: none of the source `.PSS` files carry an audio stream (checked with
+`ffprobe -show_entries stream`), so there is nothing to play back on the video
+side; `bgaudio="menu.rws"` is a separate asset and is not wired up yet.

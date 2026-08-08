@@ -26,8 +26,12 @@ namespace ClimaxEngine {
 namespace Game {
 
 enum class BootStage {
-    Logo,            // publisher and developer idents (LOGOW.PSS)
-    Warning,         // the content notice -- a frame of the same movie
+    // Publisher/developer idents and the content notice are one continuous
+    // video -- LOGOW.PSS / LOGON.PSS, 16.76 s, no separate warning asset
+    // anywhere in the archive. Splitting it into two stages was a guess before
+    // the video was playable; playing it showed both idents and the notice as
+    // frames of the same clip.
+    Logo,
     AspectSelect,    // 4:3 or widescreen; the art for it is sho_aspect_**
     LanguageSelect,  // six flags; skipped when the language is already chosen
     MainMenu,
@@ -57,6 +61,10 @@ struct MenuInput {
     bool accept = false;
     bool cancel = false;
     bool anyKey = false;   // dismisses a timed screen early
+    // Set by the caller when a video-driven stage's clip has played to the
+    // end. FrontEnd owns no video state -- no GL, no decoder -- so it cannot
+    // know this on its own.
+    bool mediaEnded = false;
 };
 
 // Which screen is up and which element is highlighted.
@@ -101,11 +109,11 @@ private:
 // Drives the stages before the menu, and the menu after them.
 class FrontEnd {
 public:
-    // Seconds each timed stage holds before moving on. The retail timings are
-    // not in the data; these are ordinary values, and any of them can be cut
-    // short by a keypress, which is what the original does.
-    float logoSeconds = 4.0f;
-    float warningSeconds = 6.0f;
+    // Fallback timeout for the Logo stage, used only if no video loaded (the
+    // real advance is `MenuInput::mediaEnded`, driven by the LOGOW/LOGON clip
+    // actually finishing -- 16.76 s in the retail files). Without a video this
+    // stops the boot sequence from hanging forever with nothing on screen.
+    float logoSeconds = 17.0f;
 
     // Set false to make the language stage appear; the game shows it once, on
     // first boot, and remembers the answer.
