@@ -268,7 +268,7 @@ if(BUILD_CLIMAX_PLAY)
     # Only its own main, plus the two libraries. The toolkit's renderer is not
     # here: it is bound to ViewerState and to ImGui, and dragging it in would
     # defeat the point of this target.
-    set(CLIMAX_PLAY_SOURCES src/play_main.cpp)
+    set(CLIMAX_PLAY_SOURCES src/play_main.cpp src/Platform/PS2/RwsAudio.cpp)
     if(SHO_HAVE_FFMPEG)
         list(APPEND CLIMAX_PLAY_SOURCES src/Rendering/VideoPlayer.cpp)
     endif()

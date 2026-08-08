@@ -27,7 +27,9 @@
 #include "ClimaxEngine/Core/UI/ScreenDef.h"
 #include "ClimaxEngine/Core/UI/StringTable.h"
 #include "ClimaxEngine/Game/FrontEnd.h"
+#include "ClimaxEngine/Platform/PS2/AudioParser.h"
 #include "ClimaxEngine/Platform/PS2/PS2Texture.h"
+#include "ClimaxEngine/Platform/PS2/RwsAudio.h"
 
 #ifdef CLIMAX_HAVE_FFMPEG
 #include "ClimaxEngine/Rendering/VideoPlayer.h"
@@ -427,7 +429,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    if (!checkOnly && SDL_Init(SDL_INIT_VIDEO) != 0) {
+    if (!checkOnly && SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) != 0) {
         std::fprintf(stderr, "[play] SDL: %s\n", SDL_GetError());
         return 1;
     }
@@ -613,6 +615,25 @@ int main(int argc, char **argv) {
 #endif
     Game::BootStage lastStage = front.Stage();
     bool lastWide = true;
+    bool musicStarted = false;
+
+    // ── menu music ──────────────────────────────────────────────────────────
+    // MENU.RWS sits in MUSIC/M/ relative to the disc root (one dir up from
+    // the SH.ARC directory).
+    AudioClip menuClip;
+    {
+        // Derive MUSIC path from arcPath: strip filename, go up one level.
+        std::string arcDir;
+        const size_t sl = std::string(arcPath).find_last_of("/\\");
+        arcDir = sl != std::string::npos ? std::string(arcPath).substr(0, sl + 1) : "";
+        const std::string musicPath = arcDir + "MUSIC/M/MENU.RWS";
+        if (!checkOnly && ::Audio::LoadFile(musicPath, menuClip))
+            std::fprintf(stderr, "[play] menu music: %s (%.0f s)\n",
+                         musicPath.c_str(), menuClip.Seconds());
+        else if (!checkOnly)
+            std::fprintf(stderr, "[play] menu music not found at: %s\n",
+                         musicPath.c_str());
+    }
 
     // ── loop ────────────────────────────────────────────────────────────────
     bool run = true;
@@ -690,9 +711,20 @@ int main(int argc, char **argv) {
             }
         }
 #endif
-        if (front.Stage() != lastStage)
-            std::fprintf(stderr, "[play] stage %s -> %s\n",
+        if (front.Stage() != lastStage) {
+            std::fprintf(stderr, "[play] stage %s → %s\n",
                          Game::BootStageName(lastStage), Game::BootStageName(front.Stage()));
+
+            // Start menu music on first transition to LanguageSelect or MainMenu.
+            const bool wantMusic =
+                front.Stage() == Game::BootStage::LanguageSelect ||
+                front.Stage() == Game::BootStage::MainMenu;
+            if (wantMusic && !musicStarted && menuClip.Valid()) {
+                auto& relay = ClimaxEngine::Audio::CAudioRelay::GetInstance();
+                relay.PlayMusic(menuClip, 0.65f);
+                musicStarted = true;
+            }
+        }
         lastStage = front.Stage();
         lastWide = wide;
 

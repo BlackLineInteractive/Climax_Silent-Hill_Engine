@@ -354,24 +354,49 @@ left-button drag at a time, and the gizmo only appears once a level is loaded.
 
 ## Project Structure
 
+The build produces four separate targets. The boundary is enforced by the
+linker: `climax-core` and `climax-game` have no GL/SDL/ImGui symbols, so
+any accidental include causes a link error instead of a silent violation.
+
 ```
-src/
-  main.cpp        — render loop, shaders, input
-  Loader.cpp/h    — SHO/TXD parser, geometry upload
-  UI.cpp/h        — structure tree, texture browser, file browser
-  PS2Texture.cpp/h— PS2 VRAM format decoder
-  Arc.cpp/h       — SH.ARC ("A2.0") archive reader
-  AudioParser.cpp/h— WAVEDICT / RWS / ADS / IGC audio decoders
-  WiiTexture.cpp/h— GameCube/Wii GX texture decoder
-  WiiGeometry.cpp/h— GameCube/Wii display-list geometry decoder
-  Export.cpp/h    — glTF 2.0 / GLB writer (groups geometry by texture)
-  Common.h/cpp    — shared state, types, globals
-vendor/            (Makefile build only — CMake fetches these into build/_deps)
+climax-core   (static library — no GL, no SDL, no ImGui)
+  src/Core/RWS/FileSystem/CArchive.cpp   — SH.ARC / IGC.ARC reader
+  src/Core/UI/StringTable.cpp            — UI string hash table
+  src/Core/UI/Font.cpp                   — PS2 KFont rasteriser → texture atlas
+  src/Core/UI/ScreenDef.cpp              — XML screen parser (mainmenu, newgame…)
+  src/Platform/PS2/PS2Texture.cpp        — PS2 VRAM / GS format decoder (CPU)
+  src/Platform/PS2/AudioParser.cpp       — VAG / ADS / RWS / IGC audio decoders
+  src/Platform/Wii/WiiGeometry.cpp       — GameCube/Wii display-list geometry
+
+climax-game   (static library — no GL, no SDL, no ImGui; links climax-core)
+  src/Game/FrontEnd.cpp                  — boot sequence state machine
+  src/Game/CameraLinks.cpp               — fixed-camera selection & cutting
+  src/Game/CharacterController.cpp       — player movement, collision, doors
+  src/Game/ZoneLinks.cpp                 — level-to-level transition graph
+
+ClimaxGameEngineToolkit  (executable — SDL + GL + ImGui; links climax-game)
+  src/main.cpp                           — render loop, GL shaders, input
+  src/UI/UI.cpp                          — inspector panels, audio player, file browser
+  src/Loader/Loader.cpp                  — container parser, geometry upload
+  src/Loader/GeometryDecoder.cpp         — RW geometry chunk decoder
+  src/Loader/ResourceLoader.cpp          — texture / model resource cache
+  src/Loader/Export.cpp                  — glTF 2.0 / GLB writer
+  src/SG/SceneObject.cpp                 — scene-graph node
+  src/Core/Common.cpp                    — ViewerState globals (toolkit only)
+  src/Platform/PS2/RwsAudio.cpp          — SDL audio device, voice mixer
+  src/Platform/Wii/WiiTexture.cpp        — GX texture decoder (GPU upload)
+  src/Rendering/…                        — GL/Metal backend, GPU mesh, player model
+
+climax-play   (executable — SDL + GL, NO ImGui; links climax-game)
+  src/play_main.cpp                      — boot UI, menu renderer, menu music
+  src/Platform/PS2/RwsAudio.cpp          — SDL audio device (shared source)
+  src/Rendering/VideoPlayer.cpp          — FFmpeg-based FMV player (optional)
+
+vendor/   (Makefile build only — CMake fetches into build/_deps/)
   imgui/
   imguizmo/
 ```
 
----
 
 ## License
 

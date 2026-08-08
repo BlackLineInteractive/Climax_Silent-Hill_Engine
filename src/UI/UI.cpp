@@ -1283,27 +1283,53 @@ static void AudioTabBody() {
     ImGui::SetNextItemWidth(120.0f);
     ImGui::SliderFloat("Volume", &state.audioVolume, 0.0f, 1.5f, "%.2f");
     
-    static float lastExportTime = -10.0f;
+    static float      lastExportTime = -10.0f;
+    static std::string lastExportPath;
     bool recentlySaved = ((float)ImGui::GetTime() - lastExportTime) < 2.0f;
 
     ImGui::SameLine(ImGui::GetWindowSize().x - 90.0f);
     if (recentlySaved) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Button,        ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.2f, 0.6f, 0.2f, 1.0f));
     }
-    
-    if (ImGui::Button(recentlySaved ? "Saved!###savewav" : "Save WAV###savewav", ImVec2(80, 0))) {
-      std::string name = cur.name.empty() ? std::string("sound") : cur.name;
-      for (auto &c : name)
-        if (c == '/' || c == '\\' || c == ':')
-          c = '_';
-      if (Audio::WriteWav(name + ".wav", cur)) {
-        std::cout << "[audio] wrote " << name << ".wav\n";
-        lastExportTime = (float)ImGui::GetTime();
-      }
+
+    // The button must work even after the clip has finished playing (IsPlaying
+    // returns false then), so we check cur.Valid() rather than IsAudioPlaying().
+    ImGui::EndDisabled();
+    ImGui::BeginDisabled(!cur.Valid());
+
+    if (ImGui::Button(recentlySaved ? "Saved!###savewav" : "Save WAV###savewav",
+                      ImVec2(80, 0))) {
+        std::string name = cur.name.empty() ? std::string("sound") : cur.name;
+        for (auto &c : name)
+            if (c == '/' || c == '\\' || c == ':') c = '_';
+
+        // Write to the user's Desktop so the file is immediately visible on
+        // macOS/Windows/Linux without knowing the build CWD.
+        std::string destDir;
+#if defined(_WIN32)
+        const char* home = std::getenv("USERPROFILE");
+        destDir = home ? std::string(home) + "\\Desktop\\" : "";
+#else
+        const char* home = std::getenv("HOME");
+        destDir = home ? std::string(home) + "/Desktop/" : "";
+#endif
+        const std::string path = destDir + name + ".wav";
+        if (Audio::WriteWav(path, cur)) {
+            lastExportPath = path;
+            lastExportTime = (float)ImGui::GetTime();
+            std::cout << "[audio] wrote " << path << "\n";
+        } else {
+            std::cerr << "[audio] WriteWav failed: " << path << "\n";
+        }
     }
-    
+    if (recentlySaved && !lastExportPath.empty() && ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", lastExportPath.c_str());
+
+    ImGui::EndDisabled();
+    ImGui::BeginDisabled(!cur.Valid()); // restore for anything below
+
     if (recentlySaved) {
         ImGui::PopStyleColor(3);
     }
