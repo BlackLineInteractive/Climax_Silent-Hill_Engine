@@ -12,7 +12,41 @@
 
 Opens proprietary Climax Engine container files (no file extension — named like `MO_1_Room102`), decodes native PS2 and Wii GPU textures, and renders full level geometry, baked lighting, collision meshes, and placed game objects interactively. Decodes the game audio as well: the per-level sound banks, the music streams and the cutscene dialogue. Includes full archive unpackers for `SH.ARC`, `data.arc`, and `igc.arc`.
 
+**Toolkit 0.6 · Game pre-alpha 0.0.1.2** — two version numbers, because there are now two things here. The toolkit inspects the games. The game *plays* one: Travis walks the hospital under the series' own fixed cameras, opens doors between levels, and none of it is scripted by hand — every camera, trigger, spawn point and animation comes out of the retail data.
+
 > License: [GPL-3.0](LICENSE) — free to use, study, change and share; derived work stays under the same license.
+
+---
+
+## Playing it
+
+Open `SH.ARC`, load a hospital level, tick **Walk (collision)**.
+
+| | |
+|---|---|
+| `W A S D` | move — relative to the active camera, as the original is |
+| `Shift` | run |
+| `E` | use a door when the prompt appears |
+| `M` | release the mouse |
+| `F1` | hide the interface |
+| `[` `]` | step through the player's animations |
+
+The camera reverses your direction when it cuts to a new angle. That is not a bug — it is what the game did, and it is preserved deliberately.
+
+### What the game already does on its own
+
+Nothing in this list is hand-authored; each is read out of the shipped data.
+
+- **Spawning.** `CPlayerSpawner` — and the one you arrive on is named after the room you came *from*, so you step out of the right door facing the right way.
+- **Cameras.** Position, field of view and aim from the placement matrix. `CStaticCamera` holds its authored shot; `CConstraintCamera` follows Travis, because 400 of its 417 instances carry no pitch at all and compute it at runtime.
+- **Camera cuts.** `PlaneTrigger` names one camera per crossing direction.
+- **Doors.** `ZoneTrigger` names the destination container, the event and the button. 418 of the 464 doorways in the game resolve to a matching spawn point on the other side.
+- **Collision.** The level's own `CBSP` mesh, with sliding and ground snapping.
+- **Travis.** Model, textures, face, and his own animation set — idle, walk and run picked out by their authored filenames (`PC_TG_Walk.anm`).
+
+### What it does not do yet
+
+Menus and the boot sequence, saves, inventory, combat, enemies, facial animation (`rwID_DMORPHANIMATION` — a morph system the toolkit does not implement), and localisation. Some trigger volumes are the wrong size, which needs the executable read rather than guessed at.
 
 ---
 

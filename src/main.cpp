@@ -168,6 +168,7 @@ static bool        s_useDoorPressed = false;
 static glm::vec3 s_playerFeet = glm::vec3(0.0f);
 static float     s_playerYaw  = 0.0f;
 static std::string s_playerClipName;
+static bool        s_showPlayerPieces = false;
 
 // Build a view matrix from orbit parameters and return camera world position
 static glm::mat4 BuildView(glm::vec3& outEye) {
@@ -357,7 +358,7 @@ int main(int argc, char* argv[]) {
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
-    SDL_Window* win = SDL_CreateWindow("Climax Silent Hill Engine Toolkit 0.5",
+    SDL_Window* win = SDL_CreateWindow("Climax Silent Hill Engine Toolkit 0.6  -  game pre-alpha 0.0.1.2",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 1280, 720,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     if (!win) {
@@ -1847,48 +1848,13 @@ void main(){
                 ImGui::SetNextItemWidth(-70.0f);
                 ImGui::SliderFloat("##eye", &state.eyeHeight, 0.8f, 2.2f, "%.2f");
                 ImGui::SameLine(); ImGui::TextDisabled("Eye");
-                // What the player container actually gave us, in the window
-                // rather than on stderr -- launched as a bundle, the app has
-                // nowhere to print.
-                if (g_Player.loaded &&
-                    ImGui::TreeNode("Player pieces##playerdbg")) {
-                    ImGui::TextDisabled("%zu clips fit, idle %d  walk %d  run %d",
-                                        g_Player.usableClips.size(),
-                                        g_Player.idleClip, g_Player.walkClip,
-                                        g_Player.runClip);
-                    if (ImGui::BeginTable("pieces", 5,
-                                          ImGuiTableFlags_RowBg |
-                                          ImGuiTableFlags_SizingFixedFit |
-                                          ImGuiTableFlags_ScrollY,
-                                          ImVec2(0.0f, 220.0f))) {
-                        ImGui::TableSetupColumn("texture");
-                        ImGui::TableSetupColumn("frame");
-                        ImGui::TableSetupColumn("wgt");
-                        ImGui::TableSetupColumn("verts");
-                        ImGui::TableSetupColumn("drawn");
-                        ImGui::TableSetupScrollFreeze(0, 1);
-                        ImGui::TableHeadersRow();
-                        for (auto& obj : g_Player.objects)
-                            for (auto* m : obj->GetMeshes()) {
-                                ImGui::TableNextRow();
-                                ImGui::TableNextColumn();
-                                ImGui::TextUnformatted(m->texName.empty()
-                                                           ? "-" : m->texName.c_str());
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%d", m->frameIndex);
-                                ImGui::TableNextColumn();
-                                ImGui::TextUnformatted(m->hasWeights ? "yes" : "no");
-                                ImGui::TableNextColumn();
-                                ImGui::Text("%zu", m->vertices.size());
-                                ImGui::TableNextColumn();
-                                ImGui::TextUnformatted(
-                                    IsPlayerBodyMesh(*m, g_Player.textures)
-                                        ? "yes" : "skipped");
-                            }
-                        ImGui::EndTable();
-                    }
-                    ImGui::TreePop();
-                }
+                // What the player container actually gave us. In its own
+                // window: the side panel is 250 px wide and a five-column
+                // table does not fit in it legibly.
+                static bool showPieces = false;
+                if (g_Player.loaded)
+                    ImGui::Checkbox("Player pieces", &showPieces);
+                s_showPlayerPieces = showPieces && g_Player.loaded;
                 ImGui::Checkbox("Fixed cameras", &state.autoCameras);
                 if (ImGui::IsItemHovered() && state.uiTooltips)
                     ImGui::SetTooltip("Hand the view to the level's own cameras when\n"
@@ -2270,6 +2236,67 @@ void main(){
         if (state.showTextures)  RenderTxdWindow();
         if (state.showArc)       RenderArcWindow();
         if (state.showManual)    RenderManualWindow();
+
+        if (s_showPlayerPieces) {
+            ImGui::SetNextWindowSize(ImVec2(520, 380), ImGuiCond_FirstUseEver);
+            if (ImGui::Begin("Player pieces", nullptr)) {
+                ImGui::TextDisabled("%zu of %zu clips fit the body",
+                                    g_Player.usableClips.size(),
+                                    g_Player.clips.size());
+                auto clipName = [](int i) {
+                    return i >= 0 && i < (int)g_Player.usableClips.size()
+                               ? g_Player.clips[(size_t)g_Player.usableClips[(size_t)i]]
+                                     .name.c_str()
+                               : "-";
+                };
+                ImGui::TextDisabled("idle %s   walk %s   run %s",
+                                    clipName(g_Player.idleClip),
+                                    clipName(g_Player.walkClip),
+                                    clipName(g_Player.runClip));
+                ImGui::Separator();
+                if (ImGui::BeginTable("pieces", 6,
+                                      ImGuiTableFlags_RowBg |
+                                      ImGuiTableFlags_Borders |
+                                      ImGuiTableFlags_ScrollY |
+                                      ImGuiTableFlags_Resizable)) {
+                    ImGui::TableSetupColumn("object",  ImGuiTableColumnFlags_WidthFixed, 52.0f);
+                    ImGui::TableSetupColumn("texture", ImGuiTableColumnFlags_WidthStretch);
+                    ImGui::TableSetupColumn("frame",   ImGuiTableColumnFlags_WidthFixed, 52.0f);
+                    ImGui::TableSetupColumn("skinned", ImGuiTableColumnFlags_WidthFixed, 62.0f);
+                    ImGui::TableSetupColumn("verts",   ImGuiTableColumnFlags_WidthFixed, 56.0f);
+                    ImGui::TableSetupColumn("drawn",   ImGuiTableColumnFlags_WidthFixed, 62.0f);
+                    ImGui::TableSetupScrollFreeze(0, 1);
+                    ImGui::TableHeadersRow();
+                    for (size_t i = 0; i < g_Player.objects.size(); ++i) {
+                        const bool isBody = (int)i == g_Player.bodyObject;
+                        const int bone = i < g_Player.attachBone.size()
+                                             ? g_Player.attachBone[i] : -1;
+                        for (auto* m : g_Player.objects[i]->GetMeshes()) {
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            if (isBody) ImGui::TextUnformatted("body");
+                            else if (bone >= 0) ImGui::Text("bone %d", bone);
+                            else ImGui::TextUnformatted("loose");
+                            ImGui::TableNextColumn();
+                            ImGui::TextUnformatted(m->texName.empty() ? "-"
+                                                                      : m->texName.c_str());
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%d", m->frameIndex);
+                            ImGui::TableNextColumn();
+                            ImGui::TextUnformatted(m->hasWeights ? "yes" : "no");
+                            ImGui::TableNextColumn();
+                            ImGui::Text("%zu", m->vertices.size());
+                            ImGui::TableNextColumn();
+                            ImGui::TextUnformatted(
+                                IsPlayerBodyMesh(*m, g_Player.textures) ? "yes"
+                                                                        : "skipped");
+                        }
+                    }
+                    ImGui::EndTable();
+                }
+            }
+            ImGui::End();
+        }
 
         // File browser
         g_FileBrowser.Render();
