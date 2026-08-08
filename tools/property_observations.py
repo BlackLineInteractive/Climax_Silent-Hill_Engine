@@ -14,7 +14,7 @@ whose value never changes across 400 objects is a default nobody touched; one
 with a wide spread is a real knob.
 
     python3 tools/property_observations.py game-iso/SHO/SH.ARC \\
-        --json docs/property_observations.json
+        --json docs/generated/property_observations.json
 """
 import argparse
 import json

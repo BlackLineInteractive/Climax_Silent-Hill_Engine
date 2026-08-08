@@ -63,7 +63,7 @@ internal name as "Climax P1":
 - `ClimaxP1DictionarySchemaCreateChainGraphFromDict()`
 
 A parallel `ClimaxT1...` family covers the material, animation and skinning
-plugins that [TODO.md](TODO.md) documents in detail.
+plugins that [TODO.md](../TODO.md) documents in detail.
 
 ## What this means for the toolkit
 

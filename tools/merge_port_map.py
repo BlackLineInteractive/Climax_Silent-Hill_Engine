@@ -19,9 +19,9 @@ Strategy:
 
 Usage:
     python3 tools/merge_port_map.py \\
-        --map  docs/port_class_map.json \\
-        --sho  docs/sho_attribute_map.json \\
-        --out  docs/port_class_map.json        # overwrite in-place
+        --map  docs/generated/port_class_map.json \\
+        --sho  docs/generated/sho_attribute_map.json \\
+        --out  docs/generated/port_class_map.json        # overwrite in-place
 """
 import argparse
 import json
@@ -145,9 +145,9 @@ def coverage_stats(port_map: dict, sho_map: dict) -> dict:
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--map', '-m', default='docs/port_class_map.json',
+    ap.add_argument('--map', '-m', default='docs/generated/port_class_map.json',
                     help='Input/output port_class_map.json')
-    ap.add_argument('--sho', '-s', default='docs/sho_attribute_map.json',
+    ap.add_argument('--sho', '-s', default='docs/generated/sho_attribute_map.json',
                     help='sho_attribute_map.json from sho_attrs.py')
     ap.add_argument('--out', '-o', default=None,
                     help='Output path (default: overwrite --map in-place)')

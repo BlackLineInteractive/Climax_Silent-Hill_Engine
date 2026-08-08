@@ -2,7 +2,7 @@
 """
 sho_port_gen.py  –  Silent Hill Origins PS2 → C++ port code generator.
 
-Reads SLES_551.47 and docs/port_class_map.json, then for every class:
+Reads SLES_551.47 and docs/generated/port_class_map.json, then for every class:
 
   1.  Emits a C++ header (.h) with:
       – struct layout deduced from property field offsets and types
@@ -27,7 +27,7 @@ so re-running attrmap.py and then this script keeps the port up to date.
 
 Usage:
     python3 tools/sho_port_gen.py SLES_551.47 \\
-        --map  docs/port_class_map.json \\
+        --map  docs/generated/port_class_map.json \\
         --out  port/src
 """
 from __future__ import annotations
@@ -112,13 +112,13 @@ def demangle_setter(sym: str) -> str:
 DECOMPILED: dict = {}
 
 try:
-    with open('docs/sho_behaviour.json') as _f:
+    with open('docs/generated/sho_behaviour.json') as _f:
         BEHAVIOUR = json.load(_f)
 except Exception:
     BEHAVIOUR = {}
 
 try:
-    with open('docs/property_observations.json') as _f:
+    with open('docs/generated/property_observations.json') as _f:
         OBSERVATIONS = json.load(_f)
 except Exception:
     OBSERVATIONS = {}
@@ -740,7 +740,7 @@ def emit_summary_md(classes: list[ClassInfo], out_dir: Path, sles_path: str):
     lines = [
         '# Silent Hill Origins — Port Class Coverage',
         '',
-        f'Generated from `{sles_path}` + `docs/port_class_map.json`.',
+        f'Generated from `{sles_path}` + `docs/generated/port_class_map.json`.',
         '',
         '## Summary',
         '',
@@ -817,7 +817,7 @@ def main():
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('sles',         help='Path to SLES_551.47')
     ap.add_argument('--decomp', help='directory of Ghidra-decompiled handlers')
-    ap.add_argument('--map',  '-m', default='docs/port_class_map.json')
+    ap.add_argument('--map',  '-m', default='docs/generated/port_class_map.json')
     ap.add_argument('--out',  '-o', default='port')
     ap.add_argument('--no-factory-analysis', action='store_true',
                     help='Skip slow factory function disassembly')

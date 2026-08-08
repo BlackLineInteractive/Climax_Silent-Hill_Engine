@@ -1,8 +1,8 @@
 # Work queue
 
 Ordered by value, with what is already known about each so the next attempt
-does not start from nothing. Format references: [SH_FORMAT.md](SH_FORMAT.md)
-for Origins, [SHSM_ARC_FORMAT.md](SHSM_ARC_FORMAT.md) for Shattered Memories.
+does not start from nothing. Format references: [SH_FORMAT.md](formats/SH_FORMAT.md)
+for Origins, [SHSM_ARC_FORMAT.md](formats/SHSM_ARC_FORMAT.md) for Shattered Memories.
 
 ---
 
@@ -43,7 +43,7 @@ matter of decoding the plugin and filling `Vertex::boneIds` / `boneWeights`.
 `rwID_HANIMANIMATION` is the most common section in the game — 4146 of them
 across `data.arc`, against 1587 clumps. Nothing reads them yet. This is the
 better corpus for the animation work than the PS2 game, and it shares the
-format design; see [ANIMATION_SPEC.md](ANIMATION_SPEC.md).
+format design; see [ANIMATION_SPEC.md](formats/ANIMATION_SPEC.md).
 
 Also unread: `rwID_DMORPHANIMATION` and `rwID_DMORPHANMSTREAM` (facial
 animation, 401 sections), and the `0x0122` delta-morph targets on the head
@@ -83,7 +83,11 @@ sections have to be drawn at their own origin.
 ### 7. Unparsed section types
 
 `rwID_SPLINE`, `rwID_FUSESTATE`, `rwpID_BODYDEF`, `rwID_ZONEINFO`,
-`rwID_KFONT`, `rwID_MTEFFECTDICT` — catalogued, contents unknown.
+`rwID_MTEFFECTDICT` — catalogued, contents unknown.
+
+`rwID_KFONT` is decoded — see [SH_FORMAT.md](formats/SH_FORMAT.md). Four blocks:
+controller glyphs, a 16-colour palette, kerning pairs, and the character set
+(137 in `FontEUR`, 1261 in `FontJAP`).
 
 ### 8. The archive key
 
@@ -527,6 +531,17 @@ diagnosed.
 
 `CFogConfig`, one instance per level, visible in the type table and not read.
 
+### 7b. Archive and container browsing as a tree
+
+The archive panel is a flat list, which is fine for finding a level by name and
+useless for understanding how a container is put together. Requested: a tree
+view — archive → entry → sections → chunks → the objects and geometry inside —
+with a switch back to the flat list, and filters and search over both.
+
+The data for it already exists: `g_ShoSections` carries every section with its
+offset, size, type and now its asset name, and `g_ContainerChunks` carries the
+chunk list. Nothing needs decoding; this is presentation.
+
 ### 8. Smaller items
 
 * `CConstraintCamera`'s 21-property table holds its tracking limits; none of
@@ -545,12 +560,12 @@ diagnosed.
 
 ## Both games
 
-Executable analysis has started — see [EXECUTABLES.md](EXECUTABLES.md).
+Executable analysis has started — see [EXECUTABLES.md](executables/EXECUTABLES.md).
 
 Done: both binaries are mapped, the PS2 one keeps all its section names and
 58 KB of VU1 microcode, and its **complete class registry is recovered** — 126
 classes with factory address and object size, in
-[`sho_class_registry.json`](sho_class_registry.json).
+[`sho_class_registry.json`](generated/sho_class_registry.json).
 
 Next, in order of value:
 

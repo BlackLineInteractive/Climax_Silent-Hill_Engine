@@ -140,7 +140,7 @@ Entry (16 bytes, entryCount of them, from 0x14)
 
 Verified against the retail PS2 `SH.ARC`: all 1487 entries inflate to exactly the
 declared size, offsets are monotonic and aligned, and the name table ends precisely
-at EOF. Reader: [src/Arc.cpp](src/Arc.cpp).
+at EOF. Reader: [src/Arc.cpp](src/Core/RWS/FileSystem/CArchive.cpp).
 
 ### The container
 
@@ -194,29 +194,29 @@ ADPCM at 6–32 kHz. `MUSIC/*.RWS` are RenderWare Audio streams, also mono ADPCM
 with the rate and channel count in the 0x080E header and the data at a fixed
 offset of 2048. `IGC.ARC/*.IGCStream` multiplexes 1024-byte pieces of a 48 kHz
 16-bit stereo ADS into a record stream, tagged `0xA000`; concatenating them
-reassembles the ADS exactly. Decoder: [src/Core/AudioParser.cpp](src/Core/AudioParser.cpp).
+reassembles the ADS exactly. Decoder: [src/Core/AudioParser.cpp](src/Platform/PS2/AudioParser.cpp).
 
-See **[docs/ANIMATION_SPEC.md](docs/ANIMATION_SPEC.md)** for the animation
+See **[docs/ANIMATION_SPEC.md](docs/formats/ANIMATION_SPEC.md)** for the animation
 plan: skeleton, skinning, compressed keyframes and the playback UI.
 
-See **[docs/EXECUTABLES.md](docs/EXECUTABLES.md)** for what the game binaries
+See **[docs/EXECUTABLES.md](docs/executables/EXECUTABLES.md)** for what the game binaries
 themselves give up: section layout, the engine's full tag list, and the
 recovered class registry.
 
 See **[docs/TODO.md](docs/TODO.md)** for the current work queue: what is broken,
 what is unimplemented, and what is already known about each.
 
-See **[docs/SHSM_ARC_FORMAT.md](docs/SHSM_ARC_FORMAT.md)** for the Wii *Shattered
+See **[docs/SHSM_ARC_FORMAT.md](docs/formats/SHSM_ARC_FORMAT.md)** for the Wii *Shattered
 Memories* archives and containers: the `0x0000FA10` archive, the big-endian
 section and game-object records, and the GameCube/Wii texture formats.
 
-See **[docs/SH_FORMAT.md](docs/SH_FORMAT.md)** for the full format reference: archive
+See **[docs/SH_FORMAT.md](docs/formats/SH_FORMAT.md)** for the full format reference: archive
 layout, container chunks, the game-object record encoding, the PS2 display-list
 geometry, collision and texture formats, with the verification figures behind
 each claim.
 
-The container parser lives in [src/Loader.cpp](src/Loader.cpp); the PS2 texture
-decoder is in [src/PS2Texture.cpp](src/PS2Texture.cpp).
+The container parser lives in [src/Loader.cpp](src/Loader/Loader.cpp); the PS2 texture
+decoder is in [src/PS2Texture.cpp](src/Platform/PS2/PS2Texture.cpp).
 
 ---
 

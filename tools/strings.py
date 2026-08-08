@@ -31,6 +31,25 @@ import sys
 import zlib
 
 
+def string_hash(s):
+    """The id the game looks a string up by: djb2-xor seeded with zero.
+
+    Recovered by measurement, not by reading the executable. Ghost Rider's
+    `UTILS::GetStringHash` disassembles to `h = (h*7) ^ c ^ (h >>> 29)` and
+    resolves none of the 59 ids the UI references, so Origins uses a different
+    one. Sweeping multiplier, seed, combine op, rotation, case and sign over
+    1536 variants found exactly one that works, and it works completely:
+    **59 of 59 ids resolve, and the 2115 table hashes have no collisions.**
+
+    The trap is the seed. Textbook djb2 starts at 5381; this starts at 0, which
+    is why a first pass over the usual nine hash functions scored zero.
+    """
+    h = 0
+    for b in s.encode('latin1'):
+        h = ((h * 33) & 0xFFFFFFFF) ^ b
+    return h & 0xFFFFFFFF
+
+
 def read_entry(archive, want):
     d = open(archive, 'rb').read()
     _, n, _, ntOff, ntSize = struct.unpack_from('<4sIIII', d, 0)
@@ -156,6 +175,18 @@ def cmd_build(args):
     print(f'{len(rows)} strings, {len(seen)} unique -> {args.out} ({len(out)} bytes)')
 
 
+def cmd_lookup(args):
+    _, rows = parse(read_entry(args.archive, args.entry))
+    table = {h: s for h, s in rows}
+    for name in args.ids:
+        h = string_hash(name)
+        text = table.get(h)
+        if text is None:
+            print(f'{name}\t{h:08x}\t<<not in table>>')
+        else:
+            print(f'{name}\t{h:08x}\t{escape(text[2:])}')
+
+
 def main():
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(dest='cmd', required=True)
@@ -170,6 +201,12 @@ def main():
     p.add_argument('tsv')
     p.add_argument('out')
     p.set_defaults(func=cmd_build)
+
+    p = sub.add_parser('lookup', help='resolve UI string ids to their text')
+    p.add_argument('archive')
+    p.add_argument('entry')
+    p.add_argument('ids', nargs='+')
+    p.set_defaults(func=cmd_lookup)
 
     args = ap.parse_args()
     args.func(args)

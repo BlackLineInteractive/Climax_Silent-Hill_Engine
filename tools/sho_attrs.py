@@ -21,7 +21,7 @@ Once the address is known the dispatch is read exactly as in Ghost Rider, since
 both binaries come from the same compiler and the same engine.
 
     python3 tools/sho_attrs.py game-iso/SHO/SLES_551.47 \\
-        --map docs/port_class_map.json --json docs/sho_attribute_map.json
+        --map docs/generated/port_class_map.json --json docs/generated/sho_attribute_map.json
 """
 import argparse
 import json
@@ -85,7 +85,7 @@ def vtable_of(elf, ctor, limit=64):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('elf')
-    ap.add_argument('--map', default='docs/port_class_map.json')
+    ap.add_argument('--map', default='docs/generated/port_class_map.json')
     ap.add_argument('--json')
     args = ap.parse_args()
 

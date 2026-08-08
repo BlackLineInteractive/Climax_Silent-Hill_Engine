@@ -134,7 +134,7 @@ The layout above was checked exhaustively against the retail PS2 `SH.ARC`:
 Composition by extension: 657 `.txd`, 269 extensionless containers, 266 `.jpg`,
 40 `.xml`, 16 `.cmi`, and 239 dotted object definitions.
 
-Reference implementation: [`src/Arc.cpp`](src/Arc.cpp).
+Reference implementation: [`src/Arc.cpp`](../../src/Core/RWS/FileSystem/CArchive.cpp).
 
 ---
 
@@ -380,7 +380,7 @@ The single mismatch is `GlobalStream`, whose directory declares one
 `CWiiStndController`. No such chunk is present; the PlayStation 2 build does not
 ship the Wii controller configuration that the shared directory still lists.
 
-Reference implementation: [`src/Loader.cpp`](src/Loader.cpp).
+Reference implementation: [`src/Loader.cpp`](../../src/Loader/Loader.cpp).
 
 ---
 
@@ -986,11 +986,11 @@ Implementations in this repository:
 
 | File | Covers |
 |------|--------|
-| [`src/Arc.cpp`](src/Arc.cpp) | §2 |
-| [`src/Loader.cpp`](src/Loader.cpp) | §3, §4, §5, §6.1 |
-| [`src/PS2Texture.cpp`](src/PS2Texture.cpp) | §6.2 |
-| [`src/Export.cpp`](src/Export.cpp) | §8 |
-| [`src/Core/AudioParser.cpp`](src/Core/AudioParser.cpp) | §9 |
+| [`src/Arc.cpp`](../../src/Core/RWS/FileSystem/CArchive.cpp) | §2 |
+| [`src/Loader.cpp`](../../src/Loader/Loader.cpp) | §3, §4, §5, §6.1 |
+| [`src/PS2Texture.cpp`](../../src/Platform/PS2/PS2Texture.cpp) | §6.2 |
+| [`src/Export.cpp`](../../src/Loader/Export.cpp) | §8 |
+| [`src/Core/AudioParser.cpp`](../../src/Platform/PS2/AudioParser.cpp) | §9 |
 
 ---
 
@@ -1099,15 +1099,27 @@ element id or another screen.
 ### What is *not* in the XML
 
 `<TEXTBOX string="ui_options_title">` references text by symbolic id, and
-`Strings.Eng` stores it by **hash**. Nine standard hashes were tried against
-the 59 ids the UI references — CRC32 (both cases), djb2 and its xor variant,
-sdbm, FNV-1, FNV-1a, RenderWare's `*131`, and Jenkins one-at-a-time. **All
-score zero of 59**, so the function is custom and has to come out of the
-executable.
+`Strings.Eng` stores it by **hash**. The function is:
 
-This matters for *building* the menu, not for *translating* it: a translation
-keeps the hash table untouched and only replaces text, so it never needs to
-know the function.
+    h = 0
+    for each byte c:  h = ((h * 33) & 0xFFFFFFFF) ^ c
+
+**59 of the 59 ids the UI references resolve, and the 2115 table hashes contain
+no collisions.**
+
+Two false starts worth recording. Nine textbook hashes were tried first —
+CRC32 in both cases, djb2 and its xor variant, sdbm, FNV-1, FNV-1a,
+RenderWare's `*131`, Jenkins one-at-a-time — and all scored zero, because djb2
+was tried with its usual 5381 seed. Ghost Rider is unstripped and has
+`UTILS::GetStringHash`, which disassembles to a different function entirely:
+
+    h = ((h * 7) ^ sign_extend(c)) ^ (h >>> 29)
+
+That one also resolves nothing, so Origins does not share it. The answer came
+from sweeping multiplier, seed, combine operation, rotation, case folding and
+sign over 1536 variants: exactly one fits, and it fits perfectly.
+
+`tools/strings.py lookup` resolves ids against the table.
 
 Also absent from the data: the boot order itself. `Logo`, `Title` and
 `BootMenu` are strings in `SLES_551.47`, and Ghost Rider — unstripped — has an
@@ -1115,3 +1127,164 @@ object called `..._Objects_FrontEnd_BootSequence` along with
 `LanguageSelectionScreen`, `AttractMode` and `Warnings`. SHO's archive holds 88
 object classes and **none of them are front-end**, so in this game the sequence
 is code, and Ghost Rider is the place to read what that code does.
+
+### UI string ids resolved
+
+Every `string=` the 40 XML files reference, through the hash above.
+
+| id | text |
+|---|---|
+| `ui_controls_attk` | Attack |
+| `ui_controls_combat` | Enter Combat Stance |
+| `ui_controls_combat_title` | Controls - Combat |
+| `ui_controls_ctr_cam` | Center Camera |
+| `ui_controls_hold` | Hold During Combat |
+| `ui_controls_interact` | Interact |
+| `ui_controls_inv` | Inventory |
+| `ui_controls_map` | Map |
+| `ui_controls_move` | Move |
+| `ui_controls_norm` | Controls - Explore |
+| `ui_controls_pause` | Pause |
+| `ui_controls_reload` | Reload |
+| `ui_controls_run` | Run |
+| `ui_controls_target_l` | Cycle Target Left |
+| `ui_controls_target_r` | Cycle Target Right |
+| `ui_controls_toggle_l` | Toggle Left |
+| `ui_controls_toggle_r` | Toggle Right |
+| `ui_controls_torch` | Torch |
+| `ui_controls_weaponswap` | Guns / Melee |
+| `ui_endgame_option` | Create a special save file? |
+| `ui_endgame_save` | A "special save file" will retain your accolades and allow you to star |
+| `ui_hint_title` | TIPS |
+| `ui_inv_sqbracketl` | [ |
+| `ui_inv_sqbracketr` | ] |
+| `ui_inv_status` | STATUS |
+| `ui_map` | MAP |
+| `ui_newgame_no` | NO |
+| `ui_newgame_sub` | Subtitles |
+| `ui_newgame_vibration` | Vibration |
+| `ui_newgame_yes` | YES |
+| `ui_notes` | NOTES |
+| `ui_options` | OPTIONS |
+| `ui_options_accol` | ACCOLADES |
+| `ui_options_confirm` | CONFIRM |
+| `ui_options_controls` | CONTROLS |
+| `ui_options_extra` | EXTRA OPTIONS |
+| `ui_options_extra_blood` | EXTRA BLOOD |
+| `ui_options_footsteps` | BLOODY FOOTPRINTS |
+| `ui_options_in` | IN |
+| `ui_options_map` | MAP ZOOM |
+| `ui_options_music_vol` | MUSIC VOLUME |
+| `ui_options_noise` | NOISE FILTER |
+| `ui_options_off` | OFF |
+| `ui_options_on` | ON |
+| `ui_options_sfx_vol` | SFX VOLUME |
+| `ui_options_subt` | SUBTITLES |
+| `ui_options_title` | OPTIONS |
+| `ui_options_torch` | TORCH PROJECTION |
+| `ui_options_walk` | WALK |
+| `ui_options_walkrun` | WALK/RUN |
+| `ui_pause_exit` |  : Continue |
+| `ui_pause_quit` |  : Quit to Main Menu |
+| `ui_pause_skip` |  : Skip  |
+| `ui_paused` | PAUSED |
+| `ui_quit_no` |  : Cancel |
+| `ui_quit_text` | Quit to Main Menu? All unsaved progress will be lost. |
+| `ui_quit_yes` |  : Confirm Quit |
+| `ui_rating_title` | Summary |
+| `ui_vibration` | VIBRATION |
+
+## `rwID_KFONT` — the button-glyph font
+
+`FontEUR` (30 KB) and `FontJAP` (151 KB) each hold two sections: a
+`rwID_TEXDICTIONARY` with one texture (`Font_EUR` / `Font_JAP`) and a
+`rwID_KFONT` carrying the metrics. The KFONT payload is a `0x1000` chunk:
+
+    u32   payload size
+    u32   0x1000            chunk type
+    u32   chunk size
+    u32   0x1C020065        RW version
+    ...   0x34 bytes of header, including the face name at +0x18
+    u16   glyph count       at +0x40   (16 in both fonts)
+    u16   67                at +0x42   (unidentified, same in both)
+    count x 24 bytes {
+        u16  0xFFFF         kerning index; never set in either font
+        u16  advance        pen movement, in pixels
+        u8   xOffset
+        u8   yOffset        baseline offset
+        u8   width
+        u8   height
+        f32  u0, v0, u1, v1 the glyph's box in the atlas
+    }
+
+The atlas size falls out of the data rather than being stated: solving
+`(u1-u0) * W == width` and `(v1-v0) * H == height` over all records gives
+**256 × 64** and fits all sixteen exactly.
+
+**Those sixteen are not the alphabet.** Most are 22 × 22 squares, with two wide
+ones at 51 × 27 and 43 × 28 — face buttons, d-pad and shoulder buttons. It is
+the controller-symbol set, and `Strings.Eng` indexes it:
+
+    \x03\x01 .. \x03\x10   ->  glyph 0 .. 15
+
+Those sixteen codes account for 71 of the escapes in the table, and
+`"\x03\x05 : Continue"` is the pause screen's prompt with the face button drawn
+inline. `\x03\x10` alone appears 33 times — the platform trademark, which is
+why "PlayStation®2" is written without an ® in the data.
+
+Twenty-seven distinct codes appear in total; the other eleven have ASCII values
+(`\x03A`, `\x03C`, `\x03H` …) and occur once or twice each, so `\x03` carries a
+second meaning that has not been identified. Nothing in the sixteen-glyph range
+is ambiguous.
+
+### The KFONT payload is four blocks, not one array
+
+Reading the records as one flat array was wrong, and the tell was `Font_JAP`:
+136 KB of metrics with the same "16" in its header. A font for Japanese does
+not have sixteen glyphs. The payload is a sequence of typed blocks:
+
+    u16   block id
+    u16   version
+    u32   size in bytes
+    u16   count
+    u16   varies by block
+    ...   size bytes of data
+
+| id | EUR | JAP | what |
+|---|---|---|---|
+| 1 | 16 × 24 B | 16 × 24 B | the controller glyphs above |
+| 2 | 16 × 4 B | 16 × 4 B | an RGBA palette — 16 colours |
+| 3 | 155 × 6 B | 100 × 6 B | kerning pairs: `[u16 left][u16 right][s16 delta]` |
+| 4 | 11088 B, count 137 | 134967 B, count 1261 | **the character set** |
+
+Block 3's first pair is `2D 00 31 00 FE FF` — hyphen against '1', pulled two
+pixels closer.
+
+Block 2 explains the leftover escapes: `\x03` followed by a byte outside 1..16
+selects a text colour from those sixteen entries, which is why codes like
+`\x03A` appear once or twice each in the string table.
+
+### Block 4 — the Latin alphabet
+
+Entries are 16 bytes after a 4-byte prologue, and the first field is the
+character code:
+
+    u16   character code (UTF-16)
+    u16   advance
+    s8    x offset
+    s8    y offset        negative: up from the baseline
+    u8    width
+    u8    height
+    ...   8 bytes not yet identified
+
+`FontEUR` covers ASCII plus the accented Latin the five European languages
+need — `À Á Â Ä Ç È É Ê Ì Í Î Ñ Ó Ô Ö Ú Ü ß à á â ä ç è é ê ì í î ñ ò ó ô ö ø
+ù ú û ü ý þ Œ œ` — 137 characters in all. `FontJAP` has 1261 in the same
+layout.
+
+**For a Cyrillic translation this is the real constraint, not the string
+table.** The strings are trivial to replace; the font has no Cyrillic glyphs at
+all, so `Font_EUR`'s atlas and this block both have to be extended. That is a
+manageable job — the layout is known and the atlas is a plain texture — but it
+is a job, and it is the reason the game shipped in six Latin-and-Japanese
+languages and no others.

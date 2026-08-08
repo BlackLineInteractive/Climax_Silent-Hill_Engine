@@ -5,7 +5,7 @@ R5900) and `main.dol` (Silent Hill: Shattered Memories, Wii, PowerPC).
 
 This is the only route to the things that are provably *not* in the asset data —
 the PS2 blend mode, the Wii TEV setup, per-class property semantics — because
-those live in code, not in the containers. See [TODO.md](TODO.md) for which
+those live in code, not in the containers. See [TODO.md](../TODO.md) for which
 open questions depend on it.
 
 ---
@@ -39,7 +39,7 @@ c:/silenthillps2/code/game/libs/RW/Graphics/src/RpPDS/sky2/G3_2DStroke/G3_2DStro
 ```
 
 `RpPDS/sky2` is RenderWare's PS2 platform-dependent pipeline, which is what
-produces the VIF packets documented in [SH_FORMAT.md](SH_FORMAT.md) §4.
+produces the VIF packets documented in [SH_FORMAT.md](../formats/SH_FORMAT.md) §4.
 
 ### 1.1 Section tags
 
@@ -94,7 +94,7 @@ registration.
 
 Walking all 126 calls to `0x001FE298` and reconstructing the arguments recovers
 the whole table. It is written to
-[`sho_class_registry.json`](sho_class_registry.json): class name, registry entry
+[`sho_class_registry.json`](../generated/sho_class_registry.json): class name, registry entry
 address, factory address and object size for all 126 classes.
 
 A few entries, for the flavour of it:
@@ -281,7 +281,7 @@ families that have no Origins counterpart: `CAIWorldBehaviour`,
 `CButtonMashListener`, `CBasicMount`, `CAnimatedPOVCamera`.
 
 The binary also embeds copies of both archive directories, and a third complete
-archive of boot resources — see [SHSM_ARC_FORMAT.md](SHSM_ARC_FORMAT.md) §2.4,
+archive of boot resources — see [SHSM_ARC_FORMAT.md](../formats/SHSM_ARC_FORMAT.md) §2.4,
 where those are used to prove that resource names exist nowhere on the disc.
 
 ### 2.1 What is not done here yet
