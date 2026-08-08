@@ -29,9 +29,9 @@ install_manifest.txt
 
 game-iso/
 
-dol_out/
+decomp/
 
-sho_sles_out/
+SHO-port/
 
 # Editor / IDE
 .vscode/

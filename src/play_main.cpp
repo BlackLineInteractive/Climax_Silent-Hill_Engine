@@ -12,6 +12,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 #include <GL/glew.h>
 #include <SDL.h>
+#include <SDL_image.h>
 
 #include <cstdio>
 #include <cstring>
@@ -207,6 +208,97 @@ std::string ResolveTextureName(std::string name, const char *mode) {
     return name;
 }
 
+// Scans a raw Startup container blob for JPEG data (FF D8 … FF D9).
+// For each JPEG, looks back up to 128 bytes for a null-terminated name string
+// and uploads the decoded image into `textures` using the name without its
+// extension, so ResolveTextureName("sho_aspect_pw.jpg") finds it.
+static void LoadStartupJpegs(const std::vector<uint8_t> &buf,
+                              std::map<std::string, GLuint> &textures,
+                              bool checkOnly) {
+    const uint8_t *d = buf.data();
+    const size_t sz = buf.size();
+
+    size_t pos = 0;
+    while (pos + 1 < sz) {
+        if (d[pos] != 0xFF || d[pos + 1] != 0xD8) { ++pos; continue; }
+
+        // Find EOI
+        size_t end = pos + 2;
+        while (end + 1 < sz && !(d[end] == 0xFF && d[end + 1] == 0xD9))
+            ++end;
+        if (end + 1 >= sz) break;
+        end += 2;
+
+        const size_t jpegLen = end - pos;
+        if (jpegLen < 1024) { pos = end; continue; } // flags/icons only, skip
+
+        // Look back up to 256 bytes for a "sho_*.jpg" null-terminated string.
+        // The container stores the name right before the JPEG data block.
+        std::string key;
+        const size_t lookback = std::min(pos, (size_t)256);
+        for (size_t off = 1; off <= lookback; ++off) {
+            const uint8_t *p = d + pos - off;
+            if (*p != 0) continue; // looking for null terminator
+
+            // Walk back to find string start
+            const uint8_t *q = p - 1;
+            while (q > d && *q >= 0x20 && *q < 0x7F) --q;
+            ++q;
+            const size_t len = (size_t)(p - q);
+
+            // Must start with "sho_" and end with ".jpg"
+            if (len >= 12 && len < 64) {
+                std::string s((const char *)q, len);
+                if (s.rfind("sho_", 0) == 0 &&
+                    s.size() > 4 && s.substr(s.size() - 4) == ".jpg") {
+                    // Strip extension → lookup key
+                    key = s.substr(0, s.size() - 4);
+                    break;
+                }
+            }
+        }
+
+        if (!key.empty()) {
+            if (!checkOnly && textures.find(key) == textures.end()) {
+                SDL_RWops *rw = SDL_RWFromConstMem(d + pos, (int)jpegLen);
+                SDL_Surface *surf = IMG_Load_RW(rw, 1);
+                if (surf) {
+                    SDL_Surface *rgba = SDL_ConvertSurfaceFormat(
+                        surf, SDL_PIXELFORMAT_RGBA32, 0);
+                    SDL_FreeSurface(surf);
+                    if (rgba) {
+                        GLuint id = 0;
+                        glGenTextures(1, &id);
+                        glBindTexture(GL_TEXTURE_2D, id);
+                        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                                     rgba->w, rgba->h, 0,
+                                     GL_RGBA, GL_UNSIGNED_BYTE, rgba->pixels);
+                        glGenerateMipmap(GL_TEXTURE_2D);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                                        GL_LINEAR_MIPMAP_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                                        GL_LINEAR);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                                        GL_CLAMP_TO_EDGE);
+                        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                                        GL_CLAMP_TO_EDGE);
+                        SDL_FreeSurface(rgba);
+                        textures[key] = id;
+                        std::fprintf(stderr, "[play] bg '%s' %dx%d\n",
+                                     key.c_str(), rgba->w, rgba->h);
+                    }
+                } else {
+                    std::fprintf(stderr, "[play] IMG failed '%s': %s\n",
+                                 key.c_str(), IMG_GetError());
+                }
+            } else if (checkOnly) {
+                textures[key] = 1;
+            }
+        }
+        pos = end;
+    }
+}
+
 // Walks a UTF-8 string, yielding code points.
 template <typename F>
 void ForEachCodePoint(const std::string &s, F &&fn) {
@@ -282,6 +374,11 @@ int main(int argc, char **argv) {
         std::fprintf(stderr, "[play] SDL: %s\n", SDL_GetError());
         return 1;
     }
+    if (!checkOnly) {
+        const int imgFlags = IMG_INIT_JPG;
+        if ((IMG_Init(imgFlags) & imgFlags) != imgFlags)
+            std::fprintf(stderr, "[play] SDL_image JPEG support: %s\n", IMG_GetError());
+    }
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -346,9 +443,17 @@ int main(int argc, char **argv) {
     // GlobalStream carries the shared widgets -- arrows, frames, cursors.
     // Startup holds the boot screens: the two backgrounds and the six flags,
     // each with a highlighted twin and a selection frame.
-    for (const char *name : {"Startup", "GlobalStream", "UiDataPW", "LocaleUIEng"})
+    for (const char *name : {"GlobalStream", "UiDataPW", "LocaleUIEng"})
         if (ReadEntry(arc, name, buf))
             ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(buf, {}, true);
+
+    // Startup is a SHO container that embeds both PS2 textures (the flags) and
+    // raw JPEG blobs (the full-screen backgrounds). The PS2 decoder handles the
+    // flags; a separate pass pulls out the JPEGs by scanning for FF D8 markers.
+    if (ReadEntry(arc, "Startup", buf)) {
+        ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(buf, {}, true);
+        LoadStartupJpegs(buf, textures, checkOnly);
+    }
 
     std::vector<std::unique_ptr<UI::Element>> owned;
     std::vector<std::pair<std::string, const UI::Element *>> screens;
@@ -538,10 +643,40 @@ int main(int argc, char **argv) {
                 auto it = textures.find(n);
                 return it == textures.end() ? 0 : it->second;
             };
-            auto fullscreen = [&](const std::string &n) {
-                if (const GLuint id = tex(n))
-                    painter.Quad(0, 0, (float)w, (float)h, id, 1, 1, 1, 1);
-                return tex(n) != 0;
+            // The aspect these images are *meant* to be seen at, which is not
+            // the one they are stored at.
+            //
+            // Measured: sho_aspect_pw, sho_lang_bd_pw and sho_inv_bd_pw are all
+            // 512x512, and MENUW.PSS is 512x512 with SAR and DAR both 1:1. The
+            // PS2 stretches them on output -- the pixel is not square and
+            // nothing in the file says so. Preserving the stored 1:1 is what
+            // pillarboxed a widescreen image into a square, and it is the same
+            // reason the movies look squeezed in any ordinary player.
+            const float displayAR = wide ? 16.0f / 9.0f : 4.0f / 3.0f;
+
+            auto fullscreen = [&](const std::string &n, float texAR = 0.0f) {
+                const GLuint id = tex(n);
+                if (!id) return false;
+                if (texAR <= 0.0f) texAR = displayAR;
+                // Fit that aspect into the window, letterboxing whichever way
+                // the window differs.
+                const float winAR = (float)w / (float)h;
+                float dw, dh, dx, dy;
+                if (winAR >= texAR) {
+                    // window wider than texture — fit by height
+                    dh = (float)h;
+                    dw = dh * texAR;
+                    dy = 0.0f;
+                    dx = ((float)w - dw) * 0.5f;
+                } else {
+                    // window narrower — fit by width
+                    dw = (float)w;
+                    dh = dw / texAR;
+                    dx = 0.0f;
+                    dy = ((float)h - dh) * 0.5f;
+                }
+                painter.Quad(dx, dy, dw, dh, id, 1, 1, 1, 1);
+                return true;
             };
 
             switch (front.Stage()) {
@@ -609,6 +744,7 @@ int main(int argc, char **argv) {
 
     SDL_GL_DeleteContext(ctx);
     SDL_DestroyWindow(win);
+    IMG_Quit();
     SDL_Quit();
     return 0;
 }

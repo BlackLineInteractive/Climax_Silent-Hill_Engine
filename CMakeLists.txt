@@ -75,6 +75,23 @@ else()
     set(SHO_SDL2_TARGETS ${SDL2_LIBRARIES})
 endif()
 
+# SDL2_image: for JPEG decoding in climax-play (Startup container backgrounds).
+find_package(SDL2_image CONFIG QUIET)
+if(TARGET SDL2_image::SDL2_image)
+    set(SHO_SDL2_IMAGE SDL2_image::SDL2_image)
+else()
+    find_package(PkgConfig QUIET)
+    if(PkgConfig_FOUND)
+        pkg_check_modules(SDL2_IMAGE QUIET SDL2_image)
+        if(SDL2_IMAGE_FOUND)
+            set(SHO_SDL2_IMAGE ${SDL2_IMAGE_LIBRARIES})
+            if(SDL2_IMAGE_INCLUDE_DIRS)
+                include_directories(${SDL2_IMAGE_INCLUDE_DIRS})
+            endif()
+        endif()
+    endif()
+endif()
+
 # glm is header-only; fetch it when the system does not provide it so Windows
 # builds do not need a separate install step.
 find_package(glm CONFIG QUIET)
@@ -243,7 +260,9 @@ if(BUILD_CLIMAX_PLAY)
     target_link_libraries(climax-play
         climax-game
         OpenGL::GL GLEW::GLEW
-        ${SHO_SDL2_TARGETS} ${EXTRA_LIBS}
+        ${SHO_SDL2_TARGETS}
+        ${SHO_SDL2_IMAGE}
+        ${EXTRA_LIBS}
     )
     if(SDL2_INCLUDE_DIRS)
         target_include_directories(climax-play PRIVATE ${SDL2_INCLUDE_DIRS})
