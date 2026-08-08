@@ -1050,3 +1050,68 @@ the game and the state each cutscene expects:
 `ZoneTrigger` and `CPlayerSpawner` encode, arrived at independently.
 
 `igcscript.xml` is its companion for cutscenes and subtitles.
+
+## The front end is XML — 40 files in `SH.ARC`
+
+The entire user interface, every puzzle and the cutscene timing are plain XML
+inside the archive. Nothing is compiled. `tools/extract_scripts.py` pulls them
+all out.
+
+    mainmenu.xml  pausemenu.xml  newgame.xml  gameoptions.xml  extraoptions.xml
+    inventory.xml notes.xml      mapviewer.xml examine.xml     note_examine.xml
+    controls_norm.xml  controls_combat.xml  credits.xml  ratings.xml
+    hints.xml     accolades.xml  endgame.xml   peephole.xml  hospitallift.xml
+    igcscript.xml (cutscenes and subtitles -- 599 <Line> elements)
+    bootmenu.xml  bootmenuMS.xml (the developers' warp menus, left in the build)
+    ten *puzzle.xml files: anatomy, calender, circuitbrk, flaurous, ironlung,
+    laundry, organbox, pilldoll, till, bkdropprop
+
+`mainmenu.xml` in full is one `<SCREEN>` and four `<BUTTON>` elements. It gives
+the background movie and audio, each button's texture and UV rect, and where
+the D-pad goes from it:
+
+```xml
+<SCREEN id="main_menu_screen" bgmovie="Menu" bgaudio="menu.rws" loop_movie="true">
+    <BUTTON id="main_menu_continue_game" default_active="true"
+        xpos="638" ypos="195.5" xpos4x3="400" ypos4x3="283"
+        width="128" height="32" colour="0xFFFFFFFF"
+        ondown="main_menu_load_game" bgtexture="main_menu_but_1.png"
+        textureu="0.0" texturev="0.0" texturew="1.0" textureh="1.0" />
+```
+
+`xpos` / `xpos4x3` is why there are four UI containers: `UiDataPW`, `UiDataP4`,
+`UiDataNW`, `UiDataN4` — PAL and NTSC, widescreen and 4:3. They are texture
+dictionaries of JPEGs (`sho_inv_bd_pw.jpg`, `sho_opt_bd_pw.jpg`, …).
+
+The vocabulary, counted over all 40 files:
+
+| element | uses | |
+|---|---|---|
+| `<Line>` | 599 | subtitle lines in `igcscript.xml` |
+| `<ZONE>` `<DATA>` | 275 / 226 | warp targets and the flags each expects |
+| `<TEXTBOX>` `<IMAGE>` | 96 / 84 | screen content |
+| `<BUTTON>` `<TOGGLEBUTTON>` `<SLIDERBUTTON>` | 32 / 10 / 2 | widgets |
+| `<SCREEN>` `<UI>` | 37 / 37 | one screen per file |
+
+Navigation is `onup` / `ondown` / `onaccept` / `oncancel`, each naming another
+element id or another screen.
+
+### What is *not* in the XML
+
+`<TEXTBOX string="ui_options_title">` references text by symbolic id, and
+`Strings.Eng` stores it by **hash**. Nine standard hashes were tried against
+the 59 ids the UI references — CRC32 (both cases), djb2 and its xor variant,
+sdbm, FNV-1, FNV-1a, RenderWare's `*131`, and Jenkins one-at-a-time. **All
+score zero of 59**, so the function is custom and has to come out of the
+executable.
+
+This matters for *building* the menu, not for *translating* it: a translation
+keeps the hash table untouched and only replaces text, so it never needs to
+know the function.
+
+Also absent from the data: the boot order itself. `Logo`, `Title` and
+`BootMenu` are strings in `SLES_551.47`, and Ghost Rider — unstripped — has an
+object called `..._Objects_FrontEnd_BootSequence` along with
+`LanguageSelectionScreen`, `AttractMode` and `Warnings`. SHO's archive holds 88
+object classes and **none of them are front-end**, so in this game the sequence
+is code, and Ghost Rider is the place to read what that code does.
