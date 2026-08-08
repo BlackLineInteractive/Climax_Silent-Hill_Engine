@@ -16,7 +16,7 @@
 //                prop 1 = "HO_1_Hallway1"     where it is
 //                prop 2 = "goZoneWomensRoom"  the event it sends
 //                prop 3 = "MSG_PAD_GRAB"      the button that sends it
-//                prop 15 = "DO_UIDWO"         the on-screen prompt
+//                prop 15 = "DO_UIDWO"         the door's sound set
 //
 // and the destination container answers with a CPlayerSpawner per neighbour,
 // each named after the zone the player is arriving *from*:
@@ -34,7 +34,10 @@ struct ZoneLink {
   std::string toZone;    // container to load
   std::string fromZone;  // container this trigger sits in
   std::string eventName; // what it broadcasts when used
-  std::string prompt;    // UI hint id, e.g. "DO_UIDWO"
+  // Not a UI hint, as first assumed: DO_UIDWO is an archive entry named
+  // "Door_UIDoorWoodO" holding a CAudioTransitions object and a wave dictionary
+  // -- the sound a wooden door makes. Unused until doors make noise.
+  std::string sound;
   glm::vec3 position = glm::vec3(0.0f);
   glm::mat4 transform = glm::mat4(1.0f); // volume: rows are half-extent axes
 };

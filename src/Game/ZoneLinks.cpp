@@ -44,8 +44,8 @@ std::vector<ZoneLink> BuildZoneLinks(const std::vector<GameObject> &objects) {
     z.toZone = go.objName;
     z.fromZone = go.linkNames.size() > 0 ? go.linkNames[0] : std::string();
     z.eventName = go.linkNames.size() > 1 ? go.linkNames[1] : std::string();
-    // linkNames[2] is the button ("MSG_PAD_GRAB"); the prompt id follows it.
-    z.prompt = go.linkNames.size() > 3 ? go.linkNames[3] : std::string();
+    // linkNames[2] is the button ("MSG_PAD_GRAB"); the sound set follows it.
+    z.sound = go.linkNames.size() > 3 ? go.linkNames[3] : std::string();
     z.position = go.position;
     z.transform = go.transform;
     out.push_back(std::move(z));

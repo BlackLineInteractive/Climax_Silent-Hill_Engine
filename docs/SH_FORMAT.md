@@ -991,3 +991,62 @@ Implementations in this repository:
 | [`src/PS2Texture.cpp`](src/PS2Texture.cpp) | §6.2 |
 | [`src/Export.cpp`](src/Export.cpp) | §8 |
 | [`src/Core/AudioParser.cpp`](src/Core/AudioParser.cpp) | §9 |
+
+---
+
+## UI string tables — `Strings.Eng` and friends
+
+Six of them ship: `Strings.Eng / Fre / Ger / Ita / Spa / Jap`. This is the
+game's text, and it is *not* what `LocaleUIEng` holds — that is a
+`rwID_TEXDICTIONARY` of pre-rendered UI images.
+
+    u32   version        2 in all six
+    u32   count          2115 in all six
+    count x {
+        u32 hash         the id the game looks a string up by
+        u32 charOffset   offset into the blob, in UTF-16 units, not bytes
+    }
+    UTF-16LE blob, each string NUL-terminated
+
+**All six languages carry the same hashes in the same order** — verified by
+comparing the tables entry for entry. That is the whole story for adding a
+language: keep the table, replace the text, recompute the offsets. The hash
+function never has to be identified, which is fortunate, because it has not
+been.
+
+Retail files share one copy of a repeated string between entries, and
+`tools/strings.py` reproduces that; it makes no difference to the game but
+keeps rebuilt files close to the originals in size.
+
+Inside the text:
+
+* every string opens with `\x01\x01`, which is not visible text — dropping it
+  shifts the rest;
+* `\x03` plus one byte is a glyph placeholder: `\x03\x05` a face button,
+  `\x03\x10` the platform trademark. `Strings.Eng` uses these to write
+  "PlayStation®2" and "press ✕ to continue" without baking a platform into the
+  text;
+* control characters appear as data — item names contain a bare `\r`
+  (`"a \x01\rportable TV"`).
+
+    python3 tools/strings.py dump  game-iso/SHO/SH.ARC Strings.Eng eng.tsv
+    python3 tools/strings.py build eng.tsv Strings.Ukr
+
+Verified round-trip: 2115 of 2115 strings identical after dump and rebuild.
+
+## `bootmenu.xml`
+
+Plain XML in the archive, and it is the game's own level-warp menu — the
+developers' one, shipped in the retail file. It documents the intended order of
+the game and the state each cutscene expects:
+
+```xml
+<ZONE id="6 Travis wakes up TO_HO" zonename="TO_HO" filter="DH_1_Exterior">
+    <DATA trigname="gameComplete_0" value="true" />
+</ZONE>
+```
+
+`filter` is the zone the player arrives *from* — the same relationship
+`ZoneTrigger` and `CPlayerSpawner` encode, arrived at independently.
+
+`igcscript.xml` is its companion for cutscenes and subtitles.
