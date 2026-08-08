@@ -189,6 +189,24 @@ private:
     std::map<uint16_t, Placed> m_where;
 };
 
+// Resolves a texture name as the XML writes it.
+//
+// Two things have to happen. The extension is dropped: the archive stores
+// "sho_arrow", the XML asks for "sho_arrow.png". And `**` is a placeholder for
+// the display mode -- "sho_inv_bd_**.jpg" is "sho_inv_bd_pw" in UiDataPW, where
+// p/n is PAL or NTSC and w/4 is the aspect. Nineteen of the thirty-six textures
+// the UI references are written that way, so without the substitution half the
+// backgrounds are simply absent.
+std::string ResolveTextureName(std::string name, const char *mode) {
+    const size_t star = name.find("**");
+    if (star != std::string::npos)
+        name.replace(star, 2, mode);
+    const size_t dot = name.rfind('.');
+    if (dot != std::string::npos)
+        name.erase(dot);
+    return name;
+}
+
 // Walks a UTF-8 string, yielding code points.
 template <typename F>
 void ForEachCodePoint(const std::string &s, F &&fn) {
@@ -321,9 +339,16 @@ int main(int argc, char **argv) {
         if (!checkOnly) atlas.Build(font);
     }
 
-    // The per-language button art, then the screens themselves.
-    if (ReadEntry(arc, "LocaleUIEng", buf))
-        ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(buf, {}, true);
+    // Two sets of art: the shared one, and the per-language buttons. UiData
+    // comes in four variants -- PAL and NTSC, widescreen and 4:3 -- and they
+    // differ only in the backgrounds' aspect, so the widescreen PAL set is
+    // loaded and the 4:3 layout simply uses the same images.
+    // GlobalStream carries the shared widgets -- arrows, frames, cursors.
+    // Startup holds the boot screens: the two backgrounds and the six flags,
+    // each with a highlighted twin and a selection frame.
+    for (const char *name : {"Startup", "GlobalStream", "UiDataPW", "LocaleUIEng"})
+        if (ReadEntry(arc, name, buf))
+            ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(buf, {}, true);
 
     std::vector<std::unique_ptr<UI::Element>> owned;
     std::vector<std::pair<std::string, const UI::Element *>> screens;
@@ -450,38 +475,56 @@ int main(int argc, char **argv) {
         // Author-space to window-space. The game ships both a widescreen and a
         // 4:3 layout, and picks by display mode; this picks the same way.
         const bool wide = (float)w / (float)h > 1.5f;
+        // Only the PAL sets are loaded, so the mode suffix picks between its
+        // two aspects. An NTSC build would load UiDataN* and use "nw"/"n4".
+        const char *texMode = wide ? "pw" : "p4";
         const float sx = (float)w / (wide ? kAuthorW : 640.0f);
         const float sy = (float)h / (wide ? kAuthorH : 480.0f);
 
         if (front.Stage() == Game::BootStage::MainMenu) {
             const UI::Element *scr = front.Menu().Screen();
             if (scr) {
+                // Whatever the screen names as its backdrop, behind everything.
+                if (const std::string bg = scr->Attr("bgtexture"); !bg.empty()) {
+                    const std::string n = ResolveTextureName(bg, texMode);
+                    if (auto it = textures.find(n); it != textures.end())
+                        painter.Quad(0, 0, (float)w, (float)h, it->second,
+                                     1, 1, 1, 1);
+                }
+
                 for (const UI::Element &b : scr->children) {
                     const float bx = (wide ? b.Float("xpos") : b.Float("xpos4x3")) * sx;
                     const float by = (wide ? b.Float("ypos") : b.Float("ypos4x3")) * sy;
                     const float bw = b.Float("width") * sx;
                     const float bh = b.Float("height") * sy;
 
-                    // The button art is named with a .png that the archive
-                    // stores without the extension.
-                    std::string tex = b.Attr("bgtexture");
-                    if (tex.size() > 4 && tex.compare(tex.size() - 4, 4, ".png") == 0)
-                        tex.resize(tex.size() - 4);
-                    auto it = textures.find(tex);
-                    const GLuint id = it == textures.end() ? 0 : it->second;
-
                     const bool active = b.Attr("id") == front.Menu().ActiveId();
-                    const float k = active ? 1.0f : 0.45f;
-                    painter.Quad(bx, by, bw, bh, id, k, k, k, 1.0f,
-                                 b.Float("textureu", 0.0f), b.Float("texturev", 0.0f),
-                                 b.Float("texturew", 1.0f), b.Float("textureh", 1.0f));
+                    const float k = active ? 1.0f : 0.5f;
 
-                    // A button with no art still has to be visible.
-                    if (!id) {
-                        const std::string label = b.Attr("string").empty()
-                            ? b.Attr("id") : strings.Text(b.Attr("string"));
-                        drawText(bx, by + bh * 0.75f, sy * 1.2f, label,
-                                 k, k, k, 1.0f, false);
+                    // Art, if the element has any. Drawing a filled rectangle
+                    // when it has none was the bug behind the white bars: a
+                    // TEXTBOX is text, not a box.
+                    const std::string tex = ResolveTextureName(b.Attr("bgtexture"), texMode);
+                    GLuint id = 0;
+                    if (!tex.empty())
+                        if (auto it = textures.find(tex); it != textures.end())
+                            id = it->second;
+                    if (id)
+                        painter.Quad(bx, by, bw, bh, id, k, k, k, 1.0f,
+                                     b.Float("textureu", 0.0f), b.Float("texturev", 0.0f),
+                                     b.Float("texturew", 1.0f), b.Float("textureh", 1.0f));
+
+                    // Text, if it names a string. Never the element id: that is
+                    // a name for the designer, not a label for the player.
+                    const std::string sid = b.Attr("string");
+                    if (!sid.empty()) {
+                        const std::string label = strings.Text(sid);
+                        if (!label.empty()) {
+                            const float tscale = sy * 1.1f;
+                            const float tx = bx + b.Float("textoffx") * sx;
+                            const float ty = by + b.Float("textoffy") * sy + bh * 0.8f;
+                            drawText(tx, ty, tscale, label, k, k, k, 1.0f, false);
+                        }
                     }
                 }
             }
@@ -491,6 +534,16 @@ int main(int argc, char **argv) {
             // The text is the game's own, out of Strings.Eng where there is one.
             const float cx = w * 0.5f;
             const float sc = (wide ? sy : sy) * 1.6f;
+            auto tex = [&](const std::string &n) -> GLuint {
+                auto it = textures.find(n);
+                return it == textures.end() ? 0 : it->second;
+            };
+            auto fullscreen = [&](const std::string &n) {
+                if (const GLuint id = tex(n))
+                    painter.Quad(0, 0, (float)w, (float)h, id, 1, 1, 1, 1);
+                return tex(n) != 0;
+            };
+
             switch (front.Stage()) {
             case Game::BootStage::Logo:
                 centre(cx, h * 0.45f, sc * 1.4f, "CLIMAX", 0.8f, 0.8f, 0.85f, 1.0f);
@@ -503,17 +556,47 @@ int main(int argc, char **argv) {
                 centre(cx, h * 0.58f, sc * 0.8f, "Press ENTER", 0.4f, 0.4f, 0.45f, 1.0f);
                 break;
             }
+            case Game::BootStage::AspectSelect: {
+                // The background carries the wording; the choice is left/right.
+                fullscreen(std::string("sho_aspect_") + texMode);
+                const float bw = w * 0.16f, bh = bw * 0.62f;
+                for (int i = 0; i < 2; ++i) {
+                    const bool sel = (i == 1) == front.widescreen;
+                    const float bx = cx + (i == 0 ? -bw * 1.3f : bw * 0.3f);
+                    const float by = h * 0.62f;
+                    if (const GLuint f = tex("sho_flg_sel"); f && sel)
+                        painter.Quad(bx - 6, by - 6, bw + 12, bh + 12, f, 1, 1, 1, 1);
+                    const float k = sel ? 1.0f : 0.4f;
+                    centre(bx + bw * 0.5f, by + bh * 0.7f, sc * 0.9f,
+                           i == 0 ? "4:3" : "16:9", k, k, k, 1.0f);
+                }
+                break;
+            }
             case Game::BootStage::LanguageSelect: {
-                // "Language Select" is in the table, but under a hash whose id
-                // is not referenced by any of the 40 XML files -- this screen
-                // is built in code, so its ids never appear in data. Looking it
-                // up by hash is honest; inventing an id that happens to read
-                // well is not, and the two I first tried resolved to nothing.
-                const std::string *t = strings.Find(0x4005E5ADu);
-                centre(cx, h * 0.35f, sc, t ? t->substr(2) : "Language Select",
-                       0.85f, 0.85f, 0.9f, 1.0f);
-                centre(cx, h * 0.50f, sc, "English", 1.0f, 1.0f, 1.0f, 1.0f);
-                centre(cx, h * 0.62f, sc * 0.8f, "Press ENTER", 0.4f, 0.4f, 0.45f, 1.0f);
+                fullscreen(std::string("sho_lang_bd_") + texMode);
+
+                // Six flags in a row. Their coordinates are not in the data --
+                // this screen is built in code, so nothing in the 40 XML files
+                // describes it -- so the layout here is mine, not the game's.
+                const int n = Game::LanguageCount();
+                const float fw = w * 0.11f, fh = fw * 0.62f;
+                const float gap = fw * 0.28f;
+                const float total = n * fw + (n - 1) * gap;
+                const float y = h * 0.55f;
+                for (int i = 0; i < n; ++i) {
+                    const auto lang = (Game::Language)i;
+                    const bool sel = i == front.languageIndex;
+                    const float x = cx - total * 0.5f + i * (fw + gap);
+                    std::string name = Game::LanguageFlag(lang);
+                    if (sel) name += "_h";
+                    GLuint id = tex(name);
+                    if (!id) id = tex(Game::LanguageFlag(lang));
+                    if (id) painter.Quad(x, y, fw, fh, id, 1, 1, 1, 1);
+                    if (sel)
+                        if (const GLuint f = tex("sho_flg_sel"))
+                            painter.Quad(x - fw * 0.06f, y - fh * 0.09f,
+                                         fw * 1.12f, fh * 1.18f, f, 1, 1, 1, 1);
+                }
                 break;
             }
             default:

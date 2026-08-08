@@ -3,10 +3,37 @@
 namespace ClimaxEngine {
 namespace Game {
 
+const char *LanguageFlag(Language l) {
+    switch (l) {
+    case Language::English_GB: return "sho_flg_GB";
+    case Language::English_US: return "sho_flg_US";
+    case Language::French:     return "sho_flg_FR";
+    case Language::German:     return "sho_flg_DE";
+    case Language::Italian:    return "sho_flg_IT";
+    case Language::Spanish:    return "sho_flg_ES";
+    }
+    return "sho_flg_GB";
+}
+
+const char *LanguageStrings(Language l) {
+    switch (l) {
+    case Language::English_GB:
+    case Language::English_US: return "Strings.Eng";
+    case Language::French:     return "Strings.Fre";
+    case Language::German:     return "Strings.Ger";
+    case Language::Italian:    return "Strings.Ita";
+    case Language::Spanish:    return "Strings.Spa";
+    }
+    return "Strings.Eng";
+}
+
+int LanguageCount() { return 6; }
+
 const char *BootStageName(BootStage s) {
     switch (s) {
     case BootStage::Logo: return "Logo";
     case BootStage::Warning: return "Warning";
+    case BootStage::AspectSelect: return "AspectSelect";
     case BootStage::LanguageSelect: return "LanguageSelect";
     case BootStage::MainMenu: return "MainMenu";
     case BootStage::InGame: return "InGame";
@@ -159,16 +186,33 @@ std::string FrontEnd::Update(float dt, const MenuInput &in) {
     case BootStage::Warning:
         // The warning is the one screen the original will not let you skip
         // instantly; a press still shortens it, but only after a beat.
-        if (m_elapsed >= warningSeconds || ((in.anyKey || in.accept) && m_elapsed > 1.0f))
-            Enter(languageChosen ? BootStage::MainMenu : BootStage::LanguageSelect);
+        if (m_elapsed >= warningSeconds || ((in.anyKey || in.accept) && m_elapsed > 1.0f)) {
+            if (!aspectChosen) Enter(BootStage::AspectSelect);
+            else if (!languageChosen) Enter(BootStage::LanguageSelect);
+            else Enter(BootStage::MainMenu);
+        }
         return {};
 
-    case BootStage::LanguageSelect:
+    case BootStage::AspectSelect:
+        if (in.left) widescreen = false;
+        if (in.right) widescreen = true;
+        if (in.accept) {
+            aspectChosen = true;
+            Enter(languageChosen ? BootStage::MainMenu : BootStage::LanguageSelect);
+        }
+        return {};
+
+    case BootStage::LanguageSelect: {
+        const int n = LanguageCount();
+        if (in.left)  languageIndex = (languageIndex + n - 1) % n;
+        if (in.right) languageIndex = (languageIndex + 1) % n;
+        language = (Language)languageIndex;
         if (in.accept) {
             languageChosen = true;
             Enter(BootStage::MainMenu);
         }
         return {};
+    }
 
     case BootStage::MainMenu: {
         const std::string cmd = m_menu.Update(in);

@@ -1288,3 +1288,48 @@ all, so `Font_EUR`'s atlas and this block both have to be extended. That is a
 manageable job — the layout is known and the atlas is a plain texture — but it
 is a job, and it is the reason the game shipped in six Latin-and-Japanese
 languages and no others.
+
+## Movies — `MOVIES/*.PSS`
+
+58 files, 1.7 GB, outside the archive. Sony `.PSS` is an MPEG-2 program stream:
+every one begins `00 00 01 BA` (pack header), then `00 00 01 BB` (system) and
+`00 00 01 E0` (video PES).
+
+The names encode aspect and language:
+
+    <NAME><W|N><lang>.PSS      W = widescreen, N = 4:3
+                               no suffix = English, F/G/I/S = Fre/Ger/Ita/Spa
+
+| | |
+|---|---|
+| `LOGOW` / `LOGON` | the idents, 5 MB |
+| `MENUW` / `MENUN` | **the main menu's background**, 17 MB |
+| `BACKW` / `BACKN` | 7 MB |
+| `GOMOVW` / `GOMOVN` | game over, 10 MB |
+| `SCN01`, `SCN18`, `SCN19`, `SCN20` | cutscenes |
+| `CRD*`, `END*`, `STAT*` | credits, endings, statistics |
+
+`mainmenu.xml` opens with `bgmovie="Menu" bgaudio="menu.rws"`, and `MENUW.PSS`
+is the file it names — the mapping is the bare name plus the aspect letter plus
+the language.
+
+**Not implemented.** Playing these needs an MPEG-2 decoder, which is a real
+dependency and belongs in the platform layer, not in `climax-core`. Until then
+`climax-play` draws the stages without them.
+
+## UI texture names — the `**` placeholder
+
+The XML asks for `sho_inv_bd_**.jpg`; the archive stores `sho_inv_bd_pw`. Two
+things differ. The extension is dropped, and `**` stands for the display mode:
+
+    p / n   PAL or NTSC
+    w / 4   widescreen or 4:3
+
+which is exactly the four UI containers — `UiDataPW`, `UiDataP4`, `UiDataNW`,
+`UiDataN4`. Nineteen of the thirty-six textures the front end references are
+written with the placeholder, so without the substitution more than half the
+backgrounds resolve to nothing.
+
+The rest come from `GlobalStream` (13: arrows, frames, cursors) and from the
+per-language `LocaleUI*` (4 each: the main menu's four buttons, which carry
+their words as pixels rather than as text).

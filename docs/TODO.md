@@ -531,6 +531,14 @@ diagnosed.
 
 `CFogConfig`, one instance per level, visible in the type table and not read.
 
+### 7a. Video
+
+`MOVIES/*.PSS` is MPEG-2 program stream — 58 files, 1.7 GB, including the menu
+background the front end names and the logo idents. Nothing plays them. This
+needs a decoder dependency; it belongs in the platform layer, and `climax-core`
+must stay free of it. Format and naming are in
+[formats/SH_FORMAT.md](formats/SH_FORMAT.md).
+
 ### 7b. Archive and container browsing as a tree
 
 The archive panel is a flat list, which is fine for finding a level by name and

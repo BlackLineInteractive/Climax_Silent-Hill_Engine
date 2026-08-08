@@ -26,12 +26,25 @@ namespace ClimaxEngine {
 namespace Game {
 
 enum class BootStage {
-    Logo,            // publisher and developer idents
-    Warning,         // the health and epilepsy notice
-    LanguageSelect,  // skipped when the language is already chosen
+    Logo,            // publisher and developer idents (LOGOW.PSS)
+    Warning,         // the content notice -- a frame of the same movie
+    AspectSelect,    // 4:3 or widescreen; the art for it is sho_aspect_**
+    LanguageSelect,  // six flags; skipped when the language is already chosen
     MainMenu,
     InGame,
 };
+
+// The six the game offers. Two of them are English -- the flag chooses the
+// wording, not the string file -- and there is no flag for Japanese even though
+// Strings.Jap ships, because that build selects it another way.
+enum class Language { English_GB, English_US, French, German, Italian, Spanish };
+
+// The texture base name in the Startup container. Append "_h" for the
+// highlighted variant.
+const char *LanguageFlag(Language l);
+// Which Strings.* file it wants.
+const char *LanguageStrings(Language l);
+int LanguageCount();
 
 const char *BootStageName(BootStage s);
 
@@ -97,6 +110,12 @@ public:
     // Set false to make the language stage appear; the game shows it once, on
     // first boot, and remembers the answer.
     bool languageChosen = false;
+    bool aspectChosen = false;
+
+    // What the player picked on those two screens.
+    Language language = Language::English_GB;
+    bool widescreen = true;
+    int languageIndex = 0;   // cursor on the flag row
 
     BootStage Stage() const { return m_stage; }
     MenuState &Menu() { return m_menu; }
