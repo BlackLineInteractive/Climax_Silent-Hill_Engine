@@ -22,6 +22,7 @@ bool Font::Load(const uint8_t *data, size_t size) {
     m_glyphs.clear();
     m_byCode.clear();
     m_kerning.clear();
+    m_bitmaps.clear();
 
     if (!data || size < 0x44)
         return false;
@@ -98,9 +99,15 @@ bool Font::Load(const uint8_t *data, size_t size) {
                 g.yOffset = (int8_t)e[5];
                 g.width = e[6];
                 g.height = e[7];
+                g.dataOffset = Rd32(e + 8);
+                g.dataLength = Rd16(e + 12);
                 m_byCode[g.code] = m_glyphs.size();
                 m_glyphs.push_back(g);
             }
+            // The pixels follow the table, one blob for the whole block.
+            m_bitmapBase = first + (size_t)count * 16;
+            if (m_bitmapBase < body + blockSize)
+                m_bitmaps.assign(data + m_bitmapBase, data + body + blockSize);
             break;
         }
 
@@ -117,6 +124,47 @@ bool Font::Load(const uint8_t *data, size_t size) {
 const Glyph *Font::Find(uint16_t code) const {
     auto it = m_byCode.find(code);
     return it == m_byCode.end() ? nullptr : &m_glyphs[it->second];
+}
+
+bool Font::Rasterise(uint16_t code, std::vector<uint8_t> &out, int &width,
+                     int &height) const {
+    const Glyph *g = Find(code);
+    if (!g)
+        return false;
+    width = g->width;
+    height = g->height;
+    out.assign((size_t)g->width * g->height, 0);
+    if (!g->dataLength || g->dataOffset + g->dataLength > m_bitmaps.size())
+        return g->width == 0 || g->height == 0;   // space has no pixels, and is fine
+
+    const size_t stride = ((size_t)g->width + 1) / 2;
+    const size_t want = stride * g->height;
+    std::vector<uint8_t> packed;
+    packed.reserve(want);
+
+    const uint8_t *src = m_bitmaps.data() + g->dataOffset;
+    const uint8_t *end = src + g->dataLength;
+    while (src < end && packed.size() < want) {
+        const uint8_t c = *src++;
+        if (c & 0x80) {
+            if (src >= end) break;
+            packed.insert(packed.end(), (size_t)(256 - c), *src++);
+        } else {
+            const size_t n = c < (size_t)(end - src) ? c : (size_t)(end - src);
+            packed.insert(packed.end(), src, src + n);
+            src += n;
+        }
+    }
+    packed.resize(want, 0);
+
+    // Low nibble first, and 4-bit coverage widened to 8.
+    for (int y = 0; y < g->height; ++y)
+        for (int x = 0; x < g->width; ++x) {
+            const uint8_t byte = packed[(size_t)y * stride + (size_t)x / 2];
+            const uint8_t v = (x & 1) ? (byte >> 4) : (byte & 0x0F);
+            out[(size_t)y * g->width + x] = (uint8_t)(v * 17);   // 15 -> 255
+        }
+    return true;
 }
 
 int16_t Font::Kerning(uint16_t left, uint16_t right) const {

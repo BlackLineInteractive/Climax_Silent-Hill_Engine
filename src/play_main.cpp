@@ -126,6 +126,86 @@ private:
     GLint m_uScreen = -1, m_uColour = -1, m_uTextured = -1;
 };
 
+// A font baked into one texture, with where each glyph landed.
+//
+// The shipped font stores each character as its own run-length block, which is
+// right for a console streaming from disc and wrong for a GPU: 137 draw calls
+// with 137 texture binds. Expanding them once into an atlas turns a line of
+// text into one bind and a quad per character.
+class TextAtlas {
+public:
+    struct Placed { int x, y, w, h; };
+
+    bool Build(const UI::Font &font) {
+        // A row packer is enough: the glyphs are all under 40 px and sorted
+        // roughly by height already.
+        const int kW = 512;
+        int penX = 0, penY = 0, rowH = 0;
+        std::vector<uint8_t> pixels((size_t)kW * 512, 0);
+
+        std::vector<uint8_t> bmp;
+        for (const UI::Glyph &g : font.Glyphs()) {
+            int w = 0, h = 0;
+            if (!font.Rasterise(g.code, bmp, w, h) || w == 0 || h == 0) continue;
+            if (penX + w + 1 > kW) { penX = 0; penY += rowH + 1; rowH = 0; }
+            if (penY + h > 512) break;
+            for (int y = 0; y < h; ++y)
+                for (int x = 0; x < w; ++x)
+                    pixels[(size_t)(penY + y) * kW + penX + x] = bmp[(size_t)y * w + x];
+            m_where[g.code] = {penX, penY, w, h};
+            penX += w + 1;
+            if (h > rowH) rowH = h;
+        }
+
+        // One channel of coverage, expanded to RGBA so the one shader can draw
+        // both text and button art without a second path.
+        std::vector<uint8_t> rgba((size_t)kW * 512 * 4);
+        for (size_t i = 0; i < (size_t)kW * 512; ++i) {
+            rgba[i * 4 + 0] = 255; rgba[i * 4 + 1] = 255;
+            rgba[i * 4 + 2] = 255; rgba[i * 4 + 3] = pixels[i];
+        }
+        glGenTextures(1, &m_tex);
+        glBindTexture(GL_TEXTURE_2D, m_tex);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, kW, 512, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE, rgba.data());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        m_size = 512.0f;
+        return m_tex != 0;
+    }
+
+    GLuint Texture() const { return m_tex; }
+    const Placed *Where(uint16_t code) const {
+        auto it = m_where.find(code);
+        return it == m_where.end() ? nullptr : &it->second;
+    }
+    float AtlasSize() const { return m_size; }
+
+private:
+    GLuint m_tex = 0;
+    float m_size = 512.0f;
+    std::map<uint16_t, Placed> m_where;
+};
+
+// Walks a UTF-8 string, yielding code points.
+template <typename F>
+void ForEachCodePoint(const std::string &s, F &&fn) {
+    for (size_t i = 0; i < s.size();) {
+        const unsigned char c = s[i];
+        uint32_t cp = c;
+        size_t len = 1;
+        if (c >= 0xF0)      { cp = c & 0x07; len = 4; }
+        else if (c >= 0xE0) { cp = c & 0x0F; len = 3; }
+        else if (c >= 0xC0) { cp = c & 0x1F; len = 2; }
+        if (i + len > s.size()) break;
+        for (size_t k = 1; k < len; ++k) cp = (cp << 6) | (s[i + k] & 0x3F);
+        i += len;
+        fn(cp);
+    }
+}
+
 // Reads an entry out of the archive.
 bool ReadEntry(RWS::FileSystem::CArchive &arc, const char *name,
                std::vector<uint8_t> &out) {
@@ -231,12 +311,14 @@ int main(int argc, char **argv) {
         strings.Load(buf.data(), buf.size());
 
     UI::Font font;
+    TextAtlas atlas;
     std::vector<uint8_t> fontBuf;
     if (ReadEntry(arc, "FontEUR", fontBuf)) {
         size_t n = 0;
         if (const uint8_t *k = FindSection(fontBuf, "rwID_KFONT", n))
             font.Load(k, n);
         ClimaxEngine::Platform::PS2::PS2TextureDecoder().LoadDictionary(fontBuf, {}, true);
+        if (!checkOnly) atlas.Build(font);
     }
 
     // The per-language button art, then the screens themselves.
@@ -260,6 +342,40 @@ int main(int argc, char **argv) {
     }
     std::fprintf(stderr, "[play] %zu screens, %zu strings, %zu glyphs, %zu textures\n",
                  screens.size(), strings.Count(), font.Glyphs().size(), textures.size());
+
+    // Draws a line and returns its width, so the same code can centre it by
+    // measuring first. Kerning comes from the font's own table.
+    auto drawText = [&](float x, float y, float scale, const std::string &text,
+                        float r, float g, float b, float a, bool measureOnly) {
+        float pen = x;
+        uint16_t prev = 0;
+        ForEachCodePoint(text, [&](uint32_t cp) {
+            if (cp == 1 || cp == 3 || cp > 0xFFFF) return;   // markers, controls
+            const UI::Glyph *gl = font.Find((uint16_t)cp);
+            if (!gl) return;
+            if (prev) pen += font.Kerning(prev, (uint16_t)cp) * scale;
+            if (!measureOnly) {
+                if (const TextAtlas::Placed *w = atlas.Where((uint16_t)cp)) {
+                    const float S = atlas.AtlasSize();
+                    painter.Quad(pen + gl->xOffset * scale, y + gl->yOffset * scale,
+                                 w->w * scale, w->h * scale, atlas.Texture(),
+                                 r, g, b, a,
+                                 w->x / S, w->y / S,
+                                 (w->x + w->w) / S, (w->y + w->h) / S);
+                }
+            }
+            pen += gl->advance * scale;
+            prev = (uint16_t)cp;
+        });
+        return pen - x;
+    };
+    auto measure = [&](const std::string &t, float sc) {
+        return drawText(0, 0, sc, t, 0, 0, 0, 0, true);
+    };
+    auto centre = [&](float cx, float y, float sc, const std::string &t,
+                      float r, float g, float b, float a) {
+        drawText(cx - measure(t, sc) * 0.5f, y, sc, t, r, g, b, a, false);
+    };
 
     Game::FrontEnd front;
     front.Menu().SetScreens(screens);
@@ -359,13 +475,50 @@ int main(int argc, char **argv) {
                     painter.Quad(bx, by, bw, bh, id, k, k, k, 1.0f,
                                  b.Float("textureu", 0.0f), b.Float("texturev", 0.0f),
                                  b.Float("texturew", 1.0f), b.Float("textureh", 1.0f));
+
+                    // A button with no art still has to be visible.
+                    if (!id) {
+                        const std::string label = b.Attr("string").empty()
+                            ? b.Attr("id") : strings.Text(b.Attr("string"));
+                        drawText(bx, by + bh * 0.75f, sy * 1.2f, label,
+                                 k, k, k, 1.0f, false);
+                    }
                 }
             }
         } else {
-            // The timed stages have no screen of their own yet; a plate keeps
-            // the sequence visible while the order is what is being tested.
-            const float t = front.Stage() == Game::BootStage::Logo ? 0.35f : 0.12f;
-            painter.Quad(0, 0, (float)w, (float)h, 0, t, t, t, 1.0f);
+            // The idents and the notice are movies in the retail game and are
+            // not decoded yet, so each stage says what it is and what it wants.
+            // The text is the game's own, out of Strings.Eng where there is one.
+            const float cx = w * 0.5f;
+            const float sc = (wide ? sy : sy) * 1.6f;
+            switch (front.Stage()) {
+            case Game::BootStage::Logo:
+                centre(cx, h * 0.45f, sc * 1.4f, "CLIMAX", 0.8f, 0.8f, 0.85f, 1.0f);
+                centre(cx, h * 0.55f, sc, "Silent Hill Origins", 0.5f, 0.5f, 0.55f, 1.0f);
+                break;
+            case Game::BootStage::Warning: {
+                // The health notice is a movie in the retail game, not a
+                // string, so this stands in for it until FMV plays.
+                centre(cx, h * 0.40f, sc, "WARNING", 0.75f, 0.75f, 0.8f, 1.0f);
+                centre(cx, h * 0.58f, sc * 0.8f, "Press ENTER", 0.4f, 0.4f, 0.45f, 1.0f);
+                break;
+            }
+            case Game::BootStage::LanguageSelect: {
+                // "Language Select" is in the table, but under a hash whose id
+                // is not referenced by any of the 40 XML files -- this screen
+                // is built in code, so its ids never appear in data. Looking it
+                // up by hash is honest; inventing an id that happens to read
+                // well is not, and the two I first tried resolved to nothing.
+                const std::string *t = strings.Find(0x4005E5ADu);
+                centre(cx, h * 0.35f, sc, t ? t->substr(2) : "Language Select",
+                       0.85f, 0.85f, 0.9f, 1.0f);
+                centre(cx, h * 0.50f, sc, "English", 1.0f, 1.0f, 1.0f, 1.0f);
+                centre(cx, h * 0.62f, sc * 0.8f, "Press ENTER", 0.4f, 0.4f, 0.45f, 1.0f);
+                break;
+            }
+            default:
+                break;
+            }
         }
 
         SDL_GL_SwapWindow(win);
