@@ -134,44 +134,22 @@ void ProcessAndUploadTexture(RawTexture& raw) {
     UploadRGBA(raw, rgba, w, h);
 }
 
-static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w, int h) {
-    glGenTextures(1, &raw.glID);
-    glBindTexture(GL_TEXTURE_2D, raw.glID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
-
-    GLint wrapS = raw.clampU ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-    GLint wrapT = raw.clampV ? GL_CLAMP_TO_EDGE : GL_REPEAT;
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    // Materials and texture dictionaries do not agree on capitalisation, and
-    // registering only the original plus an all-caps alias missed any spelling
-    // in between — those meshes then bound texture 0 and came out black even
-    // though the texture sat right there in the browser. Register a lower-case
-    // alias too and look up with all three.
-    g_TextureMap[raw.name] = raw.glID;
-    std::string upper = raw.name, lower = raw.name;
-    for (auto& c : upper) c = (char)toupper((unsigned char)c);
-    for (auto& c : lower) c = (char)tolower((unsigned char)c);
-    g_TextureMap[upper] = raw.glID;
-    g_TextureMap[lower] = raw.glID;
-
-    raw.pixels = rgba;
-    g_RawTextures.push_back(raw);
-
-    // Store preview info for the TXD browser window
-    TexPreviewInfo pi; pi.glID = raw.glID; pi.width = w; pi.height = h; pi.depth = raw.depth;
-    g_TexOpaque[raw.name] = !raw.hasTransparentTexels;
-    g_TexOpaque[upper]    = !raw.hasTransparentTexels;
-    g_TexOpaque[lower]    = !raw.hasTransparentTexels;
-    g_TexGradient[raw.name] = raw.hasAlphaGradient;
-    g_TexGradient[upper]    = raw.hasAlphaGradient;
-    g_TexGradient[lower]    = raw.hasAlphaGradient;
-    g_TexInfo[raw.name]  = pi;
-    g_TexInfo[upper]     = pi;
+namespace {
+TextureSink g_sink;
+TextureExistsFn g_exists;
 }
+
+void SetTextureSink(TextureSink sink) { g_sink = std::move(sink); }
+void SetTextureExists(TextureExistsFn fn) { g_exists = std::move(fn); }
+
+static void UploadRGBA(RawTexture& raw, const std::vector<uint8_t>& rgba, int w, int h) {
+    raw.width = w;
+    raw.height = h;
+    raw.pixels = rgba;
+    if (g_sink)
+        g_sink(raw, rgba, w, h);
+}
+
 namespace ClimaxEngine { namespace Platform { namespace PS2 {
 void PS2TextureDecoder::LoadDictionary(const std::vector<uint8_t>& data, const std::vector<std::string>& allowedNames, bool fallback) {
   const size_t sz = data.size();
@@ -269,8 +247,7 @@ void PS2TextureDecoder::LoadDictionary(const std::vector<uint8_t>& data, const s
                pSz - MAGIC_OFFSET);
       }
 
-      if (!t.pixels.empty() &&
-          g_TextureMap.find(t.name) == g_TextureMap.end()) {
+      if (!t.pixels.empty() && !(g_exists && g_exists(t.name))) {
         ProcessAndUploadTexture(t);
       }
 

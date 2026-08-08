@@ -117,6 +117,7 @@ add_library(climax-core STATIC
     src/Core/UI/StringTable.cpp
     src/Core/UI/Font.cpp
     src/Core/UI/ScreenDef.cpp
+    src/Platform/PS2/PS2Texture.cpp
     src/Platform/PS2/AudioParser.cpp
     src/Platform/Wii/WiiGeometry.cpp
 )
@@ -133,6 +134,7 @@ add_library(climax-game STATIC
     src/Game/CameraLinks.cpp
     src/Game/CharacterController.cpp
     src/Game/ZoneLinks.cpp
+    src/Game/FrontEnd.cpp
 )
 target_link_libraries(climax-game PUBLIC climax-core)
 
@@ -154,6 +156,7 @@ set(TOOLKIT_RENDER_SOURCES
     src/Rendering/GLSLBackend.cpp
     src/Rendering/CPURasterizer.cpp
     src/Rendering/GPUMesh.cpp
+    src/Rendering/GLTextureSink.cpp
     src/Rendering/PlayerModel.cpp
 )
 if(APPLE)
@@ -174,7 +177,6 @@ add_executable(ClimaxGameEngineToolkit MACOSX_BUNDLE
     # decoder; WiiTexture builds on PS2Texture. Splitting decode from upload is
     # the next move, and until then they belong on this side of the line.
     src/Platform/PS2/RwsAudio.cpp
-    src/Platform/PS2/PS2Texture.cpp
     src/Platform/Wii/WiiTexture.cpp
     ${TOOLKIT_RENDER_SOURCES}
     ${IMGUI_SOURCES}
@@ -232,18 +234,20 @@ target_link_libraries(ClimaxGameEngineToolkit
 # ── climax-play  (port exe, NO ImGui) ─────────────────────────────────────────
 # Enforcement: if anyone adds #include "imgui.h" to game/core code,
 # this target will fail to link — making the violation a build error.
-option(BUILD_CLIMAX_PLAY "Build minimal play target without ImGui" OFF)
+option(BUILD_CLIMAX_PLAY "Build the game target, without the toolkit" ON)
 if(BUILD_CLIMAX_PLAY)
-    add_executable(climax-play src/play_main.cpp
-        src/Rendering/RenderBackend.cpp
-        src/Rendering/GLSLBackend.cpp
-        src/Rendering/CPURasterizer.cpp
-    )
+    # Only its own main, plus the two libraries. The toolkit's renderer is not
+    # here: it is bound to ViewerState and to ImGui, and dragging it in would
+    # defeat the point of this target.
+    add_executable(climax-play src/play_main.cpp)
     target_link_libraries(climax-play
         climax-game
         OpenGL::GL GLEW::GLEW
         ${SHO_SDL2_TARGETS} ${EXTRA_LIBS}
     )
+    if(SDL2_INCLUDE_DIRS)
+        target_include_directories(climax-play PRIVATE ${SDL2_INCLUDE_DIRS})
+    endif()
     # Explicit sentinel: any accidental imgui include will cause an
     # undefined-symbol error at link time.
     target_compile_definitions(climax-play PRIVATE CLIMAX_NO_IMGUI=1)

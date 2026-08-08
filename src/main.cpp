@@ -20,6 +20,8 @@
 #include "ClimaxEngine/Game/ZoneLinks.h"
 #include "ClimaxEngine/Render/PlayerModel.h"
 
+void InstallGLTextureSink();
+
 #include "ClimaxEngine/Core/RWS/FileSystem/CArchiveManager.h"
 #include "ClimaxEngine/Core/Common.h"
 #include "ClimaxEngine/Render/GPUMesh.h"
@@ -381,6 +383,10 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     glGetError();   // swallow the spurious INVALID_ENUM glewExperimental produces
+
+    // The decoder hands finished pixels to a sink; this is the one that puts
+    // them on the GPU. It must be installed before any container is read.
+    InstallGLTextureSink();
 
     // Initialise prefs now that SDL_GetBasePath() is available
     InitPrefsPath();
