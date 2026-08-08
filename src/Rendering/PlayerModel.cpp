@@ -212,6 +212,69 @@ bool LoadPlayerModel(const std::string &entryName) {
             }
         }
 
+    // ── Body, and what hangs off it ──────────────────────────────────────────
+    // The clump with the most geometry is Travis. Everything else in the
+    // container -- the face is the one that shows -- is a separate object with
+    // its own skeleton, and placing it at the player's feet like the body left
+    // it floating where the hips are while the body walked out from under it.
+    //
+    // Each one is hung off the body bone nearest to where it rests. That is a
+    // measurement, not a guess: in the authored pose the face already sits at
+    // the head, so the closest bone is the one it belongs to.
+    {
+        size_t best = 0;
+        for (size_t i = 0; i < g_Player.objects.size(); ++i) {
+            size_t verts = 0;
+            for (auto *m : g_Player.objects[i]->GetMeshes())
+                verts += m->vertices.size();
+            size_t bestVerts = 0;
+            for (auto *m : g_Player.objects[best]->GetMeshes())
+                bestVerts += m->vertices.size();
+            if (verts > bestVerts)
+                best = i;
+        }
+        g_Player.bodyObject = (int)best;
+
+        auto *body = dynamic_cast<ClimaxEngine::SG::CClumpObject *>(
+            g_Player.objects[best].get());
+
+        // Rest pose in clump space, so distances can be compared.
+        std::vector<glm::vec3> boneAt;
+        if (body) {
+            const size_t n = body->skeleton.bones.size();
+            std::vector<glm::mat4> rest(n);
+            for (size_t b = 0; b < n; ++b) {
+                const int par = body->skeleton.bones[b].parent;
+                rest[b] = (par >= 0 && par < (int)b)
+                              ? rest[(size_t)par] * body->skeleton.bones[b].restLocal
+                              : body->skeleton.bones[b].restLocal;
+                boneAt.push_back(glm::vec3(rest[b][3]));
+            }
+        }
+
+        g_Player.attachBone.assign(g_Player.objects.size(), -1);
+        for (size_t i = 0; i < g_Player.objects.size(); ++i) {
+            if ((int)i == g_Player.bodyObject || boneAt.empty())
+                continue;
+            glm::vec3 sum(0.0f);
+            size_t cnt = 0;
+            for (auto *m : g_Player.objects[i]->GetMeshes())
+                for (const Vertex &v : m->vertices) { sum += v.pos; cnt++; }
+            if (!cnt)
+                continue;
+            const glm::vec3 mid = sum / (float)cnt;
+            int nearest = 0;
+            float nd = 1e9f;
+            for (size_t b = 0; b < boneAt.size(); ++b) {
+                const float d = glm::length(boneAt[b] - mid);
+                if (d < nd) { nd = d; nearest = (int)b; }
+            }
+            g_Player.attachBone[i] = nearest;
+            std::cerr << "[player] object " << i << " rides bone " << nearest
+                      << " (" << nd << " units away at rest)\n";
+        }
+    }
+
     g_Player.loaded = true;
 
     size_t meshes = 0;

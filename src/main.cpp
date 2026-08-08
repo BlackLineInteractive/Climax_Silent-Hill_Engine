@@ -1487,8 +1487,11 @@ void main(){
                 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                 glDepthMask(GL_TRUE);
 
-                for (auto& obj : g_Player.objects) {
-                    obj->SetTransform(model);
+                // The body first: its pose has to exist before anything can
+                // ride one of its bones.
+                auto drawObject = [&](size_t i, const glm::mat4& xform) {
+                    auto& obj = g_Player.objects[i];
+                    obj->SetTransform(xform);
                     for (auto* chunkPtr : obj->GetMeshes()) {
                         const MeshChunk& m = *chunkPtr;
                         // Effect sheets, particle sheets and the untextured
@@ -1502,6 +1505,29 @@ void main(){
                         glUniform4fv(uMatCol, 1, glm::value_ptr(m.matColor));
                         obj->SetMatrixAndDraw(ctx, chunkPtr);
                     }
+                };
+
+                if (g_Player.bodyObject >= 0)
+                    drawObject((size_t)g_Player.bodyObject, model);
+
+                // Then the attachments, each carried by the bone it rides.
+                // The delta is the same one the rigid path uses: where the bone
+                // is now, against where it rested when the piece was authored.
+                auto* body = g_Player.bodyObject >= 0
+                    ? dynamic_cast<ClimaxEngine::SG::CClumpObject*>(
+                          g_Player.objects[(size_t)g_Player.bodyObject].get())
+                    : nullptr;
+                for (size_t i = 0; i < g_Player.objects.size(); ++i) {
+                    if ((int)i == g_Player.bodyObject) continue;
+                    glm::mat4 xform = model;
+                    const int b = i < g_Player.attachBone.size()
+                                      ? g_Player.attachBone[i] : -1;
+                    if (body && b >= 0 &&
+                        b < (int)body->currentBoneMats.size() &&
+                        b < (int)body->restBoneMats.size())
+                        xform = model * body->currentBoneMats[(size_t)b] *
+                                glm::inverse(body->restBoneMats[(size_t)b]);
+                    drawObject(i, xform);
                 }
             }
 
@@ -1821,6 +1847,48 @@ void main(){
                 ImGui::SetNextItemWidth(-70.0f);
                 ImGui::SliderFloat("##eye", &state.eyeHeight, 0.8f, 2.2f, "%.2f");
                 ImGui::SameLine(); ImGui::TextDisabled("Eye");
+                // What the player container actually gave us, in the window
+                // rather than on stderr -- launched as a bundle, the app has
+                // nowhere to print.
+                if (g_Player.loaded &&
+                    ImGui::TreeNode("Player pieces##playerdbg")) {
+                    ImGui::TextDisabled("%zu clips fit, idle %d  walk %d  run %d",
+                                        g_Player.usableClips.size(),
+                                        g_Player.idleClip, g_Player.walkClip,
+                                        g_Player.runClip);
+                    if (ImGui::BeginTable("pieces", 5,
+                                          ImGuiTableFlags_RowBg |
+                                          ImGuiTableFlags_SizingFixedFit |
+                                          ImGuiTableFlags_ScrollY,
+                                          ImVec2(0.0f, 220.0f))) {
+                        ImGui::TableSetupColumn("texture");
+                        ImGui::TableSetupColumn("frame");
+                        ImGui::TableSetupColumn("wgt");
+                        ImGui::TableSetupColumn("verts");
+                        ImGui::TableSetupColumn("drawn");
+                        ImGui::TableSetupScrollFreeze(0, 1);
+                        ImGui::TableHeadersRow();
+                        for (auto& obj : g_Player.objects)
+                            for (auto* m : obj->GetMeshes()) {
+                                ImGui::TableNextRow();
+                                ImGui::TableNextColumn();
+                                ImGui::TextUnformatted(m->texName.empty()
+                                                           ? "-" : m->texName.c_str());
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%d", m->frameIndex);
+                                ImGui::TableNextColumn();
+                                ImGui::TextUnformatted(m->hasWeights ? "yes" : "no");
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%zu", m->vertices.size());
+                                ImGui::TableNextColumn();
+                                ImGui::TextUnformatted(
+                                    IsPlayerBodyMesh(*m, g_Player.textures)
+                                        ? "yes" : "skipped");
+                            }
+                        ImGui::EndTable();
+                    }
+                    ImGui::TreePop();
+                }
                 ImGui::Checkbox("Fixed cameras", &state.autoCameras);
                 if (ImGui::IsItemHovered() && state.uiTooltips)
                     ImGui::SetTooltip("Hand the view to the level's own cameras when\n"
@@ -2120,20 +2188,6 @@ void main(){
         }
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
-
-        if (ImGui::CollapsingHeader("UV Overrides")) {
-            ImGui::Checkbox("Flip U", &state.flipU); ImGui::SameLine(128);
-            ImGui::Checkbox("Flip V", &state.flipV);
-            ImGui::SetNextItemWidth(-54.0f); ImGui::SliderFloat("##ux", &state.uvOffsetX, -1.f, 1.f); ImGui::SameLine(); ImGui::TextDisabled("Off X");
-            ImGui::SetNextItemWidth(-54.0f); ImGui::SliderFloat("##uy", &state.uvOffsetY, -1.f, 1.f); ImGui::SameLine(); ImGui::TextDisabled("Off Y");
-            ImGui::SetNextItemWidth(-54.0f); ImGui::SliderFloat("##sx", &state.uvScaleX,  0.1f, 5.f); ImGui::SameLine(); ImGui::TextDisabled("Sc X");
-            ImGui::SetNextItemWidth(-54.0f); ImGui::SliderFloat("##sy", &state.uvScaleY,  0.1f, 5.f); ImGui::SameLine(); ImGui::TextDisabled("Sc Y");
-            if (ImGui::Button("Reset UV", ImVec2(-1, 0))) {
-                state.flipU = false; state.flipV = false;
-                state.uvOffsetX = 0; state.uvOffsetY = 0;
-                state.uvScaleX  = 1; state.uvScaleY  = 1;
-            }
-        }
 
         ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
 

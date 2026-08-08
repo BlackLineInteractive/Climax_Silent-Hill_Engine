@@ -130,6 +130,7 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
         }
 
         currentBoneMats = posed;
+        restBoneMats = rest;
 
         if (canSkin) {
             // The native data indexes bones by their place in the HAnim table,

@@ -561,3 +561,15 @@ Next, in order of value:
    the hand-maintained additive list.
 3. The same registry walk on `main.dol`; the technique is identical but the
    scan needs indexing to cover its 4 MB text segment.
+
+### 4c. Camera cuts reverse the player's direction — and that is correct
+
+Walking through HO_1_Hallway2 with a key held down, a camera cut turns Travis
+around: input is taken relative to the camera, so the same key means the
+opposite direction once the shot changes. This is the original game's
+behaviour and one of the things people remember about it, so it is kept.
+
+What the game adds on top, and this does not yet, is a latch: the character
+holds his existing world direction until the stick is re-centred, so a cut
+mid-stride does not immediately spin him. Worth adding as an option rather than
+a replacement — the reversal itself is not a bug to fix.

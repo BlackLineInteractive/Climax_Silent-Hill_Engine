@@ -73,6 +73,10 @@ public:
     AnimClip animClip;
     float animTime = 0.0f;
     std::vector<glm::mat4> currentBoneMats;
+    // The rest pose alongside the animated one. An attachment -- a head that
+    // is its own clump -- needs both to work out the delta its parent bone
+    // moved through.
+    std::vector<glm::mat4> restBoneMats;
     
     void SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* mesh) override;
 };

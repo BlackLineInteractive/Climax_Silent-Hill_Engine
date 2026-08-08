@@ -445,3 +445,21 @@ required `frameIndex >= 0` before doing any posing at all, **skinning
 included**. So Travis's face and the parts parented to it loaded, textured
 correctly, and then stayed behind while the rest of him walked away. The gate is
 now "rigidly bound *or* skinned".
+
+### Travis is not one clump
+
+The container ships seven skeletons and the body is only one of them. The face
+is its own scene object with its own hierarchy, which is why placing every
+object at the player's feet left the head hanging in the air at hip height
+while the body walked out from under it — visible with the bone overlay on as a
+long bone line running from the floating head down past the feet.
+
+Attachments are now hung off the body bone nearest to where they rest. That is
+a measurement rather than a guess: in the authored pose the face already sits
+at the head, so the closest bone is the one it belongs to. The transform is the
+same delta the rigid path uses — where the bone is now against where it rested.
+
+`PC_TG_Idle.Face.dma` (`rwID_DMORPHANIMATION`) is a separate matter: it is the
+facial *expression*, a morph animation over the top. Riding the neck bone makes
+the head travel with the body; the morph would make it emote, and nothing reads
+it yet.

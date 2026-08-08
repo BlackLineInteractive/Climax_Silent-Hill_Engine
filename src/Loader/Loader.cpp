@@ -892,7 +892,12 @@ static void ParseUVAnimations(const std::vector<uint8_t> &data) {
 // satisfies `chunkSize - records*20 - 20 == 24`, which is exactly the 20-byte
 // RtAnimAnimation header, six floats of translation offset and scale, then one
 // 20-byte record per keyframe.
+// Byte offset each clip in g_AnimClips was scanned from, so a later pass can
+// match it to the 0x0716 section that owns it and take its authored name.
+static std::vector<size_t> g_AnimClipOffsets;
+
 static void ParseSkeletalAnimations(const std::vector<uint8_t> &data) {
+  g_AnimClipOffsets.clear();
   const uint32_t RW_VER = 0x1c020065;
   const size_t sz = data.size();
   auto ru32 = [&](size_t o) -> uint32_t {
@@ -928,6 +933,8 @@ static void ParseSkeletalAnimations(const std::vector<uint8_t> &data) {
     const size_t datBase = hdrBase + (size_t)records * 8;
 
     AnimClip clip;
+    // Named later: this runs before the section table exists. NameAnimClips()
+    // fills in the authored filename once the sections have been read.
     clip.name = "Clip_" + std::to_string(g_AnimClips.size());
     clip.duration = duration;
     clip.fps = 30.0f;
@@ -984,6 +991,7 @@ static void ParseSkeletalAnimations(const std::vector<uint8_t> &data) {
                     (ty / 65535.0f) * tScl[1] + tOff[1],
                     (tz / 65535.0f) * tScl[2] + tOff[2]));
     }
+    g_AnimClipOffsets.push_back(o);
     g_AnimClips.push_back(std::move(clip));
     o += 12 + cs - 1;
   }
@@ -996,6 +1004,29 @@ static void ParseSkeletalAnimations(const std::vector<uint8_t> &data) {
     }
     std::cout << "[anim] " << g_AnimClips.size() << " clips, "
               << minT << ".." << maxT << " tracks each\n";
+  }
+}
+
+// Gives every clip the filename it was authored under -- "PC_TG_Walk.anm"
+// rather than "Clip_29".
+//
+// The 0x0716 section header holds two strings: the asset's own name, then its
+// RenderWare type. Only the type was ever read, and it is "rwID_HANIMANIMATION"
+// on all 147 of them, so the clips had to be numbered. The scan that finds the
+// clips works on raw bytes and runs before the sections are known, hence the
+// separate pass: a clip belongs to the last section starting at or before it,
+// since sections do not overlap.
+static void NameAnimClips() {
+  if (g_ShoSections.empty())
+    return;
+  for (size_t i = 0; i < g_AnimClips.size() && i < g_AnimClipOffsets.size(); ++i) {
+    const size_t at = g_AnimClipOffsets[i];
+    for (auto it = g_ShoSections.rbegin(); it != g_ShoSections.rend(); ++it)
+      if (it->offset <= at) {
+        if (!it->assetName.empty())
+          g_AnimClips[i].name = it->assetName;
+        break;
+      }
   }
 }
 
@@ -1696,4 +1727,8 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
     ci.label = te.name + " ×" + std::to_string(te.count);
     g_ContainerChunks.push_back(ci);
   }
+
+  // Now that every 0x0716 section is known, the clips can take their
+  // authored filenames from the sections that own them.
+  NameAnimClips();
 }

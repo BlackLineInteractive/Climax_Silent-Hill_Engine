@@ -29,6 +29,17 @@
 
 struct PlayerModel {
     std::vector<std::shared_ptr<ClimaxEngine::SG::CSceneObject>> objects;
+
+    // Travis is not one clump. The container ships seven skeletons, and the
+    // face is its own object -- which is why it hung in the air: every object
+    // was placed at the player's feet, so the head sat where the hips are and
+    // never moved, while the body walked away underneath it.
+    //
+    // Index into `objects` of the clump with the most geometry: the body.
+    int bodyObject = -1;
+    // For every other object, the body bone it should ride, chosen at load by
+    // nearest rest position. -1 leaves it at the player transform.
+    std::vector<int> attachBone;
     std::map<std::string, GLuint> textures; // owned here, not by g_TextureMap
     std::vector<AnimClip> clips;            // the container's own animations
 
