@@ -14,14 +14,14 @@ namespace {
 // it: the HO_1_Lobby doorway box reaches z = -2.895 and the spawner the player
 // arrives on sits at z = -2.177, just 0.7 m clear of it. Halving the extents
 // instead would put the box a metre inside the wall, where nobody could stand.
-bool InsideVolume(const glm::mat4 &m, const glm::vec3 &p) {
+bool InsideVolume(const glm::mat4 &m, const glm::vec3 &p, float reach) {
   const glm::vec3 rel = p - glm::vec3(m[3]);
   for (int k = 0; k < 3; ++k) {
     const glm::vec3 axis(m[k]);
     const float len = glm::length(axis);
     if (len < 1e-5f)
       continue; // degenerate axis: unconstrained in that direction
-    if (std::abs(glm::dot(rel, axis / len)) > len)
+    if (std::abs(glm::dot(rel, axis / len)) > len + reach)
       return false;
   }
   return true;
@@ -53,11 +53,21 @@ std::vector<ZoneLink> BuildZoneLinks(const std::vector<GameObject> &objects) {
   return out;
 }
 
-int ZoneLinkAt(const std::vector<ZoneLink> &links, const glm::vec3 &p) {
-  for (size_t i = 0; i < links.size(); ++i)
-    if (InsideVolume(links[i].transform, p))
-      return (int)i;
-  return -1;
+int ZoneLinkAt(const std::vector<ZoneLink> &links, const glm::vec3 &p,
+               float reach) {
+  // Nearest wins, so standing between two doorways offers the one in front.
+  int best = -1;
+  float bestD = 1e9f;
+  for (size_t i = 0; i < links.size(); ++i) {
+    if (!InsideVolume(links[i].transform, p, reach))
+      continue;
+    const float d = glm::length(p - glm::vec3(links[i].transform[3]));
+    if (d < bestD) {
+      bestD = d;
+      best = (int)i;
+    }
+  }
+  return best;
 }
 
 bool FindZoneSpawn(const std::vector<GameObject> &objects,

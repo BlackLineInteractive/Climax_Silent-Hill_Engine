@@ -74,8 +74,19 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
         if ((size_t)tracks != clip->tracks.size()) clip = nullptr;
     }
 
-    if (!skeleton.bones.empty() && chunk->frameIndex >= 0 &&
-        chunk->frameIndex < (int)skeleton.bones.size() &&
+    // A piece animates if it is rigidly bound to a frame, or if it is skinned.
+    //
+    // Requiring a frame kept the skinned pieces still. frameIndex is only
+    // resolved from the Skin PLG when a geometry touches exactly one bone --
+    // that is what makes a segment rigid -- so anything weighted across several
+    // bones came out with -1 and skipped this block entirely, skinning and all.
+    // On Travis that is the face and the parts parented to it: they load, they
+    // are textured, and they stay behind while the body walks off.
+    const bool canSkin = chunk->hasWeights && state.animSkinning;
+    const bool haveFrame = chunk->frameIndex >= 0 &&
+                           chunk->frameIndex < (int)skeleton.bones.size();
+
+    if (!skeleton.bones.empty() && (canSkin || haveFrame) &&
         (clip || state.animRestPose)) {
 
         const size_t n = skeleton.bones.size();
@@ -120,7 +131,7 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
 
         currentBoneMats = posed;
 
-        if (chunk->hasWeights && state.animSkinning) {
+        if (canSkin) {
             // The native data indexes bones by their place in the HAnim table,
             // so the uniform array has to be in that order, not frame order.
             // The rest pose is already baked into the vertices, so the skinning
@@ -143,7 +154,7 @@ void CClumpObject::SetMatrixAndDraw(const RenderContext& ctx, MeshChunk* chunk) 
                     skinned = true;
                 }
             }
-        } else {
+        } else if (haveFrame) {
             const size_t f = (size_t)chunk->frameIndex;
             model = m_transform * posed[f] * glm::inverse(rest[f]);
         }

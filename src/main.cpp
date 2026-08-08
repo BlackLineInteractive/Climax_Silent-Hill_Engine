@@ -167,6 +167,7 @@ static bool        s_useDoorPressed = false;
 // read by the draw pass.
 static glm::vec3 s_playerFeet = glm::vec3(0.0f);
 static float     s_playerYaw  = 0.0f;
+static std::string s_playerClipName;
 
 // Build a view matrix from orbit parameters and return camera world position
 static glm::mat4 BuildView(glm::vec3& outEye) {
@@ -807,6 +808,18 @@ void main(){
                 // is the pad's grab/use input; E is its keyboard stand-in.
                 if (e.key.keysym.sym == SDLK_e && state.playMode)
                     s_useDoorPressed = true;
+                // The container names its animations Clip_1 upwards, so the
+                // idle cannot be found by name -- these step through the ones
+                // that fit the body until it looks right.
+                if (state.playMode && g_Player.loaded &&
+                    (e.key.keysym.sym == SDLK_LEFTBRACKET ||
+                     e.key.keysym.sym == SDLK_RIGHTBRACKET)) {
+                    const int d = e.key.keysym.sym == SDLK_RIGHTBRACKET ? 1 : -1;
+                    s_playerClipName = g_Player.CycleClip(d);
+                    std::cerr << "[player] clip " << (g_Player.currentClip + 1)
+                              << "/" << g_Player.usableClips.size() << "  "
+                              << s_playerClipName << "\n";
+                }
             }
 
             // Mouse wheel zoom — proportional so zooming stays usable at any scale
@@ -910,6 +923,12 @@ void main(){
 
                 if (placedFor != g_CurrentMeshContainer) {
                     zoneLinks = ClimaxEngine::Game::BuildZoneLinks(g_GameObjects);
+                    std::cerr << "[zone] " << zoneLinks.size()
+                              << " doorway(s) in " << g_CurrentMeshContainer << "\n";
+                    for (const auto &z : zoneLinks)
+                        std::cerr << "[zone]   -> " << z.toZone << "  at ("
+                                  << z.position.x << ", " << z.position.y << ", "
+                                  << z.position.z << ")\n";
                     glm::vec3 spawn, facing;
                     if (ClimaxEngine::Game::FindZoneSpawn(g_GameObjects, arrivedFrom,
                                                           spawn, facing)) {
@@ -953,6 +972,21 @@ void main(){
                 }
                 g_Player.Advance(dt);
 
+                // Idle, walk or run, chosen by what the body is doing. Bound
+                // only when it changes: PlayClipAt restarts the clip, so
+                // calling it every frame would freeze him on the first frame
+                // of the animation.
+                if (g_Player.loaded) {
+                    const bool moving = glm::length(wish) > 1e-3f;
+                    const bool running = moving && keys[SDL_SCANCODE_LSHIFT];
+                    int want = moving ? (running ? g_Player.runClip
+                                                 : g_Player.walkClip)
+                                      : g_Player.idleClip;
+                    if (want < 0) want = g_Player.idleClip;
+                    if (want >= 0 && want != g_Player.currentClip)
+                        s_playerClipName = g_Player.PlayClipAt(want);
+                }
+
                 // Camera planes: crossing one hands the view to the camera
                 // that side names. Rebuilt when the level changes, which is
                 // what the collision-mesh pointer tracks.
@@ -970,8 +1004,10 @@ void main(){
                 // loads the container it names and puts Travis on that level's
                 // spawner for the zone he just left. MSG_PAD_GRAB is the button
                 // the trigger asks for; E stands in for it here.
-                s_zoneLinkHere = ClimaxEngine::Game::ZoneLinkAt(zoneLinks,
-                                                                body.position);
+                // Reach, not containment: a closed door still blocks the body,
+                // so the box on its far side has to be usable from this side.
+                s_zoneLinkHere = ClimaxEngine::Game::ZoneLinkAt(
+                    zoneLinks, body.position, 0.9f);
                 if (s_zoneLinkHere >= 0) {
                     s_zonePrompt = zoneLinks[(size_t)s_zoneLinkHere].toZone;
                     if (s_useDoorPressed) {
@@ -2194,6 +2230,15 @@ void main(){
 
         // Doorway prompt. Drawn on the foreground list so it survives F1, and
         // centred low like the game's own use-prompt.
+        if (state.playMode && g_Player.loaded && !g_Player.usableClips.empty()) {
+            char cb[192];
+            snprintf(cb, sizeof(cb), "[ ]  clip %d/%d  %s",
+                     g_Player.currentClip + 1, (int)g_Player.usableClips.size(),
+                     s_playerClipName.c_str());
+            ImGui::GetForegroundDrawList()->AddText(
+                ImVec2(12.0f, (float)winH - 40.0f),
+                IM_COL32(190, 190, 200, 170), cb);
+        }
         if (state.playMode && s_zoneLinkHere >= 0 && !s_zonePrompt.empty()) {
             char buf[192];
             snprintf(buf, sizeof(buf), "E  -  %s", s_zonePrompt.c_str());

@@ -43,9 +43,29 @@ struct PlayerModel {
     // Drives every clump's animTime. Clips loop on their own duration.
     void Advance(float dt);
 
-    // Binds `name` (case-insensitive substring) to every clump whose skeleton
-    // it fits. Returns the number of clumps that took it.
-    int PlayClip(const std::string &name);
+    // Indices into `clips` that fit at least one clump's skeleton. The
+    // container ships clips for all seven of its skeletons, and one authored
+    // for a nine-bone arm drives a full body into a knot, so the rest are not
+    // offered at all.
+    std::vector<int> usableClips;
+    int currentClip = -1;   // index into usableClips, -1 for the rest pose
+
+    // The clips this body moves with, resolved once at load. The container
+    // names them Clip_N with no hint of what they hold, so these came from
+    // watching all 118 that fit: 27 is the idle sway, 29 the walk, 28 the run.
+    // Identified for CPlayerBehaviour.Travis; another character will number
+    // them differently, which is why they are looked up rather than assumed.
+    int idleClip = -1;
+    int walkClip = -1;
+    int runClip  = -1;
+
+    // Index into usableClips of the clip named `name`, or -1.
+    int FindClip(const std::string &name) const;
+
+    // Binds usableClips[i]. Pass -1 for the rest pose. Returns the clip's name.
+    std::string PlayClipAt(int i);
+    // Steps through usableClips by `delta`, wrapping. Returns the new name.
+    std::string CycleClip(int delta);
 };
 
 extern PlayerModel g_Player;

@@ -39,43 +39,55 @@ void PlayerModel::Advance(float dt) {
             clump->animTime += dt;
 }
 
-int PlayerModel::PlayClip(const std::string &name) {
-    std::string want = name;
-    std::transform(want.begin(), want.end(), want.begin(), ::tolower);
+// True when `clip` was authored for `skel`: the same number of animated bones.
+//
+// The container carries clips for every skeleton it ships, and SetMatrixAndDraw
+// makes the same test before using one -- a 53-track clip driven through a
+// nine-bone arm animates a few bones, leaves the rest at rest, and stretches
+// whatever spans the two into spikes.
+static bool ClipFits(const Skeleton &skel, const AnimClip &clip) {
+    int tracks = 0;
+    for (const Bone &b : skel.bones)
+        if (b.trackIndex >= 0)
+            tracks++;
+    return tracks > 0 && (size_t)tracks == clip.tracks.size();
+}
 
-    const AnimClip *pick = nullptr;
-    for (const AnimClip &c : clips) {
-        std::string n = c.name;
-        std::transform(n.begin(), n.end(), n.begin(), ::tolower);
-        if (n.find(want) != std::string::npos) {
-            pick = &c;
-            break;
+int PlayerModel::FindClip(const std::string &name) const {
+    for (size_t i = 0; i < usableClips.size(); ++i)
+        if (clips[(size_t)usableClips[i]].name == name)
+            return (int)i;
+    return -1;
+}
+
+std::string PlayerModel::PlayClipAt(int i) {
+    currentClip = -1;
+    for (auto &obj : objects)
+        if (auto *c = dynamic_cast<ClimaxEngine::SG::CClumpObject *>(obj.get()))
+            c->animClip = AnimClip{};   // back to the rest pose
+
+    if (i < 0 || i >= (int)usableClips.size())
+        return "rest pose";
+
+    const AnimClip &clip = clips[(size_t)usableClips[(size_t)i]];
+    for (auto &obj : objects) {
+        auto *c = dynamic_cast<ClimaxEngine::SG::CClumpObject *>(obj.get());
+        if (c && ClipFits(c->skeleton, clip)) {
+            c->animClip = clip;
+            c->animTime = 0.0f;
         }
     }
-    if (!pick)
-        return 0;
-
-    int bound = 0;
-    for (auto &obj : objects) {
-        auto *clump = dynamic_cast<ClimaxEngine::SG::CClumpObject *>(obj.get());
-        if (!clump)
-            continue;
-        // A clip belongs to the skeleton it was authored for. The container
-        // ships clips for every skeleton it carries, and driving a 53-track
-        // clip through a 9-bone arm stretches whatever spans the two into
-        // spikes -- the same test SetMatrixAndDraw makes before using one.
-        int tracks = 0;
-        for (const Bone &b : clump->skeleton.bones)
-            if (b.trackIndex >= 0)
-                tracks++;
-        if ((size_t)tracks != pick->tracks.size())
-            continue;
-        clump->animClip = *pick;
-        clump->animTime = 0.0f;
-        bound++;
-    }
-    return bound;
+    currentClip = i;
+    return clip.name.empty() ? "unnamed" : clip.name;
 }
+
+std::string PlayerModel::CycleClip(int delta) {
+    if (usableClips.empty())
+        return "no clips fit this skeleton";
+    const int n = (int)usableClips.size();
+    return PlayClipAt(((currentClip + delta) % n + n) % n);
+}
+
 
 bool LoadPlayerModel(const std::string &entryName) {
     auto *arc = ClimaxEngine::RWS::FileSystem::CArchiveManager::GetInstance()
@@ -169,16 +181,28 @@ bool LoadPlayerModel(const std::string &entryName) {
               << " textures, " << g_Player.clips.size() << " clips, "
               << g_Player.Height() << " units tall\n";
 
-    // Standing still is still animation: without a clip the skeleton stays in
-    // its authored rest pose, which for these models is arms straight out.
-    for (const char *name : {"idle", "stand", "wait", "breath"}) {
-        const int bound = g_Player.PlayClip(name);
-        if (bound > 0) {
-            std::cerr << "[player] idle clip '" << name << "' on " << bound
-                      << " clump(s)\n";
-            break;
-        }
-    }
+    // Which clips this body can actually take. Naming them is hopeless -- the
+    // container calls them Clip_1 upwards -- so they are selected by fit, and
+    // the caller cycles through what is left to find the idle by eye.
+    for (size_t ci = 0; ci < g_Player.clips.size(); ++ci)
+        for (auto &obj : g_Player.objects)
+            if (auto *c = dynamic_cast<ClimaxEngine::SG::CClumpObject *>(obj.get()))
+                if (ClipFits(c->skeleton, g_Player.clips[ci])) {
+                    g_Player.usableClips.push_back((int)ci);
+                    break;
+                }
+
+    std::cerr << "[player] " << g_Player.usableClips.size() << " of "
+              << g_Player.clips.size() << " clips fit this body\n";
+    g_Player.idleClip = g_Player.FindClip("Clip_27");
+    g_Player.walkClip = g_Player.FindClip("Clip_29");
+    g_Player.runClip  = g_Player.FindClip("Clip_28");
+    std::cerr << "[player] idle " << g_Player.idleClip << "  walk "
+              << g_Player.walkClip << "  run " << g_Player.runClip << "\n";
+    if (g_Player.idleClip >= 0)
+        g_Player.PlayClipAt(g_Player.idleClip);
+    else if (!g_Player.usableClips.empty())
+        std::cerr << "[player] playing '" << g_Player.PlayClipAt(0) << "'\n";
 
     if (levelIdx >= 0)
         LoadLevelFromArc(levelIdx);
@@ -192,5 +216,7 @@ void ReleasePlayerModel() {
     g_Player.textures.clear();
     g_Player.objects.clear();
     g_Player.clips.clear();
+    g_Player.usableClips.clear();
+    g_Player.currentClip = -1;
     g_Player.loaded = false;
 }

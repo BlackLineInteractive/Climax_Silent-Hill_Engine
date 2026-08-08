@@ -44,7 +44,13 @@ std::vector<ZoneLink> BuildZoneLinks(const std::vector<GameObject> &objects);
 
 // Index of the link whose volume contains `p`, or -1 when the player is not
 // standing in a doorway.
-int ZoneLinkAt(const std::vector<ZoneLink> &links, const glm::vec3 &p);
+//
+// `reach` grows every box by that many units. A door the player has not opened
+// is still solid in the collision mesh, so the trigger box behind it can be
+// unreachable by a body that is stopped at the door plane -- the reach is what
+// lets him use it from where he can actually stand.
+int ZoneLinkAt(const std::vector<ZoneLink> &links, const glm::vec3 &p,
+               float reach = 0.0f);
 
 // Where the player appears on entering a level from `fromZone`.
 //

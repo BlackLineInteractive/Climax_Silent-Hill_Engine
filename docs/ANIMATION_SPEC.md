@@ -374,3 +374,74 @@ step whose result cannot be seen.
 Delta-morph (`rwID_DMORPHANIMATION`, facial) — the reference has `rDeltaMorphPLG`
 and chunk `0x0122`, but it targets vertex positions rather than bones and is a
 separate feature. Note it, do not build it here.
+
+---
+
+## Clip catalogue — `CPlayerBehaviour.Travis`
+
+The container names its animations `Clip_0` upwards and says nothing else about
+them: 147 clips over 7 skeletons, 118 of which fit the full body. There is no
+marker in the data for which one is the idle, so the list below was built by
+watching them.
+
+Numbering is the clip's own name, which is **not** the order they appear in the
+playback list.
+
+| clip | what it is |
+|------|------------|
+| 0 | overhead swing, two-handed, holding something long (bat / pipe) |
+| 1 | as 0 but swinging upward from below |
+| 2 | standing with it held at shoulder height |
+| 4 | swing from above the head down to about waist |
+| 5 | as 0, faster and wider |
+| 6 | winding up |
+| 7 | hands raised above the shoulder, torso turned — waiting to strike |
+| 8 | strike from over the head down to about waist |
+| 26 | standing, one hand held to the side |
+| **27** | **idle** — gentle up/down sway |
+| **28** | **run** |
+| **29** | **walk** |
+| 30 | fall / death |
+| 31 | stumble |
+| 32 | crouches on one knee to pick something up, rises sharply |
+| 33 | continues 32 (standing back up) |
+| 34 | knocked two or three steps backwards, arms flailing |
+| 35 | standing calmly, breathing |
+| 37 | fighting stance, left hand back, knees bent |
+| 38 | places something on a table with the right hand |
+| 39 | the reverse of 38 — takes it back |
+| 40 | turns around, walking, smoothly |
+| 41 | touches a mirror — the reality transition |
+| 42 | withdraws the hand and puts it to his temple |
+| 43 | run, faster still |
+| 44 | as 34 but harder and further back |
+| 45 | the same shove, forwards instead of back |
+| 46 | sharp jerk of arm and torso |
+| 47 | the same, backwards |
+| 48 | taking a hit in a fist fight |
+| 49 | pistol reload |
+| 54 | pistol aimed at the ground |
+| 56 | pistol aimed level |
+| 58 | pistol aimed up |
+| 60 | pistol held two-handed, ready, beside the head |
+| 61 | firing downward |
+| 62 | firing level |
+| 63 | another reload |
+| 64 | holding something large two-handed (shotgun) |
+
+Between 8 and 26 are the unarmed set — punches, knife strikes, finishing kicks.
+
+`Render/PlayerModel.cpp` resolves 27, 29 and 28 by name at load. Other
+characters number their clips differently, so they are looked up rather than
+assumed, and a character whose lookup fails falls back to the first fitting
+clip.
+
+### Why the face used to stand still
+
+`frameIndex` is only resolved from the Skin PLG when a geometry touches exactly
+one bone — that is what makes a PS2 character segment rigid. Anything weighted
+across several bones came out with `-1`, and `CClumpObject::SetMatrixAndDraw`
+required `frameIndex >= 0` before doing any posing at all, **skinning
+included**. So Travis's face and the parts parented to it loaded, textured
+correctly, and then stayed behind while the rest of him walked away. The gate is
+now "rigidly bound *or* skinned".
