@@ -263,6 +263,8 @@ static void ParseShsmContainer(const std::vector<uint8_t> &d) {
 
     const size_t inner = off + 12;
     const uint32_t headerSize = be(inner);
+    // Despite the name this length belongs to the asset's own name, the first
+    // of the header's two strings; the RenderWare type follows the GUID.
     const uint32_t tagLen = be(inner + 4);
     if (tagLen > 1024) { off += 12 + size; continue; }
 
@@ -271,6 +273,10 @@ static void ParseShsmContainer(const std::vector<uint8_t> &d) {
     ShoSection sec;
     sec.offset = (uint32_t)off;
     sec.size = size;
+    if (tagLen && inner + 8 + tagLen <= d.size()) {
+      const char *a = (const char *)&d[inner + 8];
+      sec.assetName.assign(a, strnlen(a, tagLen));
+    }
     if (nameLen < 256 && guidOff + 20 + nameLen <= d.size()) {
       const char *p = (const char *)&d[guidOff + 20];
       sec.name.assign(p, strnlen(p, nameLen));
@@ -1479,10 +1485,14 @@ void ParseContainerStructureData(const std::vector<uint8_t> &data) {
         
         if (typeId == 0x1103) {
           AnimClip clip;
-          // The section name is the type tag ("rwID_HANIMANIMATION"), not the
-          // clip's own filename, so every clip would be called the same thing.
-          // Number them until the real name is located.
-          clip.name = "Clip_" + std::to_string(g_ShoSections.size() - 1);
+          // The clip's own filename -- "PC_TG_Walk.anm" -- from the first of
+          // the section header's two strings. `name` is the type tag, which is
+          // the same on all 147 of them, so numbering was the only option
+          // until the asset name was found.
+          clip.name = g_ShoSections.empty() ||
+                              g_ShoSections.back().assetName.empty()
+                          ? "Clip_" + std::to_string(g_ShoSections.size() - 1)
+                          : g_ShoSections.back().assetName;
           clip.duration = duration;
           clip.fps = 30.0f;
           

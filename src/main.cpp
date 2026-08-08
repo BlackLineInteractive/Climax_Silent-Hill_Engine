@@ -1491,13 +1491,11 @@ void main(){
                     obj->SetTransform(model);
                     for (auto* chunkPtr : obj->GetMeshes()) {
                         const MeshChunk& m = *chunkPtr;
-                        // The container's particle blanks are authored at full
-                        // size and scaled when the game spawns them; drawn as
-                        // they are, they carpet the floor.
-                        if (IsPlayerEffectMesh(m)) continue;
+                        // Effect sheets, particle sheets and the untextured
+                        // shadow proxy are in the container but are not Travis.
+                        if (!IsPlayerBodyMesh(m, g_Player.textures)) continue;
 
-                        auto itT = g_Player.textures.find(m.texName);
-                        const GLuint tid = itT == g_Player.textures.end() ? 0 : itT->second;
+                        const GLuint tid = PlayerTextureId(g_Player.textures, m.texName);
                         glBindTexture(GL_TEXTURE_2D, tid);
                         glUniform1i(uUntex, (m.untextured || tid == 0) ? 1 : 0);
                         glUniform1i(uUnlit, m.unlitGeometry ? 1 : 0);

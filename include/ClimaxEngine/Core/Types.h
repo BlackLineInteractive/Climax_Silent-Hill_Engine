@@ -183,6 +183,12 @@ struct ShoTypeEntry {
 };
 
 struct ShoSection {
+    // A 0x0716 section header carries two strings: the asset's own name, then
+    // its RenderWare type. `name` has always held the type -- "rwID_WORLD",
+    // "rwID_HANIMANIMATION" -- because that is what the code keys off. The
+    // first string was simply never read, which is why every animation had to
+    // be numbered Clip_0 upwards instead of being called PC_TG_Walk.anm.
+    std::string assetName;
   uint32_t offset = 0;
   uint32_t size = 0;
   std::string name; // e.g. "rwID_WORLD", "rwID_CBSP", "rwID_CLUMP"

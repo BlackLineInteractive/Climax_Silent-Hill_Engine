@@ -58,6 +58,7 @@ struct PlayerModel {
     int idleClip = -1;
     int walkClip = -1;
     int runClip  = -1;
+    int tiredClip = -1;   // the exhausted idle, unused until stamina exists
 
     // Index into usableClips of the clip named `name`, or -1.
     int FindClip(const std::string &name) const;
@@ -74,6 +75,21 @@ extern PlayerModel g_Player;
 // rather than part of the body. The game scales these at runtime; drawn as
 // authored they are floor-wide quads, which is the sheet under Travis's feet.
 bool IsPlayerEffectMesh(const MeshChunk &m);
+
+// True for a piece that belongs on screen as part of the character.
+//
+// Three things in the container are not Travis: the effect sheets above, any
+// material whose texture cannot be resolved (a body piece always has one --
+// an unresolvable piece renders as flat grey, which is the silhouette that
+// shows through him from inside), and the FX_ sheets the game spawns as
+// particles rather than wearing.
+bool IsPlayerBodyMesh(const MeshChunk &m,
+                      const std::map<std::string, GLuint> &textures);
+
+// Texture id for `name`, trying the spelling as given and its upper- and
+// lower-case aliases, the way the level renderer does.
+GLuint PlayerTextureId(const std::map<std::string, GLuint> &from,
+                       const std::string &name);
 
 // Loads `entryName` out of the mounted archive and keeps it, then restores
 // whatever level was loaded before. Costs a full level reload, so call once.

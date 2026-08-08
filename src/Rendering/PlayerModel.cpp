@@ -11,6 +11,8 @@
 
 PlayerModel g_Player;
 
+static std::string s_lastClipName;
+
 bool IsPlayerEffectMesh(const MeshChunk &m) {
     // Character containers ship effect sheets -- muzzle flashes, blood, the
     // shadow blob -- as full-size quads that the game scales down when it
@@ -20,8 +22,8 @@ bool IsPlayerEffectMesh(const MeshChunk &m) {
     // Told apart by shape rather than by name: a body mesh is a shell of many
     // triangles, a blank is a single large quad. Six vertices and a span wider
     // than a person is not something a character is made of.
-    if (m.vertices.size() > 12)
-        return false;
+    if (m.vertices.empty())
+        return true;
 
     glm::vec3 lo(1e9f), hi(-1e9f);
     for (const Vertex &v : m.vertices) {
@@ -29,7 +31,45 @@ bool IsPlayerEffectMesh(const MeshChunk &m) {
         hi = glm::max(hi, v.pos);
     }
     const glm::vec3 span = hi - lo;
-    return std::max(span.x, std::max(span.y, span.z)) > 1.0f;
+    // Travis is about 0.6 m across the shoulders and 1.8 m tall. Anything
+    // spanning two metres sideways, or three in any direction, is one of the
+    // sheets -- counting vertices missed them because some are subdivided.
+    return std::max(span.x, span.z) > 2.0f ||
+           std::max(span.x, std::max(span.y, span.z)) > 3.0f;
+}
+
+// Materials and texture dictionaries disagree about capitalisation, so the
+// decoder registers each texture under its own spelling plus an upper- and a
+// lower-case alias, and the level renderer tries all three. Taking only the
+// exact spelling left some of Travis's meshes with no texture of their own --
+// the grey body showing through him from inside.
+GLuint PlayerTextureId(const std::map<std::string, GLuint> &from,
+                       const std::string &name) {
+    auto it = from.find(name);
+    if (it != from.end())
+        return it->second;
+    std::string alt = name;
+    std::transform(alt.begin(), alt.end(), alt.begin(), ::toupper);
+    if ((it = from.find(alt)) != from.end())
+        return it->second;
+    alt = name;
+    std::transform(alt.begin(), alt.end(), alt.begin(), ::tolower);
+    if ((it = from.find(alt)) != from.end())
+        return it->second;
+    return 0;
+}
+
+bool IsPlayerBodyMesh(const MeshChunk &m,
+                      const std::map<std::string, GLuint> &textures) {
+    if (IsPlayerEffectMesh(m))
+        return false;
+    if (m.texName.size() > 3 &&
+        sho_strnicmp(m.texName.c_str(), "FX_", 3) == 0)
+        return false;
+    // No texture we can bind. On a level that means a flat-coloured surface and
+    // is legitimate; on a character it means a proxy -- the low shadow body --
+    // and drawing it untextured puts a grey figure inside Travis.
+    return PlayerTextureId(textures, m.texName) != 0;
 }
 
 void PlayerModel::Advance(float dt) {
@@ -135,11 +175,13 @@ bool LoadPlayerModel(const std::string &entryName) {
 
     // ── Take ownership of its textures ───────────────────────────────────────
     for (auto &obj : g_Player.objects)
-        for (auto *m : obj->GetMeshes()) {
-            auto it = g_TextureMap.find(m->texName);
-            if (it != g_TextureMap.end())
-                g_Player.textures[m->texName] = it->second;
-        }
+        for (auto *m : obj->GetMeshes())
+            for (const std::string &n : {m->texName, m->altTexName}) {
+                if (n.empty())
+                    continue;
+                if (const GLuint id = PlayerTextureId(g_TextureMap, n))
+                    g_Player.textures[n] = id;
+            }
     // Every key naming one of those textures has to go, not only the ones
     // spelled the way the material spells them: the decoder registers upper
     // and lower case aliases too, and the next load deletes by unique id, so a
@@ -160,7 +202,7 @@ bool LoadPlayerModel(const std::string &entryName) {
     size_t effects = 0;
     for (auto &obj : g_Player.objects)
         for (auto *m : obj->GetMeshes()) {
-            if (IsPlayerEffectMesh(*m)) {
+            if (!IsPlayerBodyMesh(*m, g_Player.textures)) {
                 effects++;
                 continue;
             }
@@ -194,15 +236,43 @@ bool LoadPlayerModel(const std::string &entryName) {
 
     std::cerr << "[player] " << g_Player.usableClips.size() << " of "
               << g_Player.clips.size() << " clips fit this body\n";
-    g_Player.idleClip = g_Player.FindClip("Clip_27");
-    g_Player.walkClip = g_Player.FindClip("Clip_29");
-    g_Player.runClip  = g_Player.FindClip("Clip_28");
+    // 35 is the calm breathing stand; 27 is the exhausted idle, kept for when
+    // there is a stamina state to drive it.
+    std::cerr << "[player] pieces (name / frame / weights / verts):\n";
+    for (auto &obj : g_Player.objects)
+        for (auto *m : obj->GetMeshes())
+            std::cerr << "[player]   " << (m->texName.empty() ? "-" : m->texName)
+                      << "  frame=" << m->frameIndex
+                      << "  weights=" << (m->hasWeights ? "yes" : "no")
+                      << "  verts=" << m->vertices.size()
+                      << "  tex="
+                      << (PlayerTextureId(g_Player.textures, m->texName) ? "yes" : "NO")
+                      << (IsPlayerBodyMesh(*m, g_Player.textures) ? "" : "   [skipped]")
+                      << "\n";
+
+    // By their authored names now that the section header gives them up. The
+    // numbered fallbacks stay for a container whose names do not parse -- and
+    // are what the numbers in ANIMATION_SPEC.md refer to.
+    struct Want { int *slot; const char *real; const char *fallback; };
+    const Want wants[] = {
+        {&g_Player.idleClip,  "PC_TG_Idle.anm",        "Clip_35"},
+        {&g_Player.walkClip,  "PC_TG_Walk.anm",        "Clip_29"},
+        {&g_Player.runClip,   "PC_TG_Run.anm",         "Clip_28"},
+        {&g_Player.tiredClip, "PC_TG_Pained_Idle.anm", "Clip_27"},
+    };
+    for (const Want &w : wants) {
+        *w.slot = g_Player.FindClip(w.real);
+        if (*w.slot < 0)
+            *w.slot = g_Player.FindClip(w.fallback);
+    }
     std::cerr << "[player] idle " << g_Player.idleClip << "  walk "
               << g_Player.walkClip << "  run " << g_Player.runClip << "\n";
+
     if (g_Player.idleClip >= 0)
-        g_Player.PlayClipAt(g_Player.idleClip);
+        s_lastClipName = g_Player.PlayClipAt(g_Player.idleClip);
     else if (!g_Player.usableClips.empty())
-        std::cerr << "[player] playing '" << g_Player.PlayClipAt(0) << "'\n";
+        s_lastClipName = g_Player.PlayClipAt(0);
+    std::cerr << "[player] playing '" << s_lastClipName << "'\n";
 
     if (levelIdx >= 0)
         LoadLevelFromArc(levelIdx);
