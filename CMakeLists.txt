@@ -114,6 +114,9 @@ endif()
 # build failing if they are not ready, is the whole point of this boundary.
 add_library(climax-core STATIC
     src/Core/RWS/FileSystem/CArchive.cpp
+    src/Core/UI/StringTable.cpp
+    src/Core/UI/Font.cpp
+    src/Core/UI/ScreenDef.cpp
     src/Platform/PS2/AudioParser.cpp
     src/Platform/Wii/WiiGeometry.cpp
 )
